@@ -1,4 +1,12 @@
-"""The state packer: what the pipeline knows at decision time, fitted to the model's window.
+"""FROZEN REFERENCE: the state packer as it was before the fast search (commit f4c7e87).
+
+Only tests/test_packer_equivalence.py imports this file. The current packer (floorcall.state)
+must produce exactly the same packed state as this one, row for row (DECISIONS.md D-026). Do not
+edit or "fix" anything below; it is kept as it was.
+
+---
+
+The state packer: what the pipeline knows at decision time, fitted to the model's window.
 
 Every state the model sees, in training, test, replay or live, is built here. That makes this the
 one place to enforce the two rules every reported number depends on:
@@ -97,37 +105,19 @@ def _build(
     }
 
 
-def _largest_fitting(n: int, fits: Callable[[int], bool]) -> int:
-    """The largest k in [0, n] with fits(k), assuming fits is (nearly) monotone decreasing in k.
-
-    Tries k = n first: everything fitting is the common case, and it costs one measurement.
-    Otherwise a binary search over the full [0, n], then a linear step-down in case a BPE count is
-    not quite monotone.
-
-    It is not quite monotone for word tails. The first kept word follows a quote with no space,
-    and dropping the word before it can split it into more tokens, so the count can wobble by a
-    token or two. Different search orders can then settle on different valid answers. Searching
-    [0, n] rather than [0, n - 1] after the fast path keeps the probe sequence exactly that of the
-    binary search this replaced (fits(n) is memoised by the caller), so the result is identical,
-    not merely valid (DECISIONS.md D-026).
-    """
-    if n == 0 or fits(n):
-        return n
-    lo, hi = 0, n
+def _longest_fitting_tail(words: list[str], fits: Callable[[str], bool]) -> int:
+    """How many of `words`, counted from the end, can be kept. Binary search, then a linear
+    step-down, since a BPE count is only nearly monotone in the number of words."""
+    lo, hi = 0, len(words)
     while lo < hi:
         mid = (lo + hi + 1) // 2
-        if fits(mid):
+        if fits(" ".join(words[len(words) - mid :])):
             lo = mid
         else:
             hi = mid - 1
-    while lo > 0 and not fits(lo):
+    while lo > 0 and not fits(" ".join(words[len(words) - lo :])):
         lo -= 1
     return lo
-
-
-def _longest_fitting_tail(words: list[str], fits: Callable[[str], bool]) -> int:
-    """How many of `words`, counted from the end, can be kept."""
-    return _largest_fitting(len(words), lambda k: fits(" ".join(words[len(words) - k :])))
 
 
 def pack_state(
@@ -156,16 +146,8 @@ def pack_state(
     turns = [t for t in turns if t["text"]]
     speaking = bool(snapshot.agent_speaking)
 
-    # Every candidate is measured with the real tokenizer on the exact serialized text. Counts
-    # are memoised per string, so no candidate is tokenized twice (the final state was always
-    # measured already, as the last candidate accepted).
-    memo: dict[str, int] = {}
-
     def size(state: dict[str, Any]) -> int:
-        text = serialize(state)
-        if text not in memo:
-            memo[text] = count_tokens(text)
-        return memo[text]
+        return count_tokens(serialize(state))
 
     if size(_build(speaking, [], "", "")) > budget:
         raise StateBudgetError(f"budget {budget} cannot hold an empty state")
@@ -195,15 +177,13 @@ def pack_state(
     agent = " ".join(agent_pool[len(agent_pool) - n_agent :])
     agent_cut = user_cut or n_agent < len(agent_pool)
 
-    # 3. history, newest first, whole turns, contiguous: the largest k such that the newest k
-    # turns fit. Each turn adds tokens, so this is the same k a turn-by-turn scan stops at, found
-    # in log(turns) measurements instead of one per turn.
-    pool = [] if agent_cut else turn_pool
-    n_turns = _largest_fitting(
-        len(pool),
-        lambda k: size(_build(speaking, pool[len(pool) - k :], agent, user)) <= budget,
-    )
-    kept = pool[len(pool) - n_turns :]
+    # 3. history, newest first, whole turns, contiguous
+    kept: list[dict[str, str]] = []
+    for turn in [] if agent_cut else reversed(turn_pool):
+        trial = [turn, *kept]
+        if size(_build(speaking, trial, agent, user)) > budget:
+            break
+        kept = trial
 
     state = _build(speaking, kept, agent, user)
     n_tokens = size(state)
