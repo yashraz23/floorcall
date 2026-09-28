@@ -69,6 +69,30 @@ class SplitSettings(BaseModel):
         return self
 
 
+class DataSettings(BaseModel):
+    """Dataset construction (floorcall.data). Changing any of these changes the frozen test sets."""
+
+    # Merged turns of history kept per example before the packer trims to the token budget.
+    max_history_turns: int = 8
+    # SwDA tags short listener responses by function: aa (agree), bk (acknowledge), ba
+    # (appreciate), na/ny (yes-answers). 81-100% of them are three words or fewer ("yeah",
+    # "right", "okay", "uh huh"), and at that length they do not take the floor any more than a
+    # "b" backchannel does. Up to this many words, they do not count as taking or holding it.
+    minimal_response_max_words: int = 3
+    # D2: a barge-in is decided on the first words the recogniser has, not the whole turn. 12
+    # words is about 4 s of speech, enough to hold "yeah but that's not what i asked".
+    d2_partial_words: int = 12
+    # D2 hard subset: a backchannel form qualifies when at least this many train backchannels
+    # are exactly it AND at least this many train interruptions open with it ...
+    d2_hard_min_count: int = 20
+    # ... and neither class dominates it: each is at least this share of the form's train rows.
+    # Without it, "uh huh" qualifies on volume alone (8% of its rows are interruptions) and the
+    # "hard" subset becomes most of the test set.
+    d2_hard_min_share: float = 0.2
+    # D1 hard subset: last words seen at least this often ending train truncations are rated.
+    d1_hard_min_count: int = 10
+
+
 class EvalSettings(BaseModel):
     """Metrics and the latency benchmark."""
 
@@ -126,6 +150,7 @@ class Settings(BaseSettings):
     state: StateSettings = StateSettings()
     policy: PolicySettings = PolicySettings()
     splits: SplitSettings = SplitSettings()
+    data: DataSettings = DataSettings()
     eval: EvalSettings = EvalSettings()
     train: TrainSettings = TrainSettings()
     paths: PathSettings = PathSettings()

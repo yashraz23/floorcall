@@ -110,3 +110,55 @@ the M0 spike says the stock path misses it by about 10x: `user_pause` at p50 0.8
 reports the measured CPU numbers with "fits budget: no" rather than moving the target. INT8 ONNX
 (`laya[onnx]`, which adds `onnxruntime`) is the plausible mitigation. It needs Yash's approval
 for the dependency and sits on the cut list below Table C.
+
+**D-015 · 2026-09-27 · §4 D1/D2** — How SwDA becomes labels. The caller being decided about plays
+the user, the other caller plays the agent.
+*D1 turn_complete*: `complete` means the segment closes its slash unit (`/`, not abandoned `-/`)
+and the other caller then takes the floor. `continuation` (false) means the segment does not close
+its unit, the other caller only backchannels, and the speaker resumes with a `+` continuation.
+`truncation` (false) is a complete turn cut at a random word boundary inside its last utterance.
+Excluded as unlabelable from text: a closed unit, then only a backchannel, then a new unit from the
+same speaker; and a turn cut off by the other caller after an unfinished or abandoned segment.
+*D2 barge_in*: see D-016.
+*Who holds the floor*: backchannels (`b`, `bh`), noise (`x`, `%`), and **minimal responses** do not
+take or hold it. A minimal response is `aa`, `bk`, `ba`, `na`, `ny` or `b^m` of at most 3 words
+(`DataSettings.minimal_response_max_words`). SwDA's coders tag a short "yeah" by function, and
+81-100% of those tags are three words or fewer. The first build counted them as turns, which
+flipped the floor: a speaker simply going on after the listener's "Yeah." (`aa`) looked like a
+barge-in, and a listener's "Yeah." made the speaker's unit "complete". Fixing it removed about 12k
+D1 "complete" labels that were really the ambiguous excluded case. A residual 0.6% of D2 test rows
+have an agent turn such as "No," tagged as a real answer (`nn`), which does take the floor.
+*Text*: SwDA markup is stripped to spoken words (`clean_text`). Fillers ("uh", "um") are kept,
+because ASR can emit them. The live pipeline must be configured to keep them too (Deepgram
+`filler_words=true`), or train and live text will differ.
+
+**D-016 · 2026-09-27 · §4 D2** — D2 labels a caller's **whole run** of utterances, not one row,
+and the text is its first 12 words. SwDA segments by dialog act, so "Yeah, but that's not what I
+asked" is stored as two rows, "Yeah," (`b`) and "but that's ..." (`sd`). Measured on single rows,
+only 11 of 14,376 train interruptions start with "yeah", so the spec's central hard case barely
+exists. A recogniser delivers the merged string. So the run is an interruption if any utterance in
+it claims the floor, a backchannel if every utterance is one, noise if all of it is noise, and
+excluded otherwise. After the change, 4,067 train interruptions open with "yeah". The 12-word cap
+(`d2_partial_words`) approximates the partial transcript at decision time.
+*Hard subsets* are defined from train statistics only. D2: a backchannel form qualifies when at
+least 20 train backchannels are exactly it, at least 20 train interruptions open with it, and each
+class is at least 20% of its rows. Without the share floor, "uh huh" qualified on volume alone (8%
+interruptions), and "hard" became 60% of the test set; with it, hard is 38%, built from yeah, right,
+oh, okay, yes, sure, really and similar. D1: a truncation is hard when its last word w has
+(train complete turns ending in w) / (train truncations ending in w) >= 1, i.e. a last-word
+heuristic would call it complete.
+
+**D-017 · 2026-09-27 · §4 D3** — D3 is built from `clinc/oos-eval` `data/data_oos_plus.json`
+(counts identical to HF `clinc/clinc_oos` "plus"), with intent names inline. CLINC's own splits
+are used: train -> train, val -> calib, test -> test. Calib and test rows whose normalized text
+duplicates a train row are dropped (one test row). Only CLINC's `oos` queries are out_of_scope;
+the other nine domains' queries are unused, so the label definition stays CLINC's. Each query is
+packed as a `user_pause` state with no history, and the agent's last line is one of five fixed
+openers, chosen by a hash of the row id. Test balance: 30 per intent, 1,000 out_of_scope, so
+majority-class accuracy is 0.69. Macro-F1 is the headline D3 number.
+
+**D-018 · 2026-09-27 · §10.2** — The first D1/D2 test files were frozen, then **regenerated before
+they were ever committed or evaluated**, when review found the minimal-response bug (D-015). The
+freeze guard refused the rebuild, as designed. The uncommitted files were deleted and v1 was
+rebuilt. The CLINC set came back with an identical hash (`9d1850a8…`), which also shows the build
+is deterministic. From the first commit of `data/test_frozen/`, any change is a new version.
