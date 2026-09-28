@@ -176,6 +176,18 @@ class TrainSettings(BaseModel):
     log_every_updates: int = 10
 
 
+class ProviderPin(BaseModel):
+    """The one OpenRouter endpoint a model is served from, with no fallback (D-032)."""
+
+    # OpenRouter's endpoint slug, provider plus variant. A bare provider slug would match every
+    # endpoint that provider runs, whatever its quantization.
+    endpoint: str
+    # The provider name OpenRouter reports in a response's "provider" field; a response naming any
+    # other provider is rejected.
+    name: str
+    quantization: str
+
+
 class LLMSettings(BaseModel):
     """LLMs via OpenRouter: the D4 training labeller and the prompted-LLM baseline (D-030, D-031)."""
 
@@ -196,6 +208,19 @@ class LLMSettings(BaseModel):
             "openai/gpt-oss-20b": (0.075, 0.30),
         }
     )
+    # Models served from one fixed endpoint (D-032). The labeller runs on Crusoe's bf16 build of
+    # gpt-oss-120b only: no other provider, no other quantization. The baseline is not pinned.
+    provider_pins: dict[str, ProviderPin] = Field(
+        default_factory=lambda: {
+            "openai/gpt-oss-120b": ProviderPin(
+                endpoint="crusoe/bf16", name="Crusoe", quantization="bf16"
+            )
+        }
+    )
+    # A labeller prompt is accepted only if, on calib, it agrees with Yash's hand labels at least
+    # this well (D-032). Test and train are labelled only with an accepted prompt.
+    labeller_min_kappa: float = 0.60
+    labeller_min_escalate_precision: float = 0.70
     # Yash's cap for all LLM use in this project: $5, with the stop at 95% of it, $4.75. A call is
     # refused unless its worst case still fits under the stop, counting everything already spent.
     budget_usd: float = 5.0

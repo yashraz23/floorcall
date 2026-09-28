@@ -5,7 +5,8 @@ decision rules quoted verbatim, and the same view of a conversation the labellin
 up to two earlier turns, the agent's last reply, the customer's message. Its agreement with his
 labels then measures the labeller on his task, not on a different definition. It may answer
 "unsure", which plays the role of his skip. The prompt is versioned; changing a word is a new
-version.
+version. v2 (D-032) adds two clarifying sentences after the rules, one for each error direction
+v1 showed on calib; the rules themselves are unchanged.
 
 The baseline is given exactly what Laya is given: the packed, normalized state and the question's
 instructions and option descriptions from floorcall.questions. It is asked for a probability per
@@ -19,7 +20,7 @@ import json
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-LABELLER_VERSION = "llm-labeller-v1"
+LABELLER_VERSION = "llm-labeller-v2"
 
 LABELLER_SYSTEM = """You label customer messages sent to a bank's support account on Twitter, for a \
 dataset that trains an escalation detector. The question for every message is: "Should this \
@@ -38,6 +39,9 @@ Label "no" when:
 - The customer is supplying requested information, thanking, confirming ("ok, done"), or praising.
 - There is annoyance at a product or situation, but no sign that support has failed them ("ugh, \
 the app is down").
+
+Threats to leave or close the account are escalations even with no agent reply. Delay or \
+inconvenience alone is not, unless the customer says support has failed them.
 
 Label "unsure" when you cannot tell: sarcasm you cannot read, context too thin to judge, not \
 English, spam, or unreadable. A wrong label is worse than "unsure".

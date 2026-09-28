@@ -15,6 +15,10 @@ Only two things in floorcall call an LLM: the D4 training labeller and the promp
   Reservations make the check hold under concurrency.
 - **Only compliant providers.** `provider.require_parameters` routes only to providers that support
   every parameter sent: strict JSON-schema output, the seed, reasoning effort.
+- **Pinned models stay pinned** (D-032). A model with a `ProviderPin` is sent to that one endpoint
+  (`only` and `order` hold just its slug, `allow_fallbacks` is false, `quantizations` holds just its
+  quantization). A response that names any other provider is rejected rather than used, and is
+  still charged, since it was billed.
 - **Cache.** Responses are cached by the exact request, so a rerun costs nothing and returns the same
   answer. The latency benchmark bypasses it, since a cached answer has no network in it.
 
@@ -219,6 +223,17 @@ class LLMClient:
         self, model: str, messages: Sequence[Mapping[str, str]], schema: Mapping[str, Any]
     ) -> dict[str, Any]:
         p_in, p_out = self.ledger.max_price(model)
+        provider: dict[str, Any] = {
+            "require_parameters": True,
+            "max_price": {"prompt": p_in, "completion": p_out},
+        }
+        if (pin := self.settings.provider_pins.get(model)) is not None:
+            provider |= {
+                "only": [pin.endpoint],
+                "order": [pin.endpoint],
+                "allow_fallbacks": False,
+                "quantizations": [pin.quantization],
+            }
         return {
             "model": model,
             "messages": [dict(m) for m in messages],
@@ -230,10 +245,7 @@ class LLMClient:
                 "type": "json_schema",
                 "json_schema": {"name": "answer", "strict": True, "schema": dict(schema)},
             },
-            "provider": {
-                "require_parameters": True,
-                "max_price": {"prompt": p_in, "completion": p_out},
-            },
+            "provider": provider,
         }
 
     def chat_json(
@@ -291,6 +303,9 @@ class LLMClient:
             reported_cost=reported_cost,
             latency_ms=latency_ms,
         )
+        pin = self.settings.provider_pins.get(model)
+        if pin is not None and provider != pin.name:
+            raise LLMError(f"{model} was served by {provider}, not the pinned {pin.endpoint}")
         if parse_error is not None or not isinstance(data, dict):
             raise LLMError(f"{model} ({provider}) did not return the requested JSON: {parse_error}")
         self.ledger.cache_put(

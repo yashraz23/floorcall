@@ -96,6 +96,38 @@ def test_every_request_caps_price_and_requires_compliant_providers(tmp_path: Pat
     assert server.headers[0]["authorization"] == "Bearer test-key"
 
 
+def test_a_pinned_model_goes_to_one_endpoint_with_no_fallback(tmp_path: Path) -> None:
+    server = Server(httpx.Response(200, json=reply(provider="Crusoe")))
+    c, _, _ = client(tmp_path, server)
+    out = c.chat_json(model="openai/gpt-oss-120b", messages=MSGS, schema=SCHEMA, purpose="t")
+    assert out.provider == "Crusoe"
+    assert server.requests[0]["provider"] == {
+        "require_parameters": True,
+        "max_price": {"prompt": 0.15, "completion": 0.60},
+        "only": ["crusoe/bf16"],
+        "order": ["crusoe/bf16"],
+        "allow_fallbacks": False,
+        "quantizations": ["bf16"],
+    }
+
+
+@pytest.mark.parametrize("served_by", ["DekaLLM", None])
+def test_a_pinned_model_served_elsewhere_is_rejected_but_charged(
+    tmp_path: Path, served_by: str | None
+) -> None:
+    server = Server(
+        httpx.Response(200, json=reply(provider=served_by, cost=0.00004)),
+        httpx.Response(200, json=reply(provider="Crusoe")),
+    )
+    c, ledger, _ = client(tmp_path, server)
+    kw: dict[str, Any] = {"model": "openai/gpt-oss-120b", "messages": MSGS, "schema": SCHEMA}
+    with pytest.raises(LLMError, match="not the pinned crusoe/bf16"):
+        c.chat_json(**kw, purpose="t")
+    assert ledger.spent() == pytest.approx(0.00004)
+    again = c.chat_json(**kw, purpose="t")  # the rejected answer was not cached
+    assert not again.cached and len(server.requests) == 2
+
+
 def test_responses_are_cached(tmp_path: Path) -> None:
     server = Server(httpx.Response(200, json=reply()))
     c, ledger, _ = client(tmp_path, server)

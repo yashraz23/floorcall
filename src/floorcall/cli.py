@@ -332,17 +332,22 @@ def eval_figures() -> None:
 def data_escalate_llm_label(
     split: Annotated[str, typer.Option(help="calib | test | train")],
 ) -> None:
-    """Label D4 messages with the LLM labeller. calib/test: agreement with Yash (measurement
-    only). train: the D4 training rows, source=llm_labelled."""
+    """Label D4 messages with the LLM labeller. calib: agreement with Yash, and the gate the
+    prompt must pass. test (measurement only) and train (the D4 training rows,
+    source=llm_labelled) run only with a prompt calib accepted."""
     from floorcall.data.d4_llm import run
 
     out = run(get_settings(), split)
-    console.print_json(data={k: v for k, v in out.items() if k != "agreement"})
+    console.print_json(
+        data={k: v for k, v in out.items() if k not in ("agreement", "disagreements")}
+    )
     if "agreement" in out:
         a = out["agreement"]
         console.print(
             f"agreement with Yash on {split}: n={a['n']}  accuracy {a['accuracy']:.3f}  "
-            f"kappa {a['cohen_kappa']:.3f}  (LLM unsure on {a['llm_unsure']})"
+            f"kappa {a['cohen_kappa']:.3f}  escalate precision {a['escalate_precision']:.3f}  "
+            f"recall {a['escalate_recall']:.3f}  (LLM unsure on {a['llm_unsure']}; "
+            f"{len(out['disagreements'])} disagreements in the results file)"
         )
 
 

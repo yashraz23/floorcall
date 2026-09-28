@@ -372,3 +372,41 @@ The baseline still states its probabilities, because support varies by provider 
 a JSON object rather than one option token. The README says what its ECE measures.
 The key is `OPENROUTER_API_KEY`, a `SecretStr`: it goes into one request header and nowhere else,
 and a test asserts it stays out of the settings dump every run.json stores.
+
+**D-032 · 2026-09-28 · refines D-030 and D-031 for the D4 labeller** — **The labeller runs on one
+pinned full-precision endpoint, with prompt v2, and must pass a calib gate before it labels test
+or train.** (Yash's decisions, option B after the v1 calib result.)
+*Why.* On calib, `llm-labeller-v1` agreed with Yash's hand labels at accuracy 0.728, Cohen's kappa
+0.434, escalate precision 0.506 and recall 0.833 (n = 195; `results/d4_labeller/llm-labeller-v1/`).
+It escalated delay and inconvenience he labelled "no" (44 messages) and missed threats to leave or
+close the account (9 messages). OpenRouter had spread the 200 calls over 8 providers serving 4-,
+8- and 16-bit builds of the model, so the provider mix was a second source of variation.
+*The pin.* `openai/gpt-oss-120b` is sent only to **Crusoe's bf16 endpoint** (`crusoe/bf16`): the
+request's `provider.only` and `provider.order` hold just that slug, `allow_fallbacks` is false,
+and `quantizations` is `["bf16"]`. A full slug is used because a bare provider slug matches every
+endpoint that provider runs. The client also checks each response: one that names any provider
+other than Crusoe is rejected, charged (it was billed) and not cached. Candidates on 2026-09-28,
+the bf16 endpoints under the $0.15/$0.60 ceiling that support strict schemas, the seed and
+reasoning: DekaLLM ($0.030/$0.180 per million tokens, 99.2% uptime over the last day), AkashML
+($0.033/$0.187, 99.94%), Crusoe ($0.05/$0.25, 99.99%) and DeepInfra's bf16 endpoint (marked
+degraded, 95.8%). Crusoe had the best uptime; at this volume the price difference is under a
+cent. Cerebras's fp16 endpoint is above the ceiling. "Full precision" means the highest precision
+served: gpt-oss is released with its mixture-of-experts weights in MXFP4, so a bf16 endpoint
+serves those weights up-cast, and the fp4 and fp8 builds are excluded. The prompted-LLM baseline
+(`gpt-oss-20b`) is not pinned; D-031 still applies to it.
+*Prompt v2* (`llm-labeller-v2`) is v1 plus exactly two sentences, after the rules, one per error
+direction: "Threats to leave or close the account are escalations even with no agent reply. Delay
+or inconvenience alone is not, unless the customer says support has failed them." Yash's rules
+are still quoted word for word (the existing test), and a test pins the two added sentences.
+*The gate.* A prompt is judged on calib only. It is accepted if kappa ≥ 0.60 **and** escalate
+precision ≥ 0.70 against Yash's labels (`labeller_min_kappa`, `labeller_min_escalate_precision`).
+`data escalate-llm-label` refuses test and train unless calib results for that exact model,
+prompt version and pinned endpoint pass the gate. If v2 misses, Yash sees the confusion table and
+the remaining disagreements before anything else happens. At most two prompt revisions (v2, v3)
+are allowed in total, all judged on calib. The hand labels are never edited. The test set is
+labelled once, with the accepted prompt, and its agreement is measurement only.
+*Files.* Labels are kept per prompt version, so v1's are never overwritten:
+`data/labels/escalate.llm_labels.v1.jsonl` (v1) and `escalate.llm_labels.v2.jsonl` (v2). Each v2
+label records the provider that served it. Results go to
+`results/d4_labeller/<prompt version>/<split>.json`, with the pin, the serving providers, the gate
+verdict (calib) and every disagreement.

@@ -9,12 +9,14 @@ sets stay his hand labels.
   or calib message is also dropped: the same complaint can be pasted into more than one thread,
   and the thread split alone would miss it.
 - **Labels.** One LLM call per message with Yash's guidelines (floorcall.llm.prompts). "unsure"
-  drops the message, as his skip did. Every label is written to
-  `data/labels/escalate.llm_labels.v1.jsonl` with its model and prompt version, and that file is
-  committed, so the train set can be rebuilt without calling the API again.
-- **Agreement.** The labeller also labels the test and calib candidates. Its agreement with Yash's
-  labels (Cohen's kappa, accuracy, confusion) is reported, and is **measurement only**: the prompt
-  is fixed before it sees a test message, and the test agreement changes nothing.
+  drops the message, as his skip did. Every label is written to one file per prompt version,
+  `data/labels/escalate.llm_labels.v<N>.jsonl`, with its model, prompt version and the provider
+  that served it, and those files are committed, so the train set can be rebuilt without calling
+  the API again and an earlier version's labels are never overwritten.
+- **Agreement and the gate** (D-032). A prompt is judged on calib only: its agreement with Yash's
+  labels there must reach the configured kappa and escalate precision before it may label test or
+  train, and `run` refuses otherwise. The test agreement is **measurement only**: it is taken once,
+  with a prompt already accepted, and changes nothing.
 """
 
 from __future__ import annotations
@@ -31,8 +33,12 @@ from typing import Any
 from floorcall.data.escalate import Candidate, stratum
 from floorcall.normalize import normalize
 
-LLM_LABELS_FILE = "escalate.llm_labels.v1.jsonl"
 LABEL_TO_BOOL = {"escalate": "true", "no": "false"}
+
+
+def llm_labels_file(prompt_version: str) -> str:
+    """One labels file per prompt version: "llm-labeller-v2" -> "escalate.llm_labels.v2.jsonl"."""
+    return f"escalate.llm_labels.{prompt_version.removeprefix('llm-labeller-')}.jsonl"
 
 
 def train_pool(
@@ -78,7 +84,7 @@ def save_llm_labels(path: Path, labels: Mapping[str, Mapping[str, Any]]) -> None
 def label_all(
     candidates: Sequence[Candidate],
     labels: dict[str, dict[str, Any]],
-    ask: Callable[[Candidate], str],
+    ask: Callable[[Candidate], tuple[str, str | None]],
     *,
     model: str,
     prompt_version: str,
@@ -89,8 +95,9 @@ def label_all(
 ) -> dict[str, dict[str, Any]]:
     """Label every candidate not yet labelled under this model and prompt version.
 
-    `ask` returns "escalate", "no" or "unsure". Progress is saved every `save_every` labels, so an
-    interrupted run (or one stopped by the budget) resumes where it left off.
+    `ask` returns the label ("escalate", "no" or "unsure") and the provider that served it.
+    Progress is saved every `save_every` labels, so an interrupted run (or one stopped by the
+    budget) resumes where it left off.
     """
     todo = [
         c
@@ -102,18 +109,19 @@ def label_all(
         )
     ]
 
-    def one(c: Candidate) -> tuple[Candidate, str]:
+    def one(c: Candidate) -> tuple[Candidate, tuple[str, str | None]]:
         return c, ask(c)
 
     done = 0
     with ThreadPoolExecutor(max_workers=concurrency) as pool:
-        for c, label in pool.map(one, todo):
+        for c, (label, provider) in pool.map(one, todo):
             labels[c.id] = {
                 "id": c.id,
                 "split": split_of(c),
                 "label": label,
                 "model": model,
                 "prompt": prompt_version,
+                "provider": provider,
                 "at": datetime.now(UTC).isoformat(timespec="seconds"),
             }
             done += 1
@@ -172,6 +180,53 @@ def agreement(
     }
 
 
+def gate_failures(
+    calib: Mapping[str, Any] | None,
+    *,
+    model: str,
+    prompt_version: str,
+    endpoint: str | None,
+    min_kappa: float,
+    min_escalate_precision: float,
+) -> list[str]:
+    """Why this labeller may not label test or train yet; empty once calib has accepted it.
+
+    `calib` is the calib summary `run` wrote for this prompt version, or None if there is none.
+    """
+    if calib is None:
+        return [f"calib has not been labelled with {prompt_version}"]
+    served = (calib.get("model"), calib.get("prompt"), calib.get("provider_pin"))
+    if served != (model, prompt_version, endpoint):
+        return [f"calib was labelled as {served}, not {(model, prompt_version, endpoint)}"]
+    a = calib["agreement"]
+    out = []
+    if a["cohen_kappa"] is None or a["cohen_kappa"] < min_kappa:
+        out.append(f"kappa {a['cohen_kappa']} is below {min_kappa}")
+    if a["escalate_precision"] < min_escalate_precision:
+        out.append(
+            f"escalate precision {a['escalate_precision']} is below {min_escalate_precision}"
+        )
+    return out
+
+
+def disagreements(
+    candidates: Iterable[Candidate], hand: Mapping[str, str], llm: Mapping[str, str]
+) -> list[dict[str, Any]]:
+    """The messages where the LLM's label differs from Yash's, with what each saw."""
+    return [
+        {
+            "id": c.id,
+            "stratum": stratum(c),
+            "hand": hand[c.id],
+            "llm": llm[c.id],
+            "agent_last": c.agent_last_utterance,
+            "message": c.user_partial,
+        }
+        for c in candidates
+        if c.id in hand and llm.get(c.id) in ("true", "false") and hand[c.id] != llm[c.id]
+    ]
+
+
 def train_rows(
     candidates: Iterable[Candidate], labels: Mapping[str, Mapping[str, Any]]
 ) -> list[dict[str, Any]]:
@@ -220,6 +275,24 @@ def run(settings: Any, split: str) -> dict[str, Any]:
     s: Settings = settings
     if split not in ("calib", "test", "train"):
         raise ValueError(f"split must be calib, test or train, not {split!r}")
+    model = s.llm.labeller_model
+    pin = s.llm.provider_pins.get(model)
+    gate_kw: dict[str, Any] = {
+        "model": model,
+        "prompt_version": LABELLER_VERSION,
+        "endpoint": pin.endpoint if pin else None,
+        "min_kappa": s.llm.labeller_min_kappa,
+        "min_escalate_precision": s.llm.labeller_min_escalate_precision,
+    }
+    results_dir = REPO_ROOT / "results" / "d4_labeller" / LABELLER_VERSION
+    if split != "calib":
+        calib_file = results_dir / "calib.json"
+        calib = json.loads(calib_file.read_text(encoding="utf-8")) if calib_file.exists() else None
+        if failures := gate_failures(calib, **gate_kw):
+            raise RuntimeError(
+                f"{LABELLER_VERSION} has not been accepted on calib, so it may not label {split}: "
+                + "; ".join(failures)
+            )
     if s.openrouter_api_key is None:
         raise RuntimeError("OPENROUTER_API_KEY is not set (put it in .env, which git ignores)")
     labels_dir = s.paths.labels
@@ -238,18 +311,17 @@ def run(settings: Any, split: str) -> dict[str, Any]:
 
     ledger = Ledger(REPO_ROOT / "runs" / "llm" / "ledger.sqlite", s.llm)
     client = LLMClient(s.llm, s.openrouter_api_key.get_secret_value(), ledger)
-    model = s.llm.labeller_model
 
-    def ask(c: Candidate) -> str:
+    def ask(c: Candidate) -> tuple[str, str | None]:
         out = client.chat_json(
             model=model,
             messages=labeller_messages(c.recent_turns, c.agent_last_utterance, c.user_partial),
             schema=LABELLER_SCHEMA,
             purpose=f"d4-label-{split}",
         )
-        return str(out.data["label"])
+        return str(out.data["label"]), out.provider
 
-    path = labels_dir / LLM_LABELS_FILE
+    path = labels_dir / llm_labels_file(LABELLER_VERSION)
     labels = label_all(
         cands,
         load_llm_labels(path),
@@ -265,6 +337,8 @@ def run(settings: Any, split: str) -> dict[str, Any]:
         "split": split,
         "model": model,
         "prompt": LABELLER_VERSION,
+        "provider_pin": gate_kw["endpoint"],
+        "served_by": dict(Counter(str(labels[c.id].get("provider")) for c in cands)),
         "labels": dict(Counter(labels[c.id]["label"] for c in cands)),
         "spent_usd_total": ledger.spent(),
         **pool_report,
@@ -282,7 +356,16 @@ def run(settings: Any, split: str) -> dict[str, Any]:
         }
         llm = {c.id: LABEL_TO_BOOL.get(labels[c.id]["label"], "unsure") for c in cands}
         summary["agreement"] = agreement(hand, llm, {c.id: stratum(c) for c in cands})
-    out = REPO_ROOT / "results" / "d4_labeller" / f"{split}.json"
+        if split == "calib":
+            failures = gate_failures(summary, **gate_kw)
+            summary["gate"] = {
+                "min_kappa": gate_kw["min_kappa"],
+                "min_escalate_precision": gate_kw["min_escalate_precision"],
+                "accepted": not failures,
+                "failures": failures,
+            }
+        summary["disagreements"] = disagreements(cands, hand, llm)
+    out = results_dir / f"{split}.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     with out.open("w", encoding="utf-8", newline="\n") as f:
         json.dump(summary, f, indent=2)
