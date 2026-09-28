@@ -27,27 +27,36 @@ milliseconds that are left, and a generative LLM call cannot.
 
 ### Table A: quality per decision
 
-| Decision | Model | Accuracy | Macro-F1 | ECE | Brier | Hard-subset acc. |
+Frozen test sets (`data/test_frozen/`). Rendered from `results/table_a/` by `uv run floorcall eval
+readme`; a row without a results file says TODO.
+
+<!-- table-a:start -->
+| Decision | Model | Accuracy [95% CI] | Macro-F1 | ECE | Brier | Hard-subset acc. (n) |
 |---|---|---|---|---|---|---|
-| D1 turn_complete | majority class | TODO | TODO | TODO | TODO | TODO |
-| D1 turn_complete | stock Laya | TODO | TODO | TODO | TODO | TODO |
+| D1 turn_complete | majority class (train prior) | 0.590 [0.582, 0.597] | 0.371 | 0.000 | 0.484 | 1.000 (775) |
+| D1 turn_complete | stock Laya, zero-shot | 0.488 [0.480, 0.496] | 0.485 | 0.028 | 0.510 | 0.505 (775) |
 | D1 turn_complete | fine-tuned | TODO | TODO | TODO | TODO | TODO |
 | D1 turn_complete | fine-tuned + temperature | TODO | TODO | TODO | TODO | TODO |
-| D2 barge_in | majority class | TODO | TODO | TODO | TODO | TODO |
-| D2 barge_in | stock Laya | TODO | TODO | TODO | TODO | TODO |
+| D2 barge_in | majority class (train prior) | 0.501 [0.493, 0.510] | 0.223 | 0.010 | 0.564 | 0.453 (5012) |
+| D2 barge_in | stock Laya, zero-shot | 0.368 [0.360, 0.376] | 0.238 | 0.005 | 0.661 | 0.439 (5012) |
 | D2 barge_in | fine-tuned | TODO | TODO | TODO | TODO | TODO |
 | D2 barge_in | fine-tuned + temperature | TODO | TODO | TODO | TODO | TODO |
-| D3 route | majority class | TODO | TODO | TODO | TODO | TODO |
-| D3 route | stock Laya | TODO | TODO | TODO | TODO | TODO |
+| D3 route | majority class (train prior) | 0.690 [0.666, 0.713] | 0.051 | 0.547 | 0.837 | n/a |
+| D3 route | stock Laya, zero-shot | 0.934 [0.921, 0.946] | 0.866 | 0.030 | 0.115 | n/a |
 | D3 route | fine-tuned | TODO | TODO | TODO | TODO | TODO |
 | D3 route | fine-tuned + temperature | TODO | TODO | TODO | TODO | TODO |
-| D4 escalate | majority class | TODO | TODO | TODO | TODO | TODO |
-| D4 escalate | stock Laya | TODO | TODO | TODO | TODO | TODO |
+| D4 escalate | majority class (train prior) | TODO | TODO | TODO | TODO | TODO |
+| D4 escalate | stock Laya, zero-shot | TODO | TODO | TODO | TODO | TODO |
 | D4 escalate | fine-tuned | TODO | TODO | TODO | TODO | TODO |
 | D4 escalate | fine-tuned + temperature | TODO | TODO | TODO | TODO | TODO |
+<!-- table-a:end -->
 
-Brier is the multi-class form Σₖ(pₖ − yₖ)², range [0, 2]. For a binary decision it is twice the
-familiar (p − y)². ECE uses 15 equal-width bins over the probability of the reported answer.
+Brier is the multi-class form Σₖ(pₖ − yₖ)², range [0, 2]; for a binary decision it is twice the
+familiar (p − y)². ECE uses 15 equal-width bins over the probability of the reported answer. The
+95% interval on accuracy is Wilson's. D1's hard subset is truncations only, all labelled
+incomplete, so a constant "incomplete" predictor such as the majority baseline scores 1.000 on it;
+the column is only informative for models that are not constant. D3's test set is 69%
+out_of_scope, so macro-F1 is its headline number.
 
 ### Table B: latency (batch 1)
 
