@@ -68,12 +68,12 @@ readme`). Budgets: p99 ≤ 50 ms on GPU, ≤ 100 ms on CPU.
 <!-- table-b:start -->
 | Path | p50 ms | p95 ms | p99 ms | of which forward, p50 | of which packing, p50 | Fits budget (p99) |
 |---|---|---|---|---|---|---|
-| GPU, CUDA graphs: user_pause, 3 questions in 1 call | TODO | TODO | TODO | TODO | TODO | TODO |
-| GPU, CUDA graphs: user_pause, 3 questions in 3 calls | TODO | TODO | TODO | TODO | TODO | TODO |
-| GPU, CUDA graphs: user_speech_during_agent, 2 questions in 1 call | TODO | TODO | TODO | TODO | TODO | TODO |
-| GPU, eager: user_pause, 3 questions in 1 call | TODO | TODO | TODO | TODO | TODO | TODO |
-| GPU, eager: user_pause, 3 questions in 3 calls | TODO | TODO | TODO | TODO | TODO | TODO |
-| GPU, eager: user_speech_during_agent, 2 questions in 1 call | TODO | TODO | TODO | TODO | TODO | TODO |
+| GPU, CUDA graphs: user_pause, 3 questions in 1 call | 41.9 | 79.9 | 85.7 | 29.0 | 3.8 | no (≤ 50 ms) |
+| GPU, CUDA graphs: user_pause, 3 questions in 3 calls | 58.6 | 95.4 | 103.5 | 34.2 | 3.6 | no (≤ 50 ms) |
+| GPU, CUDA graphs: user_speech_during_agent, 2 questions in 1 call | 61.6 | 82.1 | 89.3 | 44.3 | 10.0 | no (≤ 50 ms) |
+| GPU, eager: user_pause, 3 questions in 1 call | 95.4 | 116.2 | 122.2 | 79.8 | 3.7 | no (≤ 50 ms) |
+| GPU, eager: user_pause, 3 questions in 3 calls | 248.3 | 290.4 | 307.4 | 222.7 | 3.6 | no (≤ 50 ms) |
+| GPU, eager: user_speech_during_agent, 2 questions in 1 call | 88.9 | 118.5 | 129.6 | 72.8 | 8.6 | no (≤ 50 ms) |
 | CPU: user_pause, 3 questions in 1 call | TODO | TODO | TODO | TODO | TODO | TODO |
 | CPU: user_pause, 3 questions in 3 calls | TODO | TODO | TODO | TODO | TODO | TODO |
 | CPU: user_speech_during_agent, 2 questions in 1 call | TODO | TODO | TODO | TODO | TODO | TODO |
@@ -82,12 +82,44 @@ readme`). Budgets: p99 ≤ 50 ms on GPU, ≤ 100 ms on CPU.
 <!-- table-b:end -->
 
 <!-- table-b-env:start -->
-Measured environment: TODO.
+Measured on NVIDIA GeForce RTX 5070 Ti Laptop GPU (driver, power limit: 591.86, [N/A]) and Intel64 Family 6 Model 197 Stepping 2, GenuineIntel with 16 torch threads; on AC power: True; torch 2.14.0+cu130, laya 0.3.21. Batch 1, 50 warmup and 1000 timed iterations over 50 fixed inputs per event; every timed call is a full `Decider.decide` (packing, tokenizing, forward, temperatures).
 <!-- table-b-env:end -->
 
 "3 questions in 1 call" is one batched forward pass with one row per question; each row re-reads
 the state (docs/DECISIONS.md D-003). Latency depends on the architecture and input lengths, not the
 weights, so these numbers hold for the stock and the fine-tuned checkpoint alike.
+
+### Table C: robustness to ASR noise
+
+The fine-tuned, calibrated model on the same test sets, with the user's words degraded as a
+recogniser might: each word deleted with probability level/2 or replaced by a common word with
+probability level/2, and the last one or two words missing with probability level
+(`floorcall.evaluate.robustness`). Cells are macro-F1 (accuracy).
+
+<!-- table-c:start -->
+| Decision | noise 0.00 | noise 0.05 | noise 0.10 | noise 0.20 |
+|---|---|---|---|---|
+| D1 turn_complete | TODO | TODO | TODO | TODO |
+| D2 barge_in | TODO | TODO | TODO | TODO |
+| D3 route | TODO | TODO | TODO | TODO |
+| D4 escalate | TODO | TODO | TODO | TODO |
+<!-- table-c:end -->
+
+### Table D: ablations
+
+Each variant is a separately trained, calibrated checkpoint, scored under the same state settings it
+trained with. The normalization ablation is scored twice: on written text, where punctuation leaks
+the answer, and on ASR-style text, which is what a live pipeline delivers.
+
+<!-- table-d:start -->
+| Variant | D1 macro-F1 (acc) | D1 hard acc. | D2 macro-F1 (acc) | D2 hard acc. | D3 macro-F1 (acc) | D4 macro-F1 (acc) |
+|---|---|---|---|---|---|---|
+| full model | TODO | TODO | TODO | TODO | TODO | TODO |
+| without recent_turns | TODO | TODO | TODO | TODO | TODO | TODO |
+| without agent_last_utterance | TODO | TODO | TODO | TODO | TODO | TODO |
+| without normalization, scored on written text | TODO | TODO | TODO | TODO | TODO | TODO |
+| without normalization, scored on ASR-style text | TODO | TODO | TODO | TODO | TODO | TODO |
+<!-- table-d:end -->
 
 ## Design notes
 

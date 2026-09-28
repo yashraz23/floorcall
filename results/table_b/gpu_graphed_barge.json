@@ -1,0 +1,62 @@
+{
+  "row": "gpu_graphed_barge",
+  "label": "GPU, CUDA graphs: user_speech_during_agent (2 questions, 1 call)",
+  "device": "cuda",
+  "cuda_graphs": true,
+  "autocast": "bfloat16",
+  "event": "user_speech_during_agent",
+  "questions": [
+    "barge_in",
+    "escalate"
+  ],
+  "sequential": false,
+  "warmup": 50,
+  "iterations": 1000,
+  "inputs": 50,
+  "checkpoint": "convaiinnovations/laya",
+  "revision": "55cf4c4ebb4ebe31b2550e8bdf3bd21b99753851",
+  "code": "224c1d8",
+  "environment": {
+    "python": "3.11.16",
+    "torch": "2.14.0+cu130",
+    "transformers": "5.17.0",
+    "laya": "0.3.21",
+    "cpu": "Intel64 Family 6 Model 197 Stepping 2, GenuineIntel",
+    "torch_threads": 16,
+    "gpu": "NVIDIA GeForce RTX 5070 Ti Laptop GPU",
+    "gpu_driver": "591.86, [N/A]",
+    "on_ac_power": true,
+    "power_plan": "Power Scheme GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (Balanced)"
+  },
+  "budget_p99_ms": 50.0,
+  "fits_budget": false,
+  "total_ms": {
+    "p50": 61.62955000763759,
+    "p95": 82.10888493340462,
+    "p99": 89.25853901077062,
+    "mean": 60.035714998375624,
+    "max": 101.79640003480017
+  },
+  "pack_ms": {
+    "p50": 10.025749972555786,
+    "p95": 19.08036000677383,
+    "p99": 23.83266909746453,
+    "mean": 10.36608589917887,
+    "max": 32.76219998952001
+  },
+  "encode_ms": {
+    "p50": 2.9750500107184052,
+    "p95": 4.719604970887303,
+    "p99": 5.8742630237247795,
+    "mean": 2.92345259943977,
+    "max": 9.001299971714616
+  },
+  "forward_ms": {
+    "p50": 44.28479995112866,
+    "p95": 54.92687494843267,
+    "p99": 58.77598203253001,
+    "mean": 42.408912200597115,
+    "max": 79.65660002082586
+  },
+  "state_tokens_mean": 305.5
+}
