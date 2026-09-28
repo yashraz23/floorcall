@@ -84,3 +84,29 @@ the no-extra set and silently replaced `torch 2.14.0+cu130` with `2.14.0+cpu`. A
 that would have been a CPU run without an error. uv has no environment variable for a sticky extra,
 but it does have `default-groups`, so the CUDA build is now a default group and the CPU build is
 opted into explicitly.
+
+**D-012 · 2026-09-27 · §2, §12 Table B** — The GPU latency path will use a **CUDA-graphed
+forward**. The M0 spike measured the eager path at p99 72–82 ms, against the 50 ms target. The
+forward is launch-bound: a single 128-token row still took 39 ms, for a few milliseconds of real
+compute. An exploratory capture of the Laya forward as a `torch.cuda.CUDAGraph` produced
+bit-identical logits and brought `user_pause` to p99 ≈ 31 ms. It needs no new dependency. Laya's
+own fast path (`laya[fast]`, TileLang + CUDA graphs) would need `tilelang`, and was not tried. In
+M2 the adapter gains a graphed forward over fixed shape buckets, with a parity test against eager.
+Table B reports both eager and graphed rows. Table A is computed on logits from the forward that is
+actually served, and the parity test is what makes that claim checkable. (docs/spike-m0.md §3)
+
+**D-013 · 2026-09-27 · §11** — Training keeps the English checkpoint's own geometry,
+`max_len=512` and `head_max_len=192`. The notebook sets 1024 / 256, but that is the geometry of
+the `laya-typed-decisions` checkpoint it produces. Serving at 512, the English default and the
+length the packer budgets for, means training at 512 too. Also: bf16 autocast without a
+GradScaler (the notebook's fp16 + scaler exists because T4s lack bf16), and one GPU with
+accumulation 8, which keeps the notebook's 64-row effective batch. The M0 spike measured peak
+memory at 8.4 GB on worst-case 512-token rows, so training runs locally and the Kaggle notebook
+is not used. (docs/spike-m0.md §4)
+
+**D-014 · 2026-09-27 · §2, §12 Table B** — The CPU target (p99 ≤ 100 ms) is kept as written, and
+the M0 spike says the stock path misses it by about 10x: `user_pause` at p50 0.8 s sequential and
+1.2 s batched, at roughly 490 GFLOPs per call. Thread tuning will not close a 10x gap. Table B
+reports the measured CPU numbers with "fits budget: no" rather than moving the target. INT8 ONNX
+(`laya[onnx]`, which adds `onnxruntime`) is the plausible mitigation. It needs Yash's approval
+for the dependency and sits on the cut list below Table C.

@@ -1,0 +1,772 @@
+{
+  "note": "Spike numbers: quick look only. Not Table B. Probes are hand-written, not a test set.",
+  "env": {
+    "torch": "2.14.0+cu130",
+    "gpu": "NVIDIA GeForce RTX 5070 Ti Laptop GPU",
+    "cpu": "Intel64 Family 6 Model 197 Stepping 2, GenuineIntel",
+    "torch_threads": 16,
+    "warmup": 20,
+    "iters": 200
+  },
+  "revision": "55cf4c4ebb4ebe31b2550e8bdf3bd21b99753851",
+  "state_room": {
+    "user_pause": 339,
+    "user_speech_during_agent": 434
+  },
+  "probes": [
+    {
+      "event": "user_pause",
+      "user_partial": "i need to check the balance on my savings account",
+      "intended": "complete; balance",
+      "answers": {
+        "turn_complete": {
+          "label": "true",
+          "probabilities": {
+            "false": 0.2907,
+            "true": 0.7093
+          }
+        },
+        "route": {
+          "label": "balance",
+          "probabilities": {
+            "transfer": 0.0,
+            "transactions": 0.0,
+            "balance": 1.0,
+            "freeze_account": 0.0,
+            "pay_bill": 0.0,
+            "bill_balance": 0.0,
+            "bill_due": 0.0,
+            "interest_rate": 0.0,
+            "routing": 0.0,
+            "min_payment": 0.0,
+            "order_checks": 0.0,
+            "pin_change": 0.0,
+            "report_fraud": 0.0,
+            "account_blocked": 0.0,
+            "spending_history": 0.0,
+            "out_of_scope": 0.0
+          }
+        },
+        "escalate": {
+          "label": "false",
+          "probabilities": {
+            "false": 0.5853,
+            "true": 0.4147
+          }
+        }
+      }
+    },
+    {
+      "event": "user_pause",
+      "user_partial": "i want to transfer some money from my",
+      "intended": "incomplete; transfer",
+      "answers": {
+        "turn_complete": {
+          "label": "true",
+          "probabilities": {
+            "false": 0.2142,
+            "true": 0.7858
+          }
+        },
+        "route": {
+          "label": "transfer",
+          "probabilities": {
+            "transfer": 1.0,
+            "transactions": 0.0,
+            "balance": 0.0,
+            "freeze_account": 0.0,
+            "pay_bill": 0.0,
+            "bill_balance": 0.0,
+            "bill_due": 0.0,
+            "interest_rate": 0.0,
+            "routing": 0.0,
+            "min_payment": 0.0,
+            "order_checks": 0.0,
+            "pin_change": 0.0,
+            "report_fraud": 0.0,
+            "account_blocked": 0.0,
+            "spending_history": 0.0,
+            "out_of_scope": 0.0
+          }
+        },
+        "escalate": {
+          "label": "true",
+          "probabilities": {
+            "false": 0.2203,
+            "true": 0.7797
+          }
+        }
+      }
+    },
+    {
+      "event": "user_pause",
+      "user_partial": "so um i was wondering if",
+      "intended": "incomplete",
+      "answers": {
+        "turn_complete": {
+          "label": "true",
+          "probabilities": {
+            "false": 0.3501,
+            "true": 0.6499
+          }
+        },
+        "route": {
+          "label": "out_of_scope",
+          "probabilities": {
+            "transfer": 0.0031,
+            "transactions": 0.0267,
+            "balance": 0.0113,
+            "freeze_account": 0.0006,
+            "pay_bill": 0.01,
+            "bill_balance": 0.0075,
+            "bill_due": 0.004,
+            "interest_rate": 0.0009,
+            "routing": 0.0004,
+            "min_payment": 0.0017,
+            "order_checks": 0.0006,
+            "pin_change": 0.0002,
+            "report_fraud": 0.0055,
+            "account_blocked": 0.0008,
+            "spending_history": 0.0046,
+            "out_of_scope": 0.9221
+          }
+        },
+        "escalate": {
+          "label": "false",
+          "probabilities": {
+            "false": 0.5068,
+            "true": 0.4932
+          }
+        }
+      }
+    },
+    {
+      "event": "user_pause",
+      "user_partial": "whats the weather going to be like tomorrow",
+      "intended": "complete; out_of_scope",
+      "answers": {
+        "turn_complete": {
+          "label": "true",
+          "probabilities": {
+            "false": 0.374,
+            "true": 0.626
+          }
+        },
+        "route": {
+          "label": "out_of_scope",
+          "probabilities": {
+            "transfer": 0.0003,
+            "transactions": 0.0013,
+            "balance": 0.0035,
+            "freeze_account": 0.0002,
+            "pay_bill": 0.0023,
+            "bill_balance": 0.001,
+            "bill_due": 0.0011,
+            "interest_rate": 0.0001,
+            "routing": 0.0,
+            "min_payment": 0.0002,
+            "order_checks": 0.0001,
+            "pin_change": 0.0,
+            "report_fraud": 0.0004,
+            "account_blocked": 0.0001,
+            "spending_history": 0.0012,
+            "out_of_scope": 0.9882
+          }
+        },
+        "escalate": {
+          "label": "true",
+          "probabilities": {
+            "false": 0.3305,
+            "true": 0.6695
+          }
+        }
+      }
+    },
+    {
+      "event": "user_pause",
+      "user_partial": "can i just talk to a real person please",
+      "intended": "complete; escalate",
+      "answers": {
+        "turn_complete": {
+          "label": "true",
+          "probabilities": {
+            "false": 0.1981,
+            "true": 0.8019
+          }
+        },
+        "route": {
+          "label": "out_of_scope",
+          "probabilities": {
+            "transfer": 0.001,
+            "transactions": 0.0032,
+            "balance": 0.0011,
+            "freeze_account": 0.0024,
+            "pay_bill": 0.0018,
+            "bill_balance": 0.0017,
+            "bill_due": 0.002,
+            "interest_rate": 0.0005,
+            "routing": 0.0003,
+            "min_payment": 0.0014,
+            "order_checks": 0.0004,
+            "pin_change": 0.0003,
+            "report_fraud": 0.0759,
+            "account_blocked": 0.0006,
+            "spending_history": 0.001,
+            "out_of_scope": 0.9063
+          }
+        },
+        "escalate": {
+          "label": "true",
+          "probabilities": {
+            "false": 0.1589,
+            "true": 0.8411
+          }
+        }
+      }
+    },
+    {
+      "event": "user_pause",
+      "user_partial": "this is the third time ive called and nobody has fixed it",
+      "intended": "complete; escalate (frustration)",
+      "answers": {
+        "turn_complete": {
+          "label": "true",
+          "probabilities": {
+            "false": 0.3734,
+            "true": 0.6266
+          }
+        },
+        "route": {
+          "label": "out_of_scope",
+          "probabilities": {
+            "transfer": 0.0009,
+            "transactions": 0.0869,
+            "balance": 0.0017,
+            "freeze_account": 0.0012,
+            "pay_bill": 0.0045,
+            "bill_balance": 0.0069,
+            "bill_due": 0.0161,
+            "interest_rate": 0.0013,
+            "routing": 0.0008,
+            "min_payment": 0.0032,
+            "order_checks": 0.0009,
+            "pin_change": 0.0005,
+            "report_fraud": 0.0042,
+            "account_blocked": 0.0038,
+            "spending_history": 0.0265,
+            "out_of_scope": 0.8407
+          }
+        },
+        "escalate": {
+          "label": "true",
+          "probabilities": {
+            "false": 0.3647,
+            "true": 0.6353
+          }
+        }
+      }
+    },
+    {
+      "event": "user_pause",
+      "user_partial": "someone used my card for a purchase i never made",
+      "intended": "complete; report_fraud",
+      "answers": {
+        "turn_complete": {
+          "label": "true",
+          "probabilities": {
+            "false": 0.2083,
+            "true": 0.7917
+          }
+        },
+        "route": {
+          "label": "report_fraud",
+          "probabilities": {
+            "transfer": 0.0,
+            "transactions": 0.0,
+            "balance": 0.0,
+            "freeze_account": 0.0,
+            "pay_bill": 0.0,
+            "bill_balance": 0.0,
+            "bill_due": 0.0,
+            "interest_rate": 0.0,
+            "routing": 0.0,
+            "min_payment": 0.0,
+            "order_checks": 0.0,
+            "pin_change": 0.0,
+            "report_fraud": 1.0,
+            "account_blocked": 0.0,
+            "spending_history": 0.0,
+            "out_of_scope": 0.0
+          }
+        },
+        "escalate": {
+          "label": "true",
+          "probabilities": {
+            "false": 0.2277,
+            "true": 0.7723
+          }
+        }
+      }
+    },
+    {
+      "event": "user_pause",
+      "user_partial": "and then the charge showed up on",
+      "intended": "incomplete",
+      "answers": {
+        "turn_complete": {
+          "label": "true",
+          "probabilities": {
+            "false": 0.3833,
+            "true": 0.6167
+          }
+        },
+        "route": {
+          "label": "transactions",
+          "probabilities": {
+            "transfer": 0.0,
+            "transactions": 0.9995,
+            "balance": 0.0,
+            "freeze_account": 0.0,
+            "pay_bill": 0.0,
+            "bill_balance": 0.0,
+            "bill_due": 0.0,
+            "interest_rate": 0.0,
+            "routing": 0.0,
+            "min_payment": 0.0,
+            "order_checks": 0.0,
+            "pin_change": 0.0,
+            "report_fraud": 0.0002,
+            "account_blocked": 0.0,
+            "spending_history": 0.0,
+            "out_of_scope": 0.0002
+          }
+        },
+        "escalate": {
+          "label": "false",
+          "probabilities": {
+            "false": 0.6427,
+            "true": 0.3573
+          }
+        }
+      }
+    },
+    {
+      "event": "user_pause",
+      "user_partial": "when is my electric bill due",
+      "intended": "complete; bill_due",
+      "answers": {
+        "turn_complete": {
+          "label": "true",
+          "probabilities": {
+            "false": 0.2677,
+            "true": 0.7323
+          }
+        },
+        "route": {
+          "label": "bill_due",
+          "probabilities": {
+            "transfer": 0.0,
+            "transactions": 0.0,
+            "balance": 0.0,
+            "freeze_account": 0.0,
+            "pay_bill": 0.0,
+            "bill_balance": 0.0,
+            "bill_due": 1.0,
+            "interest_rate": 0.0,
+            "routing": 0.0,
+            "min_payment": 0.0,
+            "order_checks": 0.0,
+            "pin_change": 0.0,
+            "report_fraud": 0.0,
+            "account_blocked": 0.0,
+            "spending_history": 0.0,
+            "out_of_scope": 0.0
+          }
+        },
+        "escalate": {
+          "label": "true",
+          "probabilities": {
+            "false": 0.2197,
+            "true": 0.7803
+          }
+        }
+      }
+    },
+    {
+      "event": "user_pause",
+      "user_partial": "whats the routing number for my checking account",
+      "intended": "complete; routing",
+      "answers": {
+        "turn_complete": {
+          "label": "true",
+          "probabilities": {
+            "false": 0.4068,
+            "true": 0.5932
+          }
+        },
+        "route": {
+          "label": "routing",
+          "probabilities": {
+            "transfer": 0.0,
+            "transactions": 0.0,
+            "balance": 0.0,
+            "freeze_account": 0.0,
+            "pay_bill": 0.0,
+            "bill_balance": 0.0,
+            "bill_due": 0.0,
+            "interest_rate": 0.0,
+            "routing": 1.0,
+            "min_payment": 0.0,
+            "order_checks": 0.0,
+            "pin_change": 0.0,
+            "report_fraud": 0.0,
+            "account_blocked": 0.0,
+            "spending_history": 0.0,
+            "out_of_scope": 0.0
+          }
+        },
+        "escalate": {
+          "label": "true",
+          "probabilities": {
+            "false": 0.4489,
+            "true": 0.5511
+          }
+        }
+      }
+    },
+    {
+      "event": "user_pause",
+      "user_partial": "can you book me a table for two at eight",
+      "intended": "complete; out_of_scope",
+      "answers": {
+        "turn_complete": {
+          "label": "true",
+          "probabilities": {
+            "false": 0.3602,
+            "true": 0.6398
+          }
+        },
+        "route": {
+          "label": "out_of_scope",
+          "probabilities": {
+            "transfer": 0.0481,
+            "transactions": 0.0147,
+            "balance": 0.0183,
+            "freeze_account": 0.0009,
+            "pay_bill": 0.0254,
+            "bill_balance": 0.0063,
+            "bill_due": 0.0065,
+            "interest_rate": 0.0007,
+            "routing": 0.0004,
+            "min_payment": 0.002,
+            "order_checks": 0.0124,
+            "pin_change": 0.0002,
+            "report_fraud": 0.0113,
+            "account_blocked": 0.0008,
+            "spending_history": 0.0069,
+            "out_of_scope": 0.8451
+          }
+        },
+        "escalate": {
+          "label": "true",
+          "probabilities": {
+            "false": 0.3642,
+            "true": 0.6358
+          }
+        }
+      }
+    },
+    {
+      "event": "user_pause",
+      "user_partial": "id like to change my pin and",
+      "intended": "incomplete; pin_change",
+      "answers": {
+        "turn_complete": {
+          "label": "true",
+          "probabilities": {
+            "false": 0.2735,
+            "true": 0.7265
+          }
+        },
+        "route": {
+          "label": "pin_change",
+          "probabilities": {
+            "transfer": 0.0,
+            "transactions": 0.0,
+            "balance": 0.0,
+            "freeze_account": 0.0,
+            "pay_bill": 0.0,
+            "bill_balance": 0.0,
+            "bill_due": 0.0,
+            "interest_rate": 0.0,
+            "routing": 0.0,
+            "min_payment": 0.0,
+            "order_checks": 0.0,
+            "pin_change": 1.0,
+            "report_fraud": 0.0,
+            "account_blocked": 0.0,
+            "spending_history": 0.0,
+            "out_of_scope": 0.0
+          }
+        },
+        "escalate": {
+          "label": "false",
+          "probabilities": {
+            "false": 0.5355,
+            "true": 0.4645
+          }
+        }
+      }
+    },
+    {
+      "event": "user_speech_during_agent",
+      "user_partial": "uh huh",
+      "intended": "backchannel",
+      "answers": {
+        "barge_in": {
+          "label": "interruption",
+          "probabilities": {
+            "backchannel": 0.2393,
+            "interruption": 0.5322,
+            "noise": 0.2285
+          }
+        },
+        "escalate": {
+          "label": "false",
+          "probabilities": {
+            "false": 0.5531,
+            "true": 0.4469
+          }
+        }
+      }
+    },
+    {
+      "event": "user_speech_during_agent",
+      "user_partial": "right",
+      "intended": "backchannel",
+      "answers": {
+        "barge_in": {
+          "label": "interruption",
+          "probabilities": {
+            "backchannel": 0.1682,
+            "interruption": 0.6687,
+            "noise": 0.1632
+          }
+        },
+        "escalate": {
+          "label": "false",
+          "probabilities": {
+            "false": 0.6101,
+            "true": 0.3899
+          }
+        }
+      }
+    },
+    {
+      "event": "user_speech_during_agent",
+      "user_partial": "yeah",
+      "intended": "backchannel (hard: surface token)",
+      "answers": {
+        "barge_in": {
+          "label": "interruption",
+          "probabilities": {
+            "backchannel": 0.1881,
+            "interruption": 0.6033,
+            "noise": 0.2085
+          }
+        },
+        "escalate": {
+          "label": "true",
+          "probabilities": {
+            "false": 0.4997,
+            "true": 0.5003
+          }
+        }
+      }
+    },
+    {
+      "event": "user_speech_during_agent",
+      "user_partial": "yeah but thats not what i asked",
+      "intended": "interruption (hard: surface token)",
+      "answers": {
+        "barge_in": {
+          "label": "interruption",
+          "probabilities": {
+            "backchannel": 0.0922,
+            "interruption": 0.769,
+            "noise": 0.1388
+          }
+        },
+        "escalate": {
+          "label": "false",
+          "probabilities": {
+            "false": 0.5748,
+            "true": 0.4252
+          }
+        }
+      }
+    },
+    {
+      "event": "user_speech_during_agent",
+      "user_partial": "wait no i said checking not savings",
+      "intended": "interruption",
+      "answers": {
+        "barge_in": {
+          "label": "interruption",
+          "probabilities": {
+            "backchannel": 0.1127,
+            "interruption": 0.7156,
+            "noise": 0.1717
+          }
+        },
+        "escalate": {
+          "label": "true",
+          "probabilities": {
+            "false": 0.4122,
+            "true": 0.5878
+          }
+        }
+      }
+    },
+    {
+      "event": "user_speech_during_agent",
+      "user_partial": "hold on can you repeat the last part",
+      "intended": "interruption",
+      "answers": {
+        "barge_in": {
+          "label": "interruption",
+          "probabilities": {
+            "backchannel": 0.1545,
+            "interruption": 0.6323,
+            "noise": 0.2132
+          }
+        },
+        "escalate": {
+          "label": "false",
+          "probabilities": {
+            "false": 0.5958,
+            "true": 0.4042
+          }
+        }
+      }
+    },
+    {
+      "event": "user_speech_during_agent",
+      "user_partial": "honey can you grab the door",
+      "intended": "noise (talk to someone else)",
+      "answers": {
+        "barge_in": {
+          "label": "interruption",
+          "probabilities": {
+            "backchannel": 0.0502,
+            "interruption": 0.8595,
+            "noise": 0.0904
+          }
+        },
+        "escalate": {
+          "label": "false",
+          "probabilities": {
+            "false": 0.5646,
+            "true": 0.4354
+          }
+        }
+      }
+    },
+    {
+      "event": "user_speech_during_agent",
+      "user_partial": "i want a human now",
+      "intended": "interruption; escalate",
+      "answers": {
+        "barge_in": {
+          "label": "interruption",
+          "probabilities": {
+            "backchannel": 0.1341,
+            "interruption": 0.6958,
+            "noise": 0.1702
+          }
+        },
+        "escalate": {
+          "label": "true",
+          "probabilities": {
+            "false": 0.2433,
+            "true": 0.7567
+          }
+        }
+      }
+    }
+  ],
+  "latency": {
+    "cuda": {
+      "device": "cuda",
+      "autocast": "bfloat16",
+      "user_pause": {
+        "batched": {
+          "n": 200,
+          "p50": 57.697399985045195,
+          "p95": 77.84199994057417,
+          "p99": 82.29249995201826,
+          "mean": 58.88922150421422
+        },
+        "sequential": {
+          "n": 200,
+          "p50": 153.00370007753372,
+          "p95": 206.6451000282541,
+          "p99": 226.47239989601076,
+          "mean": 153.79335799836554
+        }
+      },
+      "user_speech_during_agent": {
+        "batched": {
+          "n": 200,
+          "p50": 49.740899936296046,
+          "p95": 67.35050003044307,
+          "p99": 72.87169992923737,
+          "mean": 48.348725502728485
+        },
+        "sequential": {
+          "n": 200,
+          "p50": 108.7299999780953,
+          "p95": 129.58900001831353,
+          "p99": 132.70429999101907,
+          "mean": 103.92592950258404
+        }
+      }
+    },
+    "cpu": {
+      "device": "cpu",
+      "autocast": null,
+      "user_pause": {
+        "batched": {
+          "n": 50,
+          "p50": 1164.794799988158,
+          "p95": 1209.8234000150114,
+          "p99": 1228.9831000380218,
+          "mean": 1165.7295259996317
+        },
+        "sequential": {
+          "n": 50,
+          "p50": 797.5969000253826,
+          "p95": 833.6698999628425,
+          "p99": 840.1431000092998,
+          "mean": 799.7381940018386
+        }
+      },
+      "user_speech_during_agent": {
+        "batched": {
+          "n": 50,
+          "p50": 427.2798999445513,
+          "p95": 442.6755999447778,
+          "p99": 450.4131000721827,
+          "mean": 427.64875799417496
+        },
+        "sequential": {
+          "n": 50,
+          "p50": 446.9041000120342,
+          "p95": 462.1554999612272,
+          "p99": 463.87169999070466,
+          "mean": 449.1027779923752
+        }
+      }
+    }
+  }
+}

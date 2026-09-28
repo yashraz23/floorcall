@@ -1,0 +1,77 @@
+{
+  "note": "Memory/throughput check only. Weights discarded; not a trained model.",
+  "gpu": "NVIDIA GeForce RTX 5070 Ti Laptop GPU",
+  "gpu_total_gb": 12.82048,
+  "rows": 512,
+  "row_tokens": {
+    "min": 212,
+    "median": 483,
+    "max": 512
+  },
+  "micro_batch": 8,
+  "grad_accum": 8,
+  "group_size": 4,
+  "amp": "bf16",
+  "gradient_checkpointing": "encoder + head",
+  "peak_allocated_gb": 8.406657536,
+  "peak_reserved_gb": 9.093251072,
+  "rows_per_second": 18.27193561483353,
+  "updates": [
+    {
+      "update": 0,
+      "seconds": 5.600683299941011,
+      "ce": 2.938468724489212,
+      "reward": -2.8825265169143677,
+      "peak_alloc_gb": 8.18723072
+    },
+    {
+      "update": 1,
+      "seconds": 4.512825599987991,
+      "ce": 2.8863752484321594,
+      "reward": -2.8290265798568726,
+      "peak_alloc_gb": 8.396600832
+    },
+    {
+      "update": 2,
+      "seconds": 4.44488199998159,
+      "ce": 2.7459950745105743,
+      "reward": -2.707037538290024,
+      "peak_alloc_gb": 8.396994048
+    },
+    {
+      "update": 3,
+      "seconds": 4.456521000014618,
+      "ce": 2.756031185388565,
+      "reward": -2.6399263739585876,
+      "peak_alloc_gb": 8.39748352
+    },
+    {
+      "update": 4,
+      "seconds": 2.449256099993363,
+      "ce": 0.48918535001575947,
+      "reward": 0.1645937841385603,
+      "peak_alloc_gb": 8.406657536
+    },
+    {
+      "update": 5,
+      "seconds": 2.219812900060788,
+      "ce": 0.4198582349345088,
+      "reward": 0.25958626344799995,
+      "peak_alloc_gb": 8.406657536
+    },
+    {
+      "update": 6,
+      "seconds": 2.1480364999733865,
+      "ce": 0.1929142033914104,
+      "reward": 0.5282649137079716,
+      "peak_alloc_gb": 8.406657536
+    },
+    {
+      "update": 7,
+      "seconds": 2.185460999957286,
+      "ce": 0.0477589642687235,
+      "reward": 0.6949539259076118,
+      "peak_alloc_gb": 8.406657536
+    }
+  ]
+}
