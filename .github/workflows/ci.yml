@@ -1,0 +1,40 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - run: uv python install 3.11
+
+      # The CPU torch build. The default group set pulls the CUDA wheel, which CI has no use for
+      # (docs/DECISIONS.md D-007, D-011).
+      - run: uv sync --frozen --no-default-groups --group dev --group cpu
+
+      - name: ruff
+        env: { UV_NO_SYNC: "1" }
+        run: |
+          uv run ruff check .
+          uv run ruff format --check .
+
+      - name: mypy
+        env: { UV_NO_SYNC: "1" }
+        run: uv run mypy src tests
+
+      # Tests that load a checkpoint, need a GPU or download data run on a developer machine.
+      # Everything that protects a reported number (normalizer, packer, splits, metrics, policy)
+      # runs here on every push.
+      - name: pytest
+        env: { UV_NO_SYNC: "1" }
+        run: uv run pytest -m "not model and not gpu and not network" --cov=floorcall --cov-report=term-missing

@@ -1,0 +1,13 @@
+# The machine this was built on has core.autocrlf=true, which rewrites LF to CRLF on
+# checkout. Force LF everywhere so a clone on any OS gets the same bytes.
+* text=auto eol=lf
+
+# Frozen test sets are identified by SHA256 in data/test_frozen/MANIFEST.sha256. Any
+# line-ending conversion would change their bytes and break the manifest, so git must
+# treat them as opaque.
+data/test_frozen/**/*.jsonl binary
+data/test_frozen/**/*.parquet binary
+
+*.png binary
+*.mp4 binary
+*.safetensors binary

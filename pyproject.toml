@@ -1,0 +1,107 @@
+[project]
+name = "floorcall"
+version = "0.1.0"
+description = "A millisecond decision layer for voice agents: turn-taking, barge-in, routing and escalation in one calibrated Laya pass"
+readme = "README.md"
+requires-python = ">=3.11,<3.12"
+license = { text = "Apache-2.0" }
+authors = [{ name = "Yash Gudivada" }]
+
+dependencies = [
+    # The decision model. Pinned exactly: its API changes between patch releases, and
+    # src/floorcall/model/laya_adapter.py is written against this version's source.
+    "laya==0.3.21",
+    # config
+    "pydantic>=2.9",
+    "pydantic-settings>=2.5",
+    # data
+    "numpy>=2.0",
+    "pandas>=2.2",
+    "pyarrow>=17.0",
+    "httpx>=0.27",
+    # eval (ECE and Brier are implemented in floorcall.evaluate.metrics, not imported)
+    "scikit-learn>=1.5",
+    "matplotlib>=3.9",
+    # cli
+    "typer>=0.12",
+    "rich>=13.9",
+]
+
+[project.scripts]
+floorcall = "floorcall.cli:app"
+
+# torch comes in through laya. Which build it resolves to is chosen here, not left to PyPI:
+# on Windows the PyPI wheel is CPU-only, and the RTX 5070 Ti (Blackwell, sm_120) needs a
+# CUDA 12.8+ build. These are dependency groups, not extras, so that the CUDA build can be a
+# *default*: with extras, a bare `uv run` re-syncs to the no-extra set and silently swaps the
+# CUDA wheel for the CPU one (docs/DECISIONS.md, D-011).
+#   uv sync                                                  # GPU build (the default)
+#   uv sync --no-default-groups --group dev --group cpu      # CI / no NVIDIA GPU
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-cov>=5.0",
+    "ruff>=0.7",
+    "mypy>=1.13",
+    "pandas-stubs>=2.2",
+]
+cpu = ["torch>=2.14,<2.15"]
+cu130 = ["torch>=2.14,<2.15"]
+
+[tool.uv]
+default-groups = ["dev", "cu130"]
+conflicts = [[{ group = "cpu" }, { group = "cu130" }]]
+
+[tool.uv.sources]
+torch = [
+    { index = "pytorch-cpu", group = "cpu" },
+    # The cu130 index has no macOS wheels; there torch comes from PyPI (CPU / MPS).
+    { index = "pytorch-cu130", group = "cu130", marker = "sys_platform != 'darwin'" },
+]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cu130"
+url = "https://download.pytorch.org/whl/cu130"
+explicit = true
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/floorcall"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "A", "C4", "SIM", "PTH", "RUF"]
+ignore = ["E501"]  # formatter owns line length
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_unreachable = true
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+# laya ships no type information. Only model/laya_adapter.py imports it, so this is the
+# one place untyped values enter; the adapter converts them to typed structures.
+module = ["laya.*", "sklearn.*", "matplotlib.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --strict-markers"
+markers = [
+    "model: loads a Laya checkpoint (downloads ~1.7 GB on first run)",
+    "gpu: needs a CUDA device",
+    "network: downloads data",
+]

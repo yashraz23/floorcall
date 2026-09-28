@@ -1,0 +1,39 @@
+# python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
+
+# secrets
+.env
+
+# data: raw downloads and built datasets are reproducible from scripts.
+# data/test_frozen/ is deliberately NOT ignored: it is committed, hashed and immutable.
+data/raw/
+data/processed/*
+!data/processed/README.md
+!data/processed/cards/
+
+# training and tracking outputs
+checkpoints/
+runs/
+wandb/
+*.pt
+*.safetensors
+
+# frontend
+node_modules/
+web-ui/dist/
+
+# editors / os
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
