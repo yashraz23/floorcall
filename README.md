@@ -13,8 +13,10 @@ It runs [Laya](https://github.com/NandhaKishorM/laya), an open-weight (Apache-2.
 non-autoregressive decision model, fine-tuned and recalibrated on real conversational data. It is
 plugged into a [Pipecat](https://github.com/pipecat-ai/pipecat) voice pipeline.
 
-> **Status: under construction.** Every number below is `TODO` until it has been measured by a
-> committed command. Nothing in this README is an estimate.
+> **Status, 2026-09-27.** Milestone 0 (the feasibility spike, [docs/spike-m0.md](docs/spike-m0.md))
+> is done. So is milestone 1 (data, [docs/data.md](docs/data.md)), apart from the hand-labelled D4
+> test set, which is being labelled. Table A's baseline rows for D1–D3 are measured. Every other
+> cell says TODO until a committed command measures it, and nothing in this README is an estimate.
 
 ## Why a decision model and not an LLM
 

@@ -1,0 +1,68 @@
+{
+  "decision": "barge_in",
+  "test_file": "barge_in.test.v1.jsonl.gz",
+  "test_sha256": "c3b1461f0b625ad7cdf33732746786011a7f3e39a8d1798975875a2235716f14",
+  "code": "dae30e5",
+  "labels": [
+    "backchannel",
+    "interruption",
+    "noise"
+  ],
+  "model": "stock_laya",
+  "checkpoint": "convaiinnovations/laya",
+  "revision": "55cf4c4ebb4ebe31b2550e8bdf3bd21b99753851",
+  "device": "cuda",
+  "autocast": "bfloat16",
+  "event": "user_speech_during_agent",
+  "state_budget_tokens": 426,
+  "temperature": 1.7601518630981445,
+  "seconds": 443.8180984999053,
+  "metrics": {
+    "n": 13360,
+    "accuracy": 0.36788922155688625,
+    "accuracy_ci95": [
+      0.35975102251397384,
+      0.37610337432353447
+    ],
+    "macro_f1": 0.2383237913496239,
+    "ece": 0.005014852299262116,
+    "brier": 0.6610560889299052,
+    "mean_confidence": 0.36287436925762406,
+    "per_class": {
+      "backchannel": {
+        "support": 5659,
+        "precision": 0.4291963861150737,
+        "recall": 0.797490722742534
+      },
+      "interruption": {
+        "support": 6700,
+        "precision": 0.6640625,
+        "recall": 0.03805970149253731
+      },
+      "noise": {
+        "support": 1001,
+        "precision": 0.059731816334823246,
+        "recall": 0.14685314685314685
+      }
+    },
+    "confusion": [
+      [
+        4513,
+        113,
+        1033
+      ],
+      [
+        5164,
+        255,
+        1281
+      ],
+      [
+        838,
+        16,
+        147
+      ]
+    ],
+    "hard_n": 5012,
+    "hard_accuracy": 0.43934557063048685
+  }
+}

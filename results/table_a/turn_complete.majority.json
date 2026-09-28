@@ -1,0 +1,52 @@
+{
+  "decision": "turn_complete",
+  "test_file": "turn_complete.test.v1.jsonl.gz",
+  "test_sha256": "61535c7876b307c20001be578eb692dfb9d43d7e7c5e59c1a7f2cc6108ff7f3c",
+  "code": "dae30e5",
+  "labels": [
+    "false",
+    "true"
+  ],
+  "model": "majority",
+  "prior_split": "train",
+  "prior": {
+    "false": 0.5896802413883883,
+    "true": 0.41031975861161174
+  },
+  "metrics": {
+    "n": 14998,
+    "accuracy": 0.5896119482597679,
+    "accuracy_ci95": [
+      0.5817173446030741,
+      0.5974606571163947
+    ],
+    "macro_f1": 0.370915649511346,
+    "ece": 6.829312862033365e-05,
+    "brier": 0.48393940678608005,
+    "mean_confidence": 0.5896802413883883,
+    "per_class": {
+      "false": {
+        "support": 8843,
+        "precision": 0.5896119482597679,
+        "recall": 1.0
+      },
+      "true": {
+        "support": 6155,
+        "precision": null,
+        "recall": 0.0
+      }
+    },
+    "confusion": [
+      [
+        8843,
+        0
+      ],
+      [
+        6155,
+        0
+      ]
+    ],
+    "hard_n": 775,
+    "hard_accuracy": 1.0
+  }
+}
