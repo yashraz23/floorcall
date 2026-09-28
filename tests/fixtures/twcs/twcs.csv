@@ -1,0 +1,10 @@
+tweet_id,author_id,inbound,created_at,text,response_tweet_id,in_response_to_tweet_id
+1,111,True,Tue Oct 31 22:10:47 +0000 2017,@BofA_Help my card was declined twice today,2,
+2,BofA_Help,False,Tue Oct 31 22:10:47 +0000 2017,@111 Sorry to hear that. Please DM us your zip &amp; name. ^MG https://t.co/x,3,1
+3,111,True,Tue Oct 31 22:10:47 +0000 2017,@BofA_Help I already DMed you and nobody is helping!!,,2
+4,222,True,Tue Oct 31 22:10:47 +0000 2017,@AmazonHelp where is my package please,5,
+5,AmazonHelp,False,Tue Oct 31 22:10:47 +0000 2017,@222 Let me check that for you,,4
+6,333,True,Tue Oct 31 22:10:47 +0000 2017,@AskPayPal Hola no funciona mi cuenta por favor,9,
+7,444,True,Tue Oct 31 22:10:47 +0000 2017,"@ChaseSupport thanks, that fixed it",8,
+8,ChaseSupport,False,Tue Oct 31 22:10:47 +0000 2017,@444 Glad to help! ^JK,,7
+9,AskPayPal,False,Tue Oct 31 22:10:47 +0000 2017,"@333 Hola, te ayudamos por DM",,6

@@ -5,14 +5,14 @@ Train and calib go to `data/processed/` (gitignored, rebuilt freely). Test sets 
 `data/test_frozen/`, hashed in `MANIFEST.sha256`, committed, and never edited
 (`floorcall.data.freeze`). Class balance for every split is in
 `data/processed/cards/<decision>.json`. Construction rules and their reasons are in
-`docs/DECISIONS.md` D-015 to D-018.
+`docs/DECISIONS.md` D-015 to D-019.
 
 | Decision | Source | Licence | Train | Calib | Test | Test balance |
 |---|---|---|---|---|---|---|
 | D1 turn_complete | SwDA | CC BY-NC-SA 3.0 | 49,381 | 8,201 | 14,998 | false 8,843 / true 6,155 |
 | D2 barge_in | SwDA | CC BY-NC-SA 3.0 | 44,187 | 7,407 | 13,360 | backchannel 5,659 / interruption 6,700 / noise 1,001 |
 | D3 route | CLINC150 banking + oos | CC BY 3.0 | 1,750 | 400 | 1,449 | 29–30 per intent, out_of_scope 1,000 |
-| D4 escalate | Twitter customer support, hand-labelled | TODO | TODO | TODO | TODO (≥300) | TODO |
+| D4 escalate | Customer Support on Twitter, banking threads, hand-labelled by Yash | CC BY-NC-SA 4.0 | TODO | TODO (from 200 candidates) | TODO (≥300 of 400 candidates) | TODO |
 
 **Splits.** SwDA is split by conversation (sha256 of seed and conversation id: 70/10/20). D1 and D2
 share the mapping, so multi-task training cannot see a test conversation through either task.

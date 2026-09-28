@@ -100,7 +100,7 @@ def _emit(
             "labels": balance(rows)["test"]["labels"],
         },
     )
-    card = {
+    card: dict[str, Any] = {
         "decision": decision,
         "source": source,
         "licence": src.licence,
@@ -177,6 +177,59 @@ def build_clinc(settings: Settings) -> list[dict[str, Any]]:
             {"dropped_duplicates_of_train": report.dropped_duplicates},
         )
     ]
+
+
+def freeze_escalate(settings: Settings) -> dict[str, Any]:
+    """D4: Yash's labels to a frozen test set and a calib file. Refuses below the minimum."""
+    from floorcall.data import labelling
+
+    labels_dir = settings.paths.labels
+    cands = labelling.load_candidates(labels_dir / "escalate.candidates.v1.jsonl")
+    labels = labelling.load_labels(labels_dir / "escalate.labels.jsonl")
+    test = labelling.to_rows(cands, labels, "test")
+    calib = labelling.to_rows(cands, labels, "calib")
+    need = settings.data.d4_min_test_labels
+    if len(test) < need:
+        raise ValueError(f"D4 test has {len(test)} true/false labels; at least {need} are required")
+    rows = sorted(test + calib, key=lambda r: r["id"])
+    assert_disjoint(rows, group_key="group")
+    processed = settings.paths.data_processed
+    write_jsonl_gz(processed / processed_file("escalate", "calib"), calib)
+    src = SOURCES["twcs"]
+    digest, new = freeze(
+        settings.paths.test_frozen,
+        test_file("escalate"),
+        sorted(test, key=lambda r: r["id"]),
+        {
+            "decision": "escalate",
+            "source_url": src.url,
+            "source_sha256": src.sha256,
+            "licence": src.licence,
+            "built_at": _git_head(),
+            "labels": balance(rows)["test"]["labels"],
+            "labeller": "yash",
+            "guidelines": "docs/labelling-escalate.md v1",
+        },
+    )
+    card: dict[str, Any] = {
+        "decision": "escalate",
+        "source": "twcs",
+        "licence": src.licence,
+        "test_file": test_file("escalate"),
+        "test_sha256": digest,
+        "balance": balance(rows),
+        "sampling": (
+            "four equal strata (escalation-word cue x agent context); "
+            "the positive rate is not the natural rate"
+        ),
+    }
+    cards = processed / "cards"
+    cards.mkdir(parents=True, exist_ok=True)
+    with (cards / "escalate.json").open("w", encoding="utf-8", newline="\n") as f:
+        json.dump(card, f, indent=2, ensure_ascii=False)
+        f.write("\n")
+    card["test_newly_frozen"] = new
+    return card
 
 
 def build_all(settings: Settings) -> list[dict[str, Any]]:

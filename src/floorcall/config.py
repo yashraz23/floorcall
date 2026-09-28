@@ -91,6 +91,13 @@ class DataSettings(BaseModel):
     d2_hard_min_share: float = 0.2
     # D1 hard subset: last words seen at least this often ending train truncations are rated.
     d1_hard_min_count: int = 10
+    # D4 hand labelling. Test and calib candidates are drawn from different threads; the test set
+    # needs at least d4_min_test_labels true/false labels (CLAUDE.md §4). The margin over it
+    # absorbs skips. Calib labels are what theta_escalate and the D4 temperature are fitted on,
+    # since neither may be chosen on test.
+    d4_candidates_test: int = 400
+    d4_candidates_calib: int = 200
+    d4_min_test_labels: int = 300
 
 
 class EvalSettings(BaseModel):
@@ -136,6 +143,7 @@ class PathSettings(BaseModel):
     data_raw: Path = REPO_ROOT / "data" / "raw"
     data_processed: Path = REPO_ROOT / "data" / "processed"
     test_frozen: Path = REPO_ROOT / "data" / "test_frozen"
+    labels: Path = REPO_ROOT / "data" / "labels"
 
 
 class Settings(BaseSettings):

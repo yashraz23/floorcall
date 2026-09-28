@@ -29,6 +29,14 @@ SOURCES: dict[str, Source] = {
     "clinc_domains": Source(
         clinc.DOMAINS_URL, clinc.DOMAINS_SHA256, "clinc150/domains.json", clinc.LICENCE
     ),
+    # Thought Vector's "Customer Support on Twitter" (Kaggle), via an unmodified Hugging Face
+    # mirror: same schema, and the pin below is the file's own content hash.
+    "twcs": Source(
+        "https://huggingface.co/datasets/SunidhiSriram/twcs/resolve/main/twcs.csv",
+        "cd297fcfa1bf6f99938be242e8e578980bc6d1b96adc8691abec9a39175b03c0",
+        "twcs/twcs.csv",
+        "CC BY-NC-SA 4.0",
+    ),
 }
 
 

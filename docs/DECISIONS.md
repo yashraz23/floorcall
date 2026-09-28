@@ -162,3 +162,25 @@ they were ever committed or evaluated**, when review found the minimal-response 
 freeze guard refused the rebuild, as designed. The uncommitted files were deleted and v1 was
 rebuilt. The CLINC set came back with an identical hash (`9d1850a8…`), which also shows the build
 is deterministic. From the first commit of `data/test_frozen/`, any change is a new version.
+
+**D-019 · 2026-09-27 · §4 D4** — The D4 labelling pool. Source: "Customer Support on Twitter"
+(Thought Vector, Kaggle, CC BY-NC-SA 4.0), `twcs.csv` via an unmodified Hugging Face mirror, pinned
+by the file's content hash. Choices:
+*Banking threads only*: the eight banking and payments brands in the corpus (BofA, Amex, PayPal,
+Chase, Wells Fargo, Citi, Visa, KeyBank), so the D4 number describes the demo agent's domain.
+*Split by thread*, with the same hash scheme as SwDA conversations (root tweet id), so test, calib
+and any future training rows never share a thread. *One message per thread.*
+*Four equal strata*: escalation-word cue (`ESCALATION_CUES`) x whether the agent had already
+replied. The cue axis exists because 300 natural-rate labels might hold too few positives. The
+context axis exists because 74% of messages open a thread, while "frustration the agent is not
+resolving" needs a prior agent reply. As a consequence the test set's positive rate is not the
+natural rate. Every D4 number must say so, and results are also reported per stratum. The
+labelling tool never shows the stratum. "Hard" for D4 means no cue word, so a keyword match cannot
+find it.
+*Pool*: 400 test and 200 calib candidates, committed as `data/labels/escalate.candidates.v1.jsonl`
+before any label exists. The calib labels are what theta_escalate and the D4 temperature are fitted
+on, since neither may come from test. Freezing requires at least 300 true/false test labels; skips
+never enter a set. Guidelines: `docs/labelling-escalate.md` v1, recorded on every label.
+*Cleaning*: agent signatures (`^MG`, `^Clarissa`) are stripped from agent tweets only, since a
+trailing `*word` on a customer tweet may be content. A simple function-word test keeps non-English
+messages out of the pool; the labeller can skip anything it misses.
