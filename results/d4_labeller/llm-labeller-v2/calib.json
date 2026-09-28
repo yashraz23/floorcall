@@ -1,0 +1,381 @@
+{
+  "split": "calib",
+  "model": "openai/gpt-oss-120b",
+  "prompt": "llm-labeller-v2",
+  "provider_pin": "crusoe/bf16",
+  "served_by": {
+    "Crusoe": 200
+  },
+  "labels": {
+    "no": 112,
+    "escalate": 88
+  },
+  "spent_usd_total": 0.013122505999999999,
+  "agreement": {
+    "n": 195,
+    "llm_unsure": 0,
+    "accuracy": 0.7230769230769231,
+    "cohen_kappa": 0.4153897401732179,
+    "escalate_precision": 0.5,
+    "escalate_recall": 0.7962962962962963,
+    "confusion": {
+      "hand_true_llm_true": 43,
+      "hand_true_llm_false": 11,
+      "hand_false_llm_true": 43,
+      "hand_false_llm_false": 98
+    },
+    "by_stratum": {
+      "cue/opener": {
+        "n": 49,
+        "accuracy": 0.6530612244897959
+      },
+      "cue/reply": {
+        "n": 50,
+        "accuracy": 0.76
+      },
+      "plain/opener": {
+        "n": 47,
+        "accuracy": 0.7659574468085106
+      },
+      "plain/reply": {
+        "n": 49,
+        "accuracy": 0.7142857142857143
+      }
+    }
+  },
+  "gate": {
+    "min_kappa": 0.6,
+    "min_escalate_precision": 0.7,
+    "accepted": false,
+    "failures": [
+      "kappa 0.4153897401732179 is below 0.6",
+      "escalate precision 0.5 is below 0.7"
+    ]
+  },
+  "disagreements": [
+    {
+      "id": "twcs-2797402",
+      "stratum": "plain/opener",
+      "hand": "true",
+      "llm": "false"
+    },
+    {
+      "id": "twcs-46505",
+      "stratum": "cue/opener",
+      "hand": "true",
+      "llm": "false"
+    },
+    {
+      "id": "twcs-942614",
+      "stratum": "plain/opener",
+      "hand": "false",
+      "llm": "true"
+    },
+    {
+      "id": "twcs-2330172",
+      "stratum": "plain/opener",
+      "hand": "false",
+      "llm": "true"
+    },
+    {
+      "id": "twcs-2326054",
+      "stratum": "cue/reply",
+      "hand": "false",
+      "llm": "true"
+    },
+    {
+      "id": "twcs-2248069",
+      "stratum": "plain/opener",
+      "hand": "false",
+      "llm": "true"
+    },
+    {
+      "id": "twcs-2659260",
+      "stratum": "cue/reply",
+      "hand": "false",
+      "llm": "true"
+    },
+    {
+      "id": "twcs-1709877",
+      "stratum": "plain/opener",
+      "hand": "false",
+      "llm": "true"
+    },
+    {
+      "id": "twcs-2415850",
+      "stratum": "plain/reply",
+      "hand": "false",
+      "llm": "true"
+    },
+    {
+      "id": "twcs-2008395",
+      "stratum": "cue/opener",
+      "hand": "false",
+      "llm": "true"
+    },
+    {
+      "id": "twcs-1276738",
+      "stratum": "cue/opener",
+      "hand": "false",
+      "llm": "true"
+    },
+    {
+      "id": "twcs-2493486",
+      "stratum": "cue/reply",
+      "hand": "false",
+      "llm": "true"
+    },
+    {
+      "id": "twcs-2972424",
+      "stratum": "plain/reply",
+      "hand": "false",
+      "llm": "true"
+    },
+    {
+      "id": "twcs-1415127",
+      "stratum": "cue/reply",
+      "hand": "false",
+      "llm": "true"
+    },
+    {
+      "id": "twcs-2641281",
+      "stratum": "cue/opener",
+      "hand": "false",
+      "llm": "true"
+    },
+    {
+      "id": "twcs-1075981",
+      "stratum": "plain/reply",
+      "hand": "false",
+      "llm": "true"
+    },
+    {
+      "id": "twcs-8254",
+      "stratum": "plain/opener",
+      "hand": "true",
+      "llm": "false"
+    },
+    {
+      "id": "twcs-2441419",
+      "stratum": "cue/opener",
+      "hand": "false",
+      "llm": "true"
+    },
+    {
+      "id": "twcs-2329865",
+      "stratum": "cue/reply",
+      "hand": "false",
+      "llm": "true"
+    },
+    {
+      "id": "twcs-1365151",
+      "stratum": "cue/opener",
+      "hand": "true",
+      "llm": "false"
+    },
+    {
+      "id": "twcs-261633",
+      "stratum": "plain/reply",
+      "hand": "false",
+      "llm": "true"
+    },
+    {
+      "id": "twcs-635445",
+      "stratum": "plain/opener",
+      "hand": "true",
+      "llm": "false"
+    },
+    {
+      "id": "twcs-904640",
+      "stratum": "cue/reply",
+      "hand": "false",
+      "llm": "true"
+    },
+    {
+      "id": "twcs-887477",
+      "stratum": "cue/reply",
+      "hand": "false",
+      "llm": "true"
+    },
+    {
+      "id": "twcs-2955887",
+      "stratum": "cue/opener",
+      "hand": "false",
+      "llm": "true"
+    },
+    {
+      "id": "twcs-807825",
+      "stratum": "plain/reply",
+      "hand": "false",
+      "llm": "true"
+    },
+    {
+      "id": "twcs-2854878",
+      "stratum": "cue/reply",
+      "hand": "false",
+      "llm": "true"
+    },
+    {
+      "id": "twcs-922898",
+      "stratum": "cue/reply",
+      "hand": "false",
+      "llm": "true"
+    },
+    {
+      "id": "twcs-2741516",
+      "stratum": "cue/opener",
+      "hand": "false",
+      "llm": "true"
+    },
+    {
+      "id": "twcs-1110296",
+      "stratum": "plain/reply",
+      "hand": "false",
+      "llm": "true"
+    },
+    {
+      "id": "twcs-51077",
+      "stratum": "plain/opener",
+      "hand": "false",
+      "llm": "true"
+    },
+    {
+      "id": "twcs-887466",
+      "stratum": "plain/reply",
+      "hand": "false",
+      "llm": "true"
+    },
+    {
+      "id": "twcs-354593",
+      "stratum": "plain/reply",
+      "hand": "false",
+      "llm": "true"
+    },
+    {
+      "id": "twcs-1024895",
+      "stratum": "cue/opener",
+      "hand": "false",
+      "llm": "true"
+    },
+    {
+      "id": "twcs-856522",
+      "stratum": "plain/reply",
+      "hand": "false",
+      "llm": "true"
+    },
+    {
+      "id": "twcs-1844999",
+      "stratum": "plain/opener",
+      "hand": "true",
+      "llm": "false"
+    },
+    {
+      "id": "twcs-1637494",
+      "stratum": "cue/reply",
+      "hand": "false",
+      "llm": "true"
+    },
+    {
+      "id": "twcs-1934574",
+      "stratum": "plain/reply",
+      "hand": "false",
+      "llm": "true"
+    },
+    {
+      "id": "twcs-1104040",
+      "stratum": "cue/reply",
+      "hand": "false",
+      "llm": "true"
+    },
+    {
+      "id": "twcs-1931622",
+      "stratum": "cue/opener",
+      "hand": "true",
+      "llm": "false"
+    },
+    {
+      "id": "twcs-2586144",
+      "stratum": "cue/opener",
+      "hand": "true",
+      "llm": "false"
+    },
+    {
+      "id": "twcs-2581771",
+      "stratum": "cue/opener",
+      "hand": "false",
+      "llm": "true"
+    },
+    {
+      "id": "twcs-2569339",
+      "stratum": "plain/reply",
+      "hand": "true",
+      "llm": "false"
+    },
+    {
+      "id": "twcs-2347195",
+      "stratum": "cue/opener",
+      "hand": "false",
+      "llm": "true"
+    },
+    {
+      "id": "twcs-930756",
+      "stratum": "cue/opener",
+      "hand": "false",
+      "llm": "true"
+    },
+    {
+      "id": "twcs-1331598",
+      "stratum": "cue/reply",
+      "hand": "false",
+      "llm": "true"
+    },
+    {
+      "id": "twcs-2746933",
+      "stratum": "cue/opener",
+      "hand": "false",
+      "llm": "true"
+    },
+    {
+      "id": "twcs-2785128",
+      "stratum": "plain/opener",
+      "hand": "true",
+      "llm": "false"
+    },
+    {
+      "id": "twcs-852470",
+      "stratum": "plain/reply",
+      "hand": "false",
+      "llm": "true"
+    },
+    {
+      "id": "twcs-918995",
+      "stratum": "plain/opener",
+      "hand": "false",
+      "llm": "true"
+    },
+    {
+      "id": "twcs-750373",
+      "stratum": "plain/reply",
+      "hand": "false",
+      "llm": "true"
+    },
+    {
+      "id": "twcs-1040309",
+      "stratum": "cue/opener",
+      "hand": "false",
+      "llm": "true"
+    },
+    {
+      "id": "twcs-791870",
+      "stratum": "cue/opener",
+      "hand": "true",
+      "llm": "false"
+    },
+    {
+      "id": "twcs-1824769",
+      "stratum": "plain/reply",
+      "hand": "false",
+      "llm": "true"
+    }
+  ]
+}
