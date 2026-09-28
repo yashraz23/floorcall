@@ -225,3 +225,20 @@ def test_turns_empty_after_normalization_are_dropped() -> None:
 def test_rejects_unknown_speaker() -> None:
     with pytest.raises(ValueError, match="speaker"):
         Turn("caller", "hello")  # type: ignore[arg-type]
+
+
+def test_history_can_be_dropped_for_the_ablation() -> None:
+    p = pack_state(snap(), budget=10_000, count_tokens=len, include_history=False)
+    assert p.state["recent_turns"] == []
+    assert p.turns_kept == 0
+    assert p.turns_dropped == len(TURNS)
+    assert p.state["agent_last_utterance"] == AGENT
+    assert tuple(p.state) == FIELD_ORDER  # the schema keeps its shape
+
+
+def test_agent_utterance_can_be_dropped_for_the_ablation() -> None:
+    p = pack_state(snap(), budget=10_000, count_tokens=len, include_agent=False)
+    assert p.state["agent_last_utterance"] == ""
+    assert p.agent_words_dropped == len(AGENT.split())
+    assert len(p.state["recent_turns"]) == len(TURNS)
+    assert tuple(p.state) == FIELD_ORDER

@@ -118,12 +118,18 @@ def pack_state(
     budget: int,
     count_tokens: TokenCounter,
     normalize_text: bool = True,
+    include_history: bool = True,
+    include_agent: bool = True,
 ) -> PackedState:
     """Fit `snapshot` into `budget` tokens of serialized state.
 
     `budget` is the room the event's questions leave for the state, minus the configured safety
     margin (`LayaDecider.state_room`, `StateSettings.safety_margin_tokens`). `count_tokens` counts
     the serialized JSON; in production it is `LayaDecider.count_tokens`.
+
+    `normalize_text`, `include_history` and `include_agent` exist for the Table D ablations only
+    (StateSettings). Leaving a field out empties it but keeps its key, so the schema has one shape,
+    and a field left out is not "cut": the fields below it still get their tokens.
     """
     clean = normalize if normalize_text else (lambda s: " ".join(s.split()))
     user_words = clean(snapshot.user_partial).split()
@@ -149,20 +155,23 @@ def pack_state(
     # beside a truncated user turn, which is noise rather than context.
     user_cut = n_user < len(user_words)
 
+    agent_pool = agent_words if include_agent else []
+    turn_pool = turns if include_history else []
+
     # 2. what the agent last said, tail first
     n_agent = (
         0
         if user_cut
         else _longest_fitting_tail(
-            agent_words, lambda a: size(_build(speaking, [], a, user)) <= budget
+            agent_pool, lambda a: size(_build(speaking, [], a, user)) <= budget
         )
     )
-    agent = " ".join(agent_words[len(agent_words) - n_agent :])
-    agent_cut = user_cut or n_agent < len(agent_words)
+    agent = " ".join(agent_pool[len(agent_pool) - n_agent :])
+    agent_cut = user_cut or n_agent < len(agent_pool)
 
     # 3. history, newest first, whole turns, contiguous
     kept: list[dict[str, str]] = []
-    for turn in [] if agent_cut else reversed(turns):
+    for turn in [] if agent_cut else reversed(turn_pool):
         trial = [turn, *kept]
         if size(_build(speaking, trial, agent, user)) > budget:
             break
