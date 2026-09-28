@@ -1,0 +1,50 @@
+{
+  "turn_complete": {
+    "event": "user_pause",
+    "room": 339,
+    "budget": 331,
+    "rows": 14998,
+    "tokens": {
+      "50": 287,
+      "90": 325,
+      "99": 331,
+      "100": 331
+    },
+    "share_with_turns_dropped": 0.6353513801840245,
+    "share_with_agent_trimmed": 0.014401920256034139,
+    "share_with_user_trimmed": 0.0040005334044539275,
+    "mean_turns_kept": 4.32270969462595
+  },
+  "barge_in": {
+    "event": "user_speech_during_agent",
+    "room": 434,
+    "budget": 426,
+    "rows": 13360,
+    "tokens": {
+      "50": 345,
+      "90": 415,
+      "99": 425,
+      "100": 426
+    },
+    "share_with_turns_dropped": 0.43016467065868264,
+    "share_with_agent_trimmed": 0.0009730538922155689,
+    "share_with_user_trimmed": 0.0,
+    "mean_turns_kept": 5.672230538922156
+  },
+  "route": {
+    "event": "user_pause",
+    "room": 339,
+    "budget": 331,
+    "rows": 1449,
+    "tokens": {
+      "50": 46,
+      "90": 51,
+      "99": 55,
+      "100": 59
+    },
+    "share_with_turns_dropped": 0.0,
+    "share_with_agent_trimmed": 0.0,
+    "share_with_user_trimmed": 0.0,
+    "mean_turns_kept": 0.0
+  }
+}

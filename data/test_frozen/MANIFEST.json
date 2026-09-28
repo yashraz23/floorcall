@@ -1,0 +1,56 @@
+{
+  "turn_complete.test.v1.jsonl.gz": {
+    "sha256": "61535c7876b307c20001be578eb692dfb9d43d7e7c5e59c1a7f2cc6108ff7f3c",
+    "rows": 14998,
+    "decision": "turn_complete",
+    "source_url": "https://github.com/cgpotts/swda/raw/master/swda.zip",
+    "source_sha256": "0a08b8dd3992b446c8a920cacf7d246abe1e8a092a1ef7b5a2ed0352de9ccad2",
+    "licence": "CC BY-NC-SA 3.0",
+    "built_at": "090f833",
+    "labels": {
+      "false": 8843,
+      "true": 6155
+    }
+  },
+  "barge_in.test.v1.jsonl.gz": {
+    "sha256": "c3b1461f0b625ad7cdf33732746786011a7f3e39a8d1798975875a2235716f14",
+    "rows": 13360,
+    "decision": "barge_in",
+    "source_url": "https://github.com/cgpotts/swda/raw/master/swda.zip",
+    "source_sha256": "0a08b8dd3992b446c8a920cacf7d246abe1e8a092a1ef7b5a2ed0352de9ccad2",
+    "licence": "CC BY-NC-SA 3.0",
+    "built_at": "090f833",
+    "labels": {
+      "backchannel": 5659,
+      "interruption": 6700,
+      "noise": 1001
+    }
+  },
+  "route.test.v1.jsonl.gz": {
+    "sha256": "9d1850a88cf6411c4b54e8e04bc596905f7379e29b5383620bcd41618e021607",
+    "rows": 1449,
+    "decision": "route",
+    "source_url": "https://raw.githubusercontent.com/clinc/oos-eval/master/data/data_oos_plus.json",
+    "source_sha256": "bfcca9ae515623541dc1983c94c4ed7cae9d26b42ae47d74b972e51bb6f7a21f",
+    "licence": "CC BY 3.0",
+    "built_at": "090f833",
+    "labels": {
+      "account_blocked": 30,
+      "balance": 30,
+      "bill_balance": 30,
+      "bill_due": 30,
+      "freeze_account": 29,
+      "interest_rate": 30,
+      "min_payment": 30,
+      "order_checks": 30,
+      "out_of_scope": 1000,
+      "pay_bill": 30,
+      "pin_change": 30,
+      "report_fraud": 30,
+      "routing": 30,
+      "spending_history": 30,
+      "transactions": 30,
+      "transfer": 30
+    }
+  }
+}

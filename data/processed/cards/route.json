@@ -1,0 +1,92 @@
+{
+  "decision": "route",
+  "source": "clinc",
+  "licence": "CC BY 3.0",
+  "test_file": "route.test.v1.jsonl.gz",
+  "test_sha256": "9d1850a88cf6411c4b54e8e04bc596905f7379e29b5383620bcd41618e021607",
+  "balance": {
+    "train": {
+      "rows": 1750,
+      "labels": {
+        "account_blocked": 100,
+        "balance": 100,
+        "bill_balance": 100,
+        "bill_due": 100,
+        "freeze_account": 100,
+        "interest_rate": 100,
+        "min_payment": 100,
+        "order_checks": 100,
+        "out_of_scope": 250,
+        "pay_bill": 100,
+        "pin_change": 100,
+        "report_fraud": 100,
+        "routing": 100,
+        "spending_history": 100,
+        "transactions": 100,
+        "transfer": 100
+      },
+      "hard": 0,
+      "kinds": {
+        "in_scope": 1500,
+        "oos": 250
+      }
+    },
+    "calib": {
+      "rows": 400,
+      "labels": {
+        "account_blocked": 20,
+        "balance": 20,
+        "bill_balance": 20,
+        "bill_due": 20,
+        "freeze_account": 20,
+        "interest_rate": 20,
+        "min_payment": 20,
+        "order_checks": 20,
+        "out_of_scope": 100,
+        "pay_bill": 20,
+        "pin_change": 20,
+        "report_fraud": 20,
+        "routing": 20,
+        "spending_history": 20,
+        "transactions": 20,
+        "transfer": 20
+      },
+      "hard": 0,
+      "kinds": {
+        "in_scope": 300,
+        "oos": 100
+      }
+    },
+    "test": {
+      "rows": 1449,
+      "labels": {
+        "account_blocked": 30,
+        "balance": 30,
+        "bill_balance": 30,
+        "bill_due": 30,
+        "freeze_account": 29,
+        "interest_rate": 30,
+        "min_payment": 30,
+        "order_checks": 30,
+        "out_of_scope": 1000,
+        "pay_bill": 30,
+        "pin_change": 30,
+        "report_fraud": 30,
+        "routing": 30,
+        "spending_history": 30,
+        "transactions": 30,
+        "transfer": 30
+      },
+      "hard": 0,
+      "kinds": {
+        "oos": 1000,
+        "in_scope": 449
+      }
+    }
+  },
+  "dropped_duplicates_of_train": {
+    "train": 0,
+    "calib": 0,
+    "test": 1
+  }
+}
