@@ -88,7 +88,6 @@ LATENCY_ROWS = (
     ("cpu_pause", "CPU: user_pause, 3 questions in 1 call"),
     ("cpu_pause_seq", "CPU: user_pause, 3 questions in 3 calls"),
     ("cpu_barge", "CPU: user_speech_during_agent, 2 questions in 1 call"),
-    ("livekit_cpu", "LiveKit text turn detector, CPU (D1 only)"),
     ("prompted_llm", "prompted LLM, end to end, network included"),
 )
 

@@ -125,6 +125,9 @@ class EvalSettings(BaseModel):
     # flagged: on data the model separates perfectly, the unbounded optimum is T -> 0.
     temperature_min: float = 0.25
     temperature_max: float = 10.0
+    # Reliability figures leave off bins with fewer rows than this: a two-row bin swings between
+    # accuracy 0 and 1 and says nothing. ECE itself always uses every row.
+    reliability_min_bin_count: int = 20
     latency_warmup: int = 50
     latency_iters: int = 1000
     gpu_p99_budget_ms: float = 50.0

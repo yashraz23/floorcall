@@ -60,6 +60,12 @@ incomplete, so a constant "incomplete" predictor such as the majority baseline s
 the column is only informative for models that are not constant. D3's test set is 69%
 out_of_scope, so macro-F1 is its headline number.
 
+**Not compared: LiveKit's text turn detector.** The spec planned it as a D1 baseline, and the
+model (`livekit/turn-detector`) is still published. Its licence, the LiveKit Model License, allows
+use only "with LiveKit Agents", not "on a standalone basis", and forbids using its outputs "to
+improve or otherwise develop any other models". A comparison run in this repository's harness would
+be standalone use, so it is not run here (docs/DECISIONS.md D-029).
+
 ### Table B: latency (batch 1)
 
 Rendered from `results/table_b/` (`uv run floorcall eval latency`, then `uv run floorcall eval
@@ -68,16 +74,15 @@ readme`). Budgets: p99 ≤ 50 ms on GPU, ≤ 100 ms on CPU.
 <!-- table-b:start -->
 | Path | p50 ms | p95 ms | p99 ms | of which forward, p50 | of which packing, p50 | Fits budget (p99) |
 |---|---|---|---|---|---|---|
-| GPU, CUDA graphs: user_pause, 3 questions in 1 call | 41.9 | 79.9 | 85.7 | 29.0 | 3.8 | no (≤ 50 ms) |
-| GPU, CUDA graphs: user_pause, 3 questions in 3 calls | 58.6 | 95.4 | 103.5 | 34.2 | 3.6 | no (≤ 50 ms) |
-| GPU, CUDA graphs: user_speech_during_agent, 2 questions in 1 call | 61.6 | 82.1 | 89.3 | 44.3 | 10.0 | no (≤ 50 ms) |
-| GPU, eager: user_pause, 3 questions in 1 call | 95.4 | 116.2 | 122.2 | 79.8 | 3.7 | no (≤ 50 ms) |
-| GPU, eager: user_pause, 3 questions in 3 calls | 248.3 | 290.4 | 307.4 | 222.7 | 3.6 | no (≤ 50 ms) |
-| GPU, eager: user_speech_during_agent, 2 questions in 1 call | 88.9 | 118.5 | 129.6 | 72.8 | 8.6 | no (≤ 50 ms) |
-| CPU: user_pause, 3 questions in 1 call | TODO | TODO | TODO | TODO | TODO | TODO |
-| CPU: user_pause, 3 questions in 3 calls | TODO | TODO | TODO | TODO | TODO | TODO |
-| CPU: user_speech_during_agent, 2 questions in 1 call | TODO | TODO | TODO | TODO | TODO | TODO |
-| LiveKit text turn detector, CPU (D1 only) | TODO | TODO | TODO | TODO | TODO | TODO |
+| GPU, CUDA graphs: user_pause, 3 questions in 1 call | 45.2 | 89.0 | 95.2 | 38.2 | 1.3 | no (≤ 50 ms) |
+| GPU, CUDA graphs: user_pause, 3 questions in 3 calls | 53.0 | 89.0 | 93.1 | 40.6 | 1.0 | no (≤ 50 ms) |
+| GPU, CUDA graphs: user_speech_during_agent, 2 questions in 1 call | 55.5 | 67.0 | 70.6 | 47.8 | 2.6 | no (≤ 50 ms) |
+| GPU, eager: user_pause, 3 questions in 1 call | 72.3 | 97.0 | 104.0 | 65.4 | 1.3 | no (≤ 50 ms) |
+| GPU, eager: user_pause, 3 questions in 3 calls | 174.8 | 218.5 | 232.9 | 160.1 | 1.2 | no (≤ 50 ms) |
+| GPU, eager: user_speech_during_agent, 2 questions in 1 call | 72.6 | 87.4 | 92.2 | 64.2 | 2.9 | no (≤ 50 ms) |
+| CPU: user_pause, 3 questions in 1 call | 1160.9 | 2577.6 | 2647.8 | 1156.7 | 0.7 | no (≤ 100 ms) |
+| CPU: user_pause, 3 questions in 3 calls | 822.6 | 2299.0 | 2347.1 | 814.9 | 0.6 | no (≤ 100 ms) |
+| CPU: user_speech_during_agent, 2 questions in 1 call | 1351.5 | 1716.0 | 1750.9 | 1347.1 | 1.6 | no (≤ 100 ms) |
 | prompted LLM, end to end, network included | TODO | TODO | TODO | TODO | TODO | TODO |
 <!-- table-b:end -->
 
@@ -88,6 +93,11 @@ Measured on NVIDIA GeForce RTX 5070 Ti Laptop GPU (driver, power limit: 591.86, 
 "3 questions in 1 call" is one batched forward pass with one row per question; each row re-reads
 the state (docs/DECISIONS.md D-003). Latency depends on the architecture and input lengths, not the
 weights, so these numbers hold for the stock and the fine-tuned checkpoint alike.
+
+Each row is one run, and on this laptop the tail moves between runs. Two runs of the GPU rows
+(f4c7e87, then ae690c4) differed by 10–20% at p99 in both directions, more than the code change
+between them explains (docs/DECISIONS.md D-028). Read a p99 here as one measurement on a
+power-limited laptop GPU, not a guarantee.
 
 ### Table C: robustness to ASR noise
 
@@ -133,18 +143,27 @@ then `eval figures` and `eval readme`.
 <!-- operating-points:start -->
 | Model | θ_interrupt | false stops (test) | missed interruptions (test) | θ_yield | premature responses (test) | added delay, ms (test) |
 |---|---|---|---|---|---|---|
-| stock Laya | TODO | TODO | TODO | TODO | TODO | TODO |
+| stock Laya | 0.340 | 0.040 | 0.931 | 0.630 | 0.055 | 1599 |
 | fine-tuned + temperature | TODO | TODO | TODO | TODO | TODO | TODO |
 <!-- operating-points:end -->
 
 <!-- figures:start -->
-*θ_interrupt: false stops against missed interruptions*: TODO
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="results/figures/tradeoff_interrupt.dark.png">
+  <img alt="θ_interrupt: false stops against missed interruptions" src="results/figures/tradeoff_interrupt.light.png" width="640">
+</picture>
 
-*θ_yield: premature responses against added delay*: TODO
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="results/figures/tradeoff_yield.dark.png">
+  <img alt="θ_yield: premature responses against added delay" src="results/figures/tradeoff_yield.light.png" width="640">
+</picture>
 
 *Reliability, fine-tuned model, before and after temperature*: TODO
 
-*Reliability, stock Laya: raw logits and shipped temperatures*: TODO
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="results/figures/reliability_stock_laya.dark.png">
+  <img alt="Reliability, stock Laya: raw logits and shipped temperatures" src="results/figures/reliability_stock_laya.light.png" width="640">
+</picture>
 <!-- figures:end -->
 
 ## Design notes

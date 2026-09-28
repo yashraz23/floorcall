@@ -293,3 +293,26 @@ method: the reference palette's slots 1–2, assigned by entity (stock Laya alwa
 fine-tuned always slot 2) and validated with its script in both modes (CVD ΔE 24.7 light and 26.8
 dark against a target of 8; contrast at least 3:1). One axis per chart, rendered light and dark and
 served through `<picture>`.
+
+**D-028 · 2026-09-28 · §12 Table B** — Table B rows are single runs, and the README says so. Two
+runs of the GPU rows, at f4c7e87 and then at ae690c4 with the faster packer, differed at p99 by
+10–20% in both directions: graphed barge-in 89.3 → 70.6 ms, but graphed pause 85.7 → 95.2 ms. The
+packer change cut pause packing p50 from 3.8 to 1.3 ms, so the pause regression is not the code.
+It is the machine: a 90 W-capped laptop GPU, thermal state, the Windows power plan, and background
+processes. Packing and graph replay are deterministic; the tail is not. Before release, Table B is
+rerun as repeated runs on an idle machine, and each cell reports the median of the runs' p99 with
+their range. `floorcall eval latency` keeps its single-run shape until then, so every committed
+number is exactly what one run of a committed command produced.
+
+**D-029 · 2026-09-28 · §3, §12 Tables A and B** — **LiveKit's text turn detector is not a
+baseline.** (Yash's decision.) The model is still published (`livekit/turn-detector`, main at
+`fba34c38`, a small Llama-architecture causal LM that would have run on the transformers and torch
+already installed). Its licence, the LiveKit Model License, §3.b, requires "not to use any LiveKit
+Models on a standalone basis or with any frameworks other than LiveKit Agents", and "not to use any
+LiveKit Materials or any output from, or results of using, LiveKit Models ... to improve or
+otherwise develop any other models that are not LiveKit Models". Loading it in floorcall's harness
+is standalone use. Running it through the LiveKit Agents plugin would add that framework as a
+dependency and would still leave a published head-to-head in a grey area under the second clause.
+Only the model's Hub metadata and its licence file were read. The model was never downloaded or
+run, and nothing from it reached any data or result. The README says why the row is missing, and the row is removed from Table B.
+

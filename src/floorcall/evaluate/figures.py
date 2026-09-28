@@ -21,7 +21,7 @@ import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 
-from floorcall.config import REPO_ROOT
+from floorcall.config import REPO_ROOT, get_settings
 
 CURVES = REPO_ROOT / "results" / "curves"
 FIGURES = REPO_ROOT / "results" / "figures"
@@ -108,12 +108,41 @@ def _point(ax: Axes, x: float, y: float, color: str, t: dict[str, Any], label: s
     )
 
 
+def _title_and_legend(ax: Axes, t: dict[str, Any], title: str, names: list[str]) -> None:
+    """A legend for two or more series. A single series is named in the title instead: a legend
+    box with one swatch only restates it (dataviz method, labels and legend)."""
+    if len(names) == 1:
+        title = f"{title}: {names[0]}"
+    # the color goes on set_title itself: a left-aligned title is a separate artist from
+    # ax.title, so _style cannot recolor it (dark mode rendered it black on black)
+    ax.set_title(title, fontsize=10, loc="left", color=t["ink"])
+    if len(names) >= 2:
+        _legend(ax, t, "upper right")
+
+
+def _no_skill(ax: Axes, t: dict[str, Any], x: list[float], y: list[float]) -> None:
+    """What a scorer independent of the label traces: the reference a real model must beat."""
+    ax.plot(x, y, color=t["muted"], linewidth=1, zorder=1)
+    ax.annotate(
+        "no skill",
+        ((x[0] + x[1]) / 2, (y[0] + y[1]) / 2),
+        xytext=(-4, -14),
+        textcoords="offset points",
+        fontsize=8,
+        color=t["muted"],
+        ha="right",
+    )
+
+
 def tradeoff_interrupt(data: dict[str, dict[str, Any]], t: dict[str, Any]) -> Figure:
     fig, ax = _figure(t, (6.4, 4.4))
+    _no_skill(ax, t, [0, 1], [1, 0])
+    names: list[str] = []
     for model, d in data.items():
         if "interrupt" not in d:
             continue
         slot, name = MODELS[model]
+        names.append(name)
         c, color = d["interrupt"]["test_curve"], t["series"][slot]
         ax.plot(
             c["false_stop"],
@@ -129,13 +158,8 @@ def tradeoff_interrupt(data: dict[str, dict[str, Any]], t: dict[str, Any]) -> Fi
     ax.set_ylim(0, 1)
     ax.set_xlabel("False stops: share of backchannels and noise the agent stops for")
     ax.set_ylabel("Missed interruptions: share talked over")
-    ax.set_title(
-        "θ_interrupt tradeoff on the D2 test set (point: θ chosen on calib)",
-        fontsize=10,
-        loc="left",
-    )
     _style(ax, t)
-    _legend(ax, t, "upper right")
+    _title_and_legend(ax, t, "θ_interrupt on the D2 test set (point: θ chosen on calib)", names)
     fig.tight_layout()
     return fig
 
@@ -143,10 +167,12 @@ def tradeoff_interrupt(data: dict[str, dict[str, Any]], t: dict[str, Any]) -> Fi
 def tradeoff_yield(data: dict[str, dict[str, Any]], t: dict[str, Any]) -> Figure:
     fig, ax = _figure(t, (6.4, 4.4))
     top = 0.0
+    names: list[str] = []
     for model, d in data.items():
         if "yield" not in d:
             continue
         slot, name = MODELS[model]
+        names.append(name)
         c, color = d["yield"]["test_curve"], t["series"][slot]
         ax.plot(
             c["premature"],
@@ -161,24 +187,27 @@ def tradeoff_yield(data: dict[str, dict[str, Any]], t: dict[str, Any]) -> Figure
             ax, at["premature"], at["added_delay_ms"], color, t, f"θ = {d['yield']['theta']:.2f}"
         )
         top = max(top, d["yield"]["max_wait_ms"] - d["yield"]["vad_pause_ms"])
+    _no_skill(ax, t, [0, 1], [top or 1, 0])
     ax.set_xlim(0, 1)
     ax.set_ylim(0, top or 1)
     ax.set_xlabel("Premature responses: share of unfinished turns answered")
     ax.set_ylabel("Mean added delay on finished turns (ms)")
-    ax.set_title(
-        "θ_yield tradeoff on the D1 test set (point: θ chosen on calib)", fontsize=10, loc="left"
-    )
     _style(ax, t)
-    _legend(ax, t, "upper right")
+    _title_and_legend(ax, t, "θ_yield on the D1 test set (point: θ chosen on calib)", names)
     fig.tight_layout()
     return fig
 
 
-def reliability(d: dict[str, Any], t: dict[str, Any]) -> Figure:
+def reliability(d: dict[str, Any], t: dict[str, Any], *, min_count: int) -> Figure:
+    """Small multiples, one panel per decision, one shared legend below them.
+
+    Bins holding fewer than `min_count` rows are left off the plot: a bin of two rows swings
+    between accuracy 0 and 1 and says nothing. ECE is still computed over every row.
+    """
     decisions = [k for k in DECISION_TITLES if k in d["reliability"]]
     cols = 2
     rows = (len(decisions) + 1) // 2
-    fig, axes = plt.subplots(rows, cols, figsize=(6.4, 3.2 * rows), dpi=200, squeeze=False)
+    fig, axes = plt.subplots(rows, cols, figsize=(6.4, 3.1 * rows + 0.5), dpi=200, squeeze=False)
     fig.patch.set_facecolor(t["surface"])
     for ax in axes.flat[len(decisions) :]:
         ax.set_visible(False)
@@ -186,7 +215,7 @@ def reliability(d: dict[str, Any], t: dict[str, Any]) -> Figure:
         r = d["reliability"][decision]
         ax.plot([0, 1], [0, 1], color=t["muted"], linewidth=1, label="perfect calibration")
         for slot, key, name in ((0, "before", "no temperature"), (1, "after", "with temperature")):
-            bins = r[key]["bins"]
+            bins = [b for b in r[key]["bins"] if b["count"] >= min_count]
             ax.plot(
                 [b["confidence"] for b in bins],
                 [b["accuracy"] for b in bins],
@@ -196,20 +225,25 @@ def reliability(d: dict[str, Any], t: dict[str, Any]) -> Figure:
                 markersize=5,
                 markeredgecolor=t["surface"],
                 markeredgewidth=1,
-                label=f"{name} (ECE {r[key]['ece']:.3f})",
+                label=name,
             )
         ax.set_xlim(0, 1)
         ax.set_ylim(0, 1)
-        ax.set_title(DECISION_TITLES[decision], fontsize=10, loc="left")
+        ece = f"ECE {r['before']['ece']:.3f} → {r['after']['ece']:.3f}"
+        ax.set_title(f"{DECISION_TITLES[decision]}   {ece}", fontsize=9, loc="left", color=t["ink"])
         ax.set_xlabel("Confidence", fontsize=9)
         ax.set_ylabel("Accuracy", fontsize=9)
         _style(ax, t)
-        _legend(ax, t, "upper left")
-    fig.tight_layout()
+    handles, labels = axes.flat[0].get_legend_handles_labels()
+    leg = fig.legend(handles, labels, loc="lower center", ncol=3, frameon=False, fontsize=9)
+    for text in leg.get_texts():
+        text.set_color(t["ink2"])
+    fig.tight_layout(rect=(0, 0.06, 1, 1))
     return fig
 
 
 def render_all() -> list[Path]:
+    settings = get_settings()
     data = _load()
     written: list[Path] = []
     FIGURES.mkdir(parents=True, exist_ok=True)
@@ -220,7 +254,14 @@ def render_all() -> list[Path]:
         jobs.append(("tradeoff_yield", lambda t: tradeoff_yield(data, t)))
     for model, d in data.items():
         if d.get("reliability"):
-            jobs.append((f"reliability_{model}", lambda t, d=d: reliability(d, t)))
+            jobs.append(
+                (
+                    f"reliability_{model}",
+                    lambda t, d=d: reliability(
+                        d, t, min_count=settings.eval.reliability_min_bin_count
+                    ),
+                )
+            )
     for name, make in jobs:
         for mode, theme in THEMES.items():
             fig = make(theme)
