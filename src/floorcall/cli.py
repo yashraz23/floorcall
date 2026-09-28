@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+from typing import Annotated, Any
+
 import typer
 from rich.console import Console
 
@@ -16,7 +19,9 @@ data_app = typer.Typer(
 )
 label_app = typer.Typer(help="Hand labelling.", no_args_is_help=True)
 eval_app = typer.Typer(help="Evaluate on the frozen test sets.", no_args_is_help=True)
+train_app = typer.Typer(help="Fine-tune and calibrate.", no_args_is_help=True)
 app.add_typer(data_app, name="data")
+app.add_typer(train_app, name="train")
 app.add_typer(label_app, name="label")
 app.add_typer(eval_app, name="eval")
 console = Console()
@@ -223,6 +228,78 @@ def eval_latency(
             f"(forward p50 {r['forward_ms']['p50']:.1f}, pack p50 {r['pack_ms']['p50']:.1f})  "
             f"fits {r['budget_p99_ms']:.0f} ms: {'yes' if r['fits_budget'] else 'no'}"
         )
+
+
+@train_app.command("run")
+def train_run(
+    out: Annotated[Path, typer.Option(help="new, empty directory for the checkpoint")],
+    ablation: str = typer.Option("full", help="full | no_history | no_agent | no_normalize"),
+    tasks: str = typer.Option("", help="comma list of decisions; default: every task with a quota"),
+) -> None:
+    """Fine-tune one multi-task checkpoint, then calibrate it. Refuses until all test sets are frozen."""
+    from floorcall.config import with_ablation
+    from floorcall.train.run import run_training
+
+    settings = with_ablation(get_settings(), ablation)
+    chosen = [t.strip() for t in tasks.split(",") if t.strip()] or None
+    path = run_training(settings, out, tasks=chosen)
+    console.print(f"checkpoint and calibration written to {path}")
+
+
+@train_app.command("calibrate")
+def train_calibrate(
+    checkpoint: Annotated[Path, typer.Option(help="a floorcall training run directory")],
+) -> None:
+    """Refit per-decision temperatures on calib, under the state settings the run trained with."""
+    from floorcall.config import with_ablation
+    from floorcall.evaluate.checkpoint import trained_ablation
+    from floorcall.train.run import calibrate
+
+    settings = with_ablation(get_settings(), trained_ablation(checkpoint))
+    cal = calibrate(settings, checkpoint)
+    for d, t in cal.temperatures.items():
+        flag = "  (at a bound: check it)" if cal.fits[d]["at_bound"] else ""
+        console.print(f"{d:14s} T = {t:.3f}{flag}")
+
+
+def _print_rows(rows: list[dict[str, Any]]) -> None:
+    for r in rows:
+        m = r["metrics"]
+        tag = r.get("ablation") or r.get("noise_level", r["model"])
+        console.print(
+            f"{r['decision']:14s} {tag!s:22s} acc {m['accuracy']:.3f}  macroF1 {m['macro_f1']:.3f}  "
+            f"ECE {m['ece']:.3f}  Brier {m['brier']:.3f}"
+        )
+
+
+@eval_app.command("checkpoint")
+def eval_checkpoint(
+    checkpoint: Annotated[Path, typer.Option(help="a floorcall training run directory")],
+) -> None:
+    """Table A's fine-tuned and fine-tuned + temperature rows."""
+    from floorcall.evaluate.checkpoint import evaluate_table_a
+
+    _print_rows(evaluate_table_a(get_settings(), checkpoint))
+
+
+@eval_app.command("robustness")
+def eval_robustness(
+    checkpoint: Annotated[Path, typer.Option(help="a floorcall training run directory")],
+) -> None:
+    """Table C: the calibrated model on ASR-degraded test text."""
+    from floorcall.evaluate.checkpoint import evaluate_table_c
+
+    _print_rows(evaluate_table_c(get_settings(), checkpoint))
+
+
+@eval_app.command("ablation")
+def eval_ablation(
+    checkpoint: Annotated[Path, typer.Option(help="a floorcall training run directory")],
+) -> None:
+    """Table D: an ablation checkpoint, scored under the state settings it trained with."""
+    from floorcall.evaluate.checkpoint import evaluate_table_d
+
+    _print_rows(evaluate_table_d(get_settings(), checkpoint))
 
 
 @eval_app.command("readme")

@@ -20,6 +20,8 @@ from floorcall.config import REPO_ROOT
 
 RESULTS = REPO_ROOT / "results" / "table_a"
 RESULTS_B = REPO_ROOT / "results" / "table_b"
+RESULTS_C = REPO_ROOT / "results" / "table_c"
+RESULTS_D = REPO_ROOT / "results" / "table_d"
 README = REPO_ROOT / "README.md"
 
 DECISION_NAMES = {
@@ -127,7 +129,64 @@ def _latency_env(root: Path = RESULTS_B) -> str:
     )
 
 
-SECTIONS = {"table-a": table_a, "table-b": table_b, "table-b-env": _latency_env}
+NOISE_LEVELS = (0.0, 0.05, 0.1, 0.2)
+
+
+def _cell(path: Path) -> str:
+    if not path.exists():
+        return "TODO"
+    m = json.loads(path.read_text(encoding="utf-8"))["metrics"]
+    return f"{m['macro_f1']:.3f} ({m['accuracy']:.3f})"
+
+
+def table_c(root: Path = RESULTS_C) -> str:
+    head = " | ".join(f"noise {lvl:.2f}" for lvl in NOISE_LEVELS)
+    lines = [f"| Decision | {head} |", "|---|" + "---|" * len(NOISE_LEVELS)]
+    for decision, name in DECISION_NAMES.items():
+        cells = " | ".join(_cell(root / f"{decision}.{lvl:.2f}.json") for lvl in NOISE_LEVELS)
+        lines.append(f"| {name} | {cells} |")
+    return "\n".join(lines)
+
+
+ABLATION_ROWS = (
+    ("full", "full model"),
+    ("no_history", "without recent_turns"),
+    ("no_agent", "without agent_last_utterance"),
+    ("no_normalize.written", "without normalization, scored on written text"),
+    ("no_normalize.asr", "without normalization, scored on ASR-style text"),
+)
+
+
+def _hard(path: Path) -> str:
+    if not path.exists():
+        return "TODO"
+    m = json.loads(path.read_text(encoding="utf-8"))["metrics"]
+    return _f(m["hard_accuracy"])
+
+
+def table_d(root: Path = RESULTS_D) -> str:
+    lines = [
+        "| Variant | D1 macro-F1 (acc) | D1 hard acc. | D2 macro-F1 (acc) | D2 hard acc. | "
+        "D3 macro-F1 (acc) | D4 macro-F1 (acc) |",
+        "|---|---|---|---|---|---|---|",
+    ]
+    for variant, label in ABLATION_ROWS:
+        f = {d: root / f"{variant}.{d}.json" for d in DECISION_NAMES}
+        lines.append(
+            f"| {label} | {_cell(f['turn_complete'])} | {_hard(f['turn_complete'])} | "
+            f"{_cell(f['barge_in'])} | {_hard(f['barge_in'])} | {_cell(f['route'])} | "
+            f"{_cell(f['escalate'])} |"
+        )
+    return "\n".join(lines)
+
+
+SECTIONS = {
+    "table-a": table_a,
+    "table-b": table_b,
+    "table-b-env": _latency_env,
+    "table-c": table_c,
+    "table-d": table_d,
+}
 
 
 def _filler(body: str) -> Callable[[re.Match[str]], str]:

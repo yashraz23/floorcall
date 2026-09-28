@@ -223,3 +223,38 @@ median forward time falls from 80.8 ms to 35.2 ms on full-length states. Argmax 
 and 4 of 160 decisions, and every flip had an eager top-2 margin of exactly 2^-8, one bf16 step:
 exact ties, since the head scores under bf16 autocast. `tests/test_cuda_graphs.py` therefore
 forbids flips with a real margin (> 0.02) rather than demanding a fixed agreement rate.
+
+**D-023 · 2026-09-28 · §11** — Training data, mixture and guard. One multi-task checkpoint, trained
+on items packed exactly as served: the same event budgets and the same StateSettings, via
+`EvalSet.packed_states`. Each epoch draws fixed quotas per task, because the train sets differ 30x
+(D1 49k rows, D3 1.75k): 20,000 D1, 20,000 D2, 5,250 D3 (1,750 repeated 3x) and 5,000 D4, the last
+provisional until D4's training source is decided. Tasks over quota are subsampled without
+replacement each epoch. Targets are one-hot, because every label source here is hard; calibration
+comes from the calib-split temperature (D-021), not from smoothing. The loop reproduces the
+notebook: the RLCD policy gradient plus soft CE, bf16 autocast, gradient checkpointing, 64-row
+updates, cosine decay, and sigma annealed per epoch. `floorcall train run` **refuses to start**
+unless all four test sets are frozen and match the manifest (`assert_test_sets_frozen`), which
+enforces D-009 in code. The checkpoint is saved in Laya's layout with neutral temperatures (D-021),
+then reloaded from disk, and its calib logits are what the temperatures are fitted on. The code was
+tested without training anything real: the loop on a tiny stand-in model with the same forward
+signature, and save/load as an untrained round trip of the stock weights through plain
+`laya.Agent`, which is logit-exact on CPU.
+
+**D-024 · 2026-09-28 · §12 Table C** — The ASR noise model. The spec names the kinds of noise (word
+drops, substitutions, missing trailing words) but not a model. In normalized text, each user word
+is deleted with probability level/2 or replaced with probability level/2 by a word drawn uniformly
+from the 5,000 most common train words. Then, with probability level, the last one or two words
+are dropped, as when a partial transcript lags the speaker. Levels: 0, 0.05, 0.1, 0.2. Only user
+words are degraded (`user_partial` and user turns in the history); agent lines come from our own
+TTS input and are known exactly. The noise is seeded per (row id, level), so every model sees
+identical degraded text. The level-0 row must equal Table A's calibrated row, which is a built-in
+consistency check.
+
+**D-025 · 2026-09-28 · §12 Table D** — Ablations are **separately trained checkpoints**, not the
+main model with a field blanked at test time. A model trained with a field and tested without it
+measures how much it relies on the field. Whether the field is worth having needs a model trained
+without it. Each ablation is a named set of StateSettings overrides (`config.ABLATIONS`), applied
+to training, calibration and evaluation and recorded in run.json. The evaluator reads the flags
+back and refuses to score a checkpoint under different ones. The normalization ablation is scored
+twice: on written text, where punctuation leaks the answer, and on ASR-style text, the live
+condition. Cost: three extra training runs of about three hours each.
