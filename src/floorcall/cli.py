@@ -302,6 +302,30 @@ def eval_ablation(
     _print_rows(evaluate_table_d(get_settings(), checkpoint))
 
 
+@eval_app.command("curves")
+def eval_curves(
+    checkpoint: Annotated[
+        Path | None, typer.Option(help="a calibrated training run; omit for stock Laya")
+    ] = None,
+) -> None:
+    """Operating points chosen on calib, tradeoff curves and reliability on test -> results/curves/."""
+    from floorcall.evaluate.operating_points import run_curves
+
+    out = run_curves(get_settings(), checkpoint=checkpoint)
+    for key in ("interrupt", "yield"):
+        if key in out:
+            console.print(f"{key}: theta {out[key]['theta']:.3f}  test {out[key]['test_at_theta']}")
+
+
+@eval_app.command("figures")
+def eval_figures() -> None:
+    """Render results/curves/*.json to light and dark PNGs in results/figures/."""
+    from floorcall.evaluate.figures import render_all
+
+    for path in render_all():
+        console.print(f"wrote {path}")
+
+
 @eval_app.command("readme")
 def eval_readme() -> None:
     """Rewrite README.md's result tables from results/ (TODO where no file exists)."""

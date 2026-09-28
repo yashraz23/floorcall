@@ -22,6 +22,8 @@ RESULTS = REPO_ROOT / "results" / "table_a"
 RESULTS_B = REPO_ROOT / "results" / "table_b"
 RESULTS_C = REPO_ROOT / "results" / "table_c"
 RESULTS_D = REPO_ROOT / "results" / "table_d"
+RESULTS_CURVES = REPO_ROOT / "results" / "curves"
+FIGURES = REPO_ROOT / "results" / "figures"
 README = REPO_ROOT / "README.md"
 
 DECISION_NAMES = {
@@ -180,12 +182,71 @@ def table_d(root: Path = RESULTS_D) -> str:
     return "\n".join(lines)
 
 
+CURVE_MODELS = (("stock_laya", "stock Laya"), ("finetuned_temp", "fine-tuned + temperature"))
+
+
+def operating_points(root: Path = RESULTS_CURVES) -> str:
+    lines = [
+        "| Model | θ_interrupt | false stops (test) | missed interruptions (test) | θ_yield | "
+        "premature responses (test) | added delay, ms (test) |",
+        "|---|---|---|---|---|---|---|",
+    ]
+    for stem, label in CURVE_MODELS:
+        path = root / f"{stem}.json"
+        if not path.exists():
+            lines.append(f"| {label} | TODO | TODO | TODO | TODO | TODO | TODO |")
+            continue
+        d = json.loads(path.read_text(encoding="utf-8"))
+        i, y = d.get("interrupt"), d.get("yield")
+        ic = (
+            f"{i['theta']:.3f}{'' if i['feasible_on_calib'] else ' (target unreachable)'} | "
+            f"{i['test_at_theta']['false_stop']:.3f} | {i['test_at_theta']['missed']:.3f}"
+            if i
+            else "TODO | TODO | TODO"
+        )
+        yc = (
+            f"{y['theta']:.3f}{'' if y['feasible_on_calib'] else ' (target unreachable)'} | "
+            f"{y['test_at_theta']['premature']:.3f} | {y['test_at_theta']['added_delay_ms']:.0f}"
+            if y
+            else "TODO | TODO | TODO"
+        )
+        lines.append(f"| {label} | {ic} | {yc} |")
+    return "\n".join(lines)
+
+
+FIGURE_CAPTIONS = (
+    ("tradeoff_interrupt", "θ_interrupt: false stops against missed interruptions"),
+    ("tradeoff_yield", "θ_yield: premature responses against added delay"),
+    ("reliability_finetuned_temp", "Reliability, fine-tuned model, before and after temperature"),
+    ("reliability_stock_laya", "Reliability, stock Laya: raw logits and shipped temperatures"),
+)
+
+
+def figures(root: Path = FIGURES) -> str:
+    blocks = []
+    for stem, caption in FIGURE_CAPTIONS:
+        light, dark = root / f"{stem}.light.png", root / f"{stem}.dark.png"
+        if not (light.exists() and dark.exists()):
+            blocks.append(f"*{caption}*: TODO")
+            continue
+        rel = "results/figures"
+        blocks.append(
+            f"<picture>\n"
+            f'  <source media="(prefers-color-scheme: dark)" srcset="{rel}/{dark.name}">\n'
+            f'  <img alt="{caption}" src="{rel}/{light.name}" width="640">\n'
+            f"</picture>"
+        )
+    return "\n\n".join(blocks)
+
+
 SECTIONS = {
     "table-a": table_a,
     "table-b": table_b,
     "table-b-env": _latency_env,
     "table-c": table_c,
     "table-d": table_d,
+    "operating-points": operating_points,
+    "figures": figures,
 }
 
 

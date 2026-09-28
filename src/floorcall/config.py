@@ -58,6 +58,13 @@ class PolicySettings(BaseModel):
     theta_escalate: float = Field(0.5, ge=0.0, le=1.0)
     theta_oos: float = Field(0.5, ge=0.0, le=1.0)
     theta_interrupt: float = Field(0.5, ge=0.0, le=1.0)
+    # Silence after which VAD raises user_pause. It sets the floor of the response delay, and
+    # the delay model of the theta_yield curve (floorcall.evaluate.curves).
+    vad_pause_ms: int = Field(300, gt=0)
+    # How theta_interrupt and theta_yield are chosen on calib: the smallest theta whose rate of
+    # the costly error stays at or under these (floorcall.evaluate.curves.choose_threshold).
+    target_false_stop_rate: float = Field(0.05, ge=0.0, le=1.0)
+    target_premature_rate: float = Field(0.05, ge=0.0, le=1.0)
 
 
 class SplitSettings(BaseModel):

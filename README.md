@@ -121,6 +121,32 @@ the answer, and on ASR-style text, which is what a live pipeline delivers.
 | without normalization, scored on ASR-style text | TODO | TODO | TODO | TODO | TODO | TODO |
 <!-- table-d:end -->
 
+### Operating points and curves
+
+Each threshold is a point on a tradeoff curve, chosen on the **calib** split: the smallest θ whose
+calib rate of the costly error stays at or under 5% (false stops for θ_interrupt, premature
+responses for θ_yield). The test columns then show what that θ does. Added delay assumes the pause
+event fires after 300 ms of silence and the safety net answers at 2,000 ms
+(`floorcall.evaluate.curves`). Rendered from `results/curves/` by `uv run floorcall eval curves`,
+then `eval figures` and `eval readme`.
+
+<!-- operating-points:start -->
+| Model | θ_interrupt | false stops (test) | missed interruptions (test) | θ_yield | premature responses (test) | added delay, ms (test) |
+|---|---|---|---|---|---|---|
+| stock Laya | TODO | TODO | TODO | TODO | TODO | TODO |
+| fine-tuned + temperature | TODO | TODO | TODO | TODO | TODO | TODO |
+<!-- operating-points:end -->
+
+<!-- figures:start -->
+*θ_interrupt: false stops against missed interruptions*: TODO
+
+*θ_yield: premature responses against added delay*: TODO
+
+*Reliability, fine-tuned model, before and after temperature*: TODO
+
+*Reliability, stock Laya: raw logits and shipped temperatures*: TODO
+<!-- figures:end -->
+
 ## Design notes
 
 Every divergence from the original spec, and why, is in [docs/DECISIONS.md](docs/DECISIONS.md).

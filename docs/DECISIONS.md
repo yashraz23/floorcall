@@ -258,3 +258,38 @@ to training, calibration and evaluation and recorded in run.json. The evaluator 
 back and refuses to score a checkpoint under different ones. The normalization ablation is scored
 twice: on written text, where punctuation leaks the answer, and on ASR-style text, the live
 condition. Cost: three extra training runs of about three hours each.
+
+**D-026 · 2026-09-28 · §5, §12 Table B** — The packer's search got faster, and its output stayed
+identical. The first GPU Table B run (f4c7e87) showed packing at 3.6–10 ms p50, and up to 19 ms p99,
+of pure CPU time, because every candidate re-tokenized the whole JSON state: about 18 tokenizer
+calls per state. Three changes: try "everything fits" first; a binary search over history turns in
+place of a turn-by-turn scan; and memoized counts per exact string. Measured over all 29,807 frozen
+test rows with the real tokenizer: about 18 → 6 calls per state, and about 5.2 → 2.7 ms per D1/D2
+state. **0 of 29,807 packed states differ** from the previous packer, which is kept frozen as
+`tests/reference_packer.py` and checked in `tests/test_packer_equivalence.py`.
+Getting to 0 surfaced a real property of BPE. The first version differed on 1 row: a 299-word
+monologue whose tail was kept at 288 words instead of 290 (329 vs 331 tokens, both within the
+331-token budget). **The token count is not monotone in the number of tail words.** The first kept
+word follows a quote with no leading space, and dropping the word before it can split that word into
+more tokens, so the count wobbles by a token or two near the boundary. Two search orders can then
+settle on different valid answers. The word-tail search therefore keeps the old probe sequence
+exactly: after the fast path it searches [0, n], not [0, n − 1], and `fits(n)` is memoized, so it
+makes the same decisions. History turns need no such care. Each turn adds at least ~10 tokens of
+JSON wrapper against a 1–2 token boundary effect, so the count is strictly monotone in turns, and a
+binary search equals the old linear scan.
+
+**D-027 · 2026-09-28 · §6, §12 Curves** — How the two headline tradeoffs are drawn, and how their
+operating points are chosen. *theta_interrupt*: a false stop is any non-interruption (backchannel or
+noise) that stops the agent, also reported for backchannels alone; a miss is an interruption the
+agent talks over. *theta_yield*: a premature response is an unfinished turn the agent answers. Text
+has no clock, so "added delay" needs a model, and it is the policy's own. The pause event fires
+after `vad_pause_ms` (300) of silence; a finished turn the model declines to answer waits for the
+safety net at `max_wait_ms` (2,000). Added delay = fallback rate x 1,700 ms. **Operating points are
+chosen on calib**: the smallest theta whose calib rate of the costly error is at or under its
+target (`target_false_stop_rate`, `target_premature_rate`, both 5%), which keeps as many true stops
+and prompt responses as the target allows. Test then reports what that theta does, and never chooses
+it. A target calib cannot meet is reported as such, not quietly relaxed. Figures follow the dataviz
+method: the reference palette's slots 1–2, assigned by entity (stock Laya always slot 1,
+fine-tuned always slot 2) and validated with its script in both modes (CVD ΔE 24.7 light and 26.8
+dark against a target of 8; contrast at least 3:1). One axis per chart, rendered light and dark and
+served through `<picture>`.
