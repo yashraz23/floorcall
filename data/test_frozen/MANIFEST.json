@@ -52,5 +52,20 @@
       "transactions": 30,
       "transfer": 30
     }
+  },
+  "escalate.test.v1.jsonl.gz": {
+    "sha256": "e69e48237ad70244c17eb336e0114a38166ad16c0c2bfd5e9dc172276b458d48",
+    "rows": 396,
+    "decision": "escalate",
+    "source_url": "https://huggingface.co/datasets/SunidhiSriram/twcs/resolve/main/twcs.csv",
+    "source_sha256": "cd297fcfa1bf6f99938be242e8e578980bc6d1b96adc8691abec9a39175b03c0",
+    "licence": "CC BY-NC-SA 4.0",
+    "built_at": "ae690c4-dirty",
+    "labels": {
+      "false": 260,
+      "true": 136
+    },
+    "labeller": "yash",
+    "guidelines": "docs/labelling-escalate.md v1"
   }
 }

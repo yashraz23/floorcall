@@ -1,0 +1,44 @@
+{
+  "decision": "escalate",
+  "source": "twcs",
+  "licence": "CC BY-NC-SA 4.0",
+  "test_file": "escalate.test.v1.jsonl.gz",
+  "test_sha256": "e69e48237ad70244c17eb336e0114a38166ad16c0c2bfd5e9dc172276b458d48",
+  "balance": {
+    "train": {
+      "rows": 0,
+      "labels": {},
+      "hard": 0,
+      "kinds": {}
+    },
+    "calib": {
+      "rows": 195,
+      "labels": {
+        "false": 141,
+        "true": 54
+      },
+      "hard": 96,
+      "kinds": {
+        "cue/reply": 50,
+        "plain/reply": 49,
+        "cue/opener": 49,
+        "plain/opener": 47
+      }
+    },
+    "test": {
+      "rows": 396,
+      "labels": {
+        "false": 260,
+        "true": 136
+      },
+      "hard": 198,
+      "kinds": {
+        "plain/reply": 100,
+        "cue/reply": 100,
+        "cue/opener": 98,
+        "plain/opener": 98
+      }
+    }
+  },
+  "sampling": "four equal strata (escalation-word cue x agent context); the positive rate is not the natural rate"
+}
