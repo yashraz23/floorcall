@@ -45,12 +45,16 @@ def _write(decision: str, model: str, payload: dict[str, Any]) -> Path:
     return path
 
 
+# Read once, when this module is imported: the code a run executes is what was loaded then.
+CODE = git_head()
+
+
 def _provenance(settings: Settings, test: EvalSet) -> dict[str, Any]:
     return {
         "decision": test.decision,
         "test_file": test_file(test.decision),
         "test_sha256": sha256_file(settings.paths.test_frozen / test_file(test.decision)),
-        "code": git_head(),
+        "code": CODE,
         "labels": list(test.labels),
     }
 

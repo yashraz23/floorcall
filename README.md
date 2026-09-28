@@ -62,12 +62,32 @@ out_of_scope, so macro-F1 is its headline number.
 
 ### Table B: latency (batch 1)
 
-| Path | p50 | p95 | p99 | Fits budget |
-|---|---|---|---|---|
-| floorcall, GPU (RTX 5070 Ti Laptop) | TODO | TODO | TODO | TODO |
-| floorcall, CPU | TODO | TODO | TODO | TODO |
-| 3 questions, one batched call | TODO | TODO | TODO | TODO |
-| 3 questions, 3 sequential calls | TODO | TODO | TODO | TODO |
+Rendered from `results/table_b/` (`uv run floorcall eval latency`, then `uv run floorcall eval
+readme`). Budgets: p99 ≤ 50 ms on GPU, ≤ 100 ms on CPU.
+
+<!-- table-b:start -->
+| Path | p50 ms | p95 ms | p99 ms | of which forward, p50 | of which packing, p50 | Fits budget (p99) |
+|---|---|---|---|---|---|---|
+| GPU, CUDA graphs: user_pause, 3 questions in 1 call | TODO | TODO | TODO | TODO | TODO | TODO |
+| GPU, CUDA graphs: user_pause, 3 questions in 3 calls | TODO | TODO | TODO | TODO | TODO | TODO |
+| GPU, CUDA graphs: user_speech_during_agent, 2 questions in 1 call | TODO | TODO | TODO | TODO | TODO | TODO |
+| GPU, eager: user_pause, 3 questions in 1 call | TODO | TODO | TODO | TODO | TODO | TODO |
+| GPU, eager: user_pause, 3 questions in 3 calls | TODO | TODO | TODO | TODO | TODO | TODO |
+| GPU, eager: user_speech_during_agent, 2 questions in 1 call | TODO | TODO | TODO | TODO | TODO | TODO |
+| CPU: user_pause, 3 questions in 1 call | TODO | TODO | TODO | TODO | TODO | TODO |
+| CPU: user_pause, 3 questions in 3 calls | TODO | TODO | TODO | TODO | TODO | TODO |
+| CPU: user_speech_during_agent, 2 questions in 1 call | TODO | TODO | TODO | TODO | TODO | TODO |
+| LiveKit text turn detector, CPU (D1 only) | TODO | TODO | TODO | TODO | TODO | TODO |
+| prompted LLM, end to end, network included | TODO | TODO | TODO | TODO | TODO | TODO |
+<!-- table-b:end -->
+
+<!-- table-b-env:start -->
+Measured environment: TODO.
+<!-- table-b-env:end -->
+
+"3 questions in 1 call" is one batched forward pass with one row per question; each row re-reads
+the state (docs/DECISIONS.md D-003). Latency depends on the architecture and input lengths, not the
+weights, so these numbers hold for the stock and the fine-tuned checkpoint alike.
 
 ## Design notes
 

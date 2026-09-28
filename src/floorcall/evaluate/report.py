@@ -19,6 +19,7 @@ from typing import Any
 from floorcall.config import REPO_ROOT
 
 RESULTS = REPO_ROOT / "results" / "table_a"
+RESULTS_B = REPO_ROOT / "results" / "table_b"
 README = REPO_ROOT / "README.md"
 
 DECISION_NAMES = {
@@ -71,7 +72,62 @@ def table_a(root: Path = RESULTS) -> str:
     return "\n".join(lines)
 
 
-SECTIONS = {"table-a": table_a}
+# Table B rows: (results file stem, label). Order follows CLAUDE.md §12. Rows with no file yet
+# (baselines not built) render as TODO.
+LATENCY_ROWS = (
+    ("gpu_graphed_pause", "GPU, CUDA graphs: user_pause, 3 questions in 1 call"),
+    ("gpu_graphed_pause_seq", "GPU, CUDA graphs: user_pause, 3 questions in 3 calls"),
+    ("gpu_graphed_barge", "GPU, CUDA graphs: user_speech_during_agent, 2 questions in 1 call"),
+    ("gpu_eager_pause", "GPU, eager: user_pause, 3 questions in 1 call"),
+    ("gpu_eager_pause_seq", "GPU, eager: user_pause, 3 questions in 3 calls"),
+    ("gpu_eager_barge", "GPU, eager: user_speech_during_agent, 2 questions in 1 call"),
+    ("cpu_pause", "CPU: user_pause, 3 questions in 1 call"),
+    ("cpu_pause_seq", "CPU: user_pause, 3 questions in 3 calls"),
+    ("cpu_barge", "CPU: user_speech_during_agent, 2 questions in 1 call"),
+    ("livekit_cpu", "LiveKit text turn detector, CPU (D1 only)"),
+    ("prompted_llm", "prompted LLM, end to end, network included"),
+)
+
+
+def table_b(root: Path = RESULTS_B) -> str:
+    lines = [
+        "| Path | p50 ms | p95 ms | p99 ms | of which forward, p50 | of which packing, p50 | "
+        "Fits budget (p99) |",
+        "|---|---|---|---|---|---|---|",
+    ]
+    for stem, label in LATENCY_ROWS:
+        path = root / f"{stem}.json"
+        if not path.exists():
+            lines.append(f"| {label} | TODO | TODO | TODO | TODO | TODO | TODO |")
+            continue
+        r = json.loads(path.read_text(encoding="utf-8"))
+        t = r["total_ms"]
+        verdict = "yes" if r["fits_budget"] else "no"
+        lines.append(
+            f"| {label} | {t['p50']:.1f} | {t['p95']:.1f} | {t['p99']:.1f} | "
+            f"{r['forward_ms']['p50']:.1f} | {r['pack_ms']['p50']:.1f} | "
+            f"{verdict} (≤ {r['budget_p99_ms']:.0f} ms) |"
+        )
+    return "\n".join(lines)
+
+
+def _latency_env(root: Path = RESULTS_B) -> str:
+    files = sorted(root.glob("*.json"))
+    if not files:
+        return "Measured environment: TODO."
+    env = json.loads(files[0].read_text(encoding="utf-8"))
+    e, first = env["environment"], env
+    return (
+        f"Measured on {e.get('gpu')} (driver, power limit: {e.get('gpu_driver')}) and "
+        f"{e.get('cpu')} with {e.get('torch_threads')} torch threads; on AC power: "
+        f"{e.get('on_ac_power')}; torch {e.get('torch')}, laya {e.get('laya')}. "
+        f"Batch 1, {first['warmup']} warmup and {first['iterations']} timed iterations over "
+        f"{first['inputs']} fixed inputs per event; every timed call is a full `Decider.decide` "
+        "(packing, tokenizing, forward, temperatures)."
+    )
+
+
+SECTIONS = {"table-a": table_a, "table-b": table_b, "table-b-env": _latency_env}
 
 
 def _filler(body: str) -> Callable[[re.Match[str]], str]:
@@ -81,14 +137,15 @@ def _filler(body: str) -> Callable[[re.Match[str]], str]:
     return fill
 
 
-def render_readme(text: str, root: Path = RESULTS) -> str:
+def render_readme(text: str) -> str:
+    """Every marked section, each rendered from its own results directory."""
     for name, fn in SECTIONS.items():
         pattern = re.compile(
             rf"(<!-- {name}:start -->\n).*?(\n<!-- {name}:end -->)", flags=re.DOTALL
         )
         if not pattern.search(text):
             raise ValueError(f"README has no {name} markers")
-        text = pattern.sub(_filler(fn(root)), text)
+        text = pattern.sub(_filler(fn()), text)
     return text
 
 

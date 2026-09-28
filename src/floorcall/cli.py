@@ -209,6 +209,22 @@ def eval_baselines(
             )
 
 
+@eval_app.command("latency")
+def eval_latency(
+    rows: str = typer.Option("all", help="all | gpu | cpu | a row name prefix"),
+) -> None:
+    """Table B: batch-1 decision latency -> results/table_b/."""
+    from floorcall.evaluate import latency
+
+    for r in latency.run(get_settings(), rows):
+        t = r["total_ms"]
+        console.print(
+            f"{r['row']:22s} p50 {t['p50']:7.1f}  p95 {t['p95']:7.1f}  p99 {t['p99']:7.1f} ms  "
+            f"(forward p50 {r['forward_ms']['p50']:.1f}, pack p50 {r['pack_ms']['p50']:.1f})  "
+            f"fits {r['budget_p99_ms']:.0f} ms: {'yes' if r['fits_budget'] else 'no'}"
+        )
+
+
 @eval_app.command("readme")
 def eval_readme() -> None:
     """Rewrite README.md's result tables from results/ (TODO where no file exists)."""
