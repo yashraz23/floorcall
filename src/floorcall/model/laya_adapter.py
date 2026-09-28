@@ -13,8 +13,10 @@ What goes in and out of this module is plain Python and numpy. No laya object es
 
 from __future__ import annotations
 
+import json
 import time
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterator, Mapping, Sequence
+from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import Any, Literal, cast
 
@@ -79,6 +81,11 @@ class QuestionLogits:
     logits: np.ndarray  # shape (n_options,), float64
 
 
+def serialize(state: State) -> str:
+    """The exact text the model reads for a state (laya.common.serialize_state)."""
+    return str(serialize_state(dict(state)))
+
+
 def option_labels(qdef: Mapping[str, Any]) -> tuple[str, ...]:
     """Answer labels in the order the model scores them."""
     t = qdef["type"]
@@ -103,6 +110,7 @@ class LayaDecider:
         self.max_len: int = int(self._agent.cfg.get("max_len", 512))
         self.head_max_len: int = int(self._agent.cfg.get("head_max_len", 192))
         self._tok = self._agent.tok
+        self._room_cache: dict[str, int] = {}
 
     # -- introspection ---------------------------------------------------------------------
 
@@ -135,8 +143,7 @@ class LayaDecider:
     # -- token accounting ------------------------------------------------------------------
 
     def serialize(self, state: State) -> str:
-        """The exact text the model reads for a state (laya.common.serialize_state)."""
-        return str(serialize_state(dict(state)))
+        return serialize(state)
 
     def count_tokens(self, text: str) -> int:
         """Token count of `text` exactly as `Agent._encode_state` tokenizes a serialized state."""
@@ -153,6 +160,12 @@ class LayaDecider:
         """
         if not questions:
             raise ValueError("an event must ask at least one question")
+        key = json.dumps(questions, sort_keys=True, default=str)
+        if key not in self._room_cache:
+            self._room_cache[key] = self._measure_room(questions)
+        return self._room_cache[key]
+
+    def _measure_room(self, questions: Questions) -> int:
         rooms = []
         for qid, qdef in questions.items():
             internal = self._validated(qid, qdef)
@@ -178,7 +191,7 @@ class LayaDecider:
     def check_fits(self, state: State, questions: Questions) -> int:
         """Return the state's token count, or raise if any question's row would truncate it."""
         n = self.count_tokens(self.serialize(state))
-        room = self.state_room(questions)
+        room = self.state_room(questions)  # cached per question set
         if n > room:
             raise StateOverflowError(
                 f"state is {n} tokens but the questions leave room for {room}; the packer must "
@@ -187,6 +200,23 @@ class LayaDecider:
         return n
 
     # -- inference -------------------------------------------------------------------------
+
+    @contextmanager
+    def _inference(self) -> Iterator[None]:
+        """eval() and no_grad for the duration, then the previous mode back.
+
+        Laya's predict path has `@torch.no_grad()` but its `_forward` does not, and neither sets
+        eval(). A decider whose model a training loop left in train() mode would otherwise
+        predict with dropout on.
+        """
+        model = self._agent.model
+        was_training = model.training
+        model.eval()
+        try:
+            with torch.no_grad():
+                yield
+        finally:
+            model.train(was_training)
 
     def predict(self, state: State, questions: Questions, *, check: bool = True) -> Prediction:
         """Answer every question about one state in one batched forward call.
@@ -197,9 +227,10 @@ class LayaDecider:
         """
         if check:
             self.check_fits(state, questions)
-        t0 = time.perf_counter()
-        raw = self._agent.predict(dict(state), {k: dict(v) for k, v in questions.items()})
-        latency_ms = (time.perf_counter() - t0) * 1000.0
+        with self._inference():
+            t0 = time.perf_counter()
+            raw = self._agent.predict(dict(state), {k: dict(v) for k, v in questions.items()})
+            latency_ms = (time.perf_counter() - t0) * 1000.0
         answers = {
             qid: self._to_answer(qid, questions[qid], a) for qid, a in raw["answers"].items()
         }
@@ -212,14 +243,15 @@ class LayaDecider:
     def predict_sequential(self, state: State, questions: Questions) -> Prediction:
         """The same answers from one forward call per question. The Table B comparison row."""
         self.check_fits(state, questions)
-        t0 = time.perf_counter()
         answers: dict[str, Answer] = {}
         tokens = 0
-        for qid, qdef in questions.items():
-            raw = self._agent.predict(dict(state), {qid: dict(qdef)})
-            answers[qid] = self._to_answer(qid, qdef, raw["answers"][qid])
-            tokens += int(raw["usage"]["input_tokens"])
-        latency_ms = (time.perf_counter() - t0) * 1000.0
+        with self._inference():
+            t0 = time.perf_counter()
+            for qid, qdef in questions.items():
+                raw = self._agent.predict(dict(state), {qid: dict(qdef)})
+                answers[qid] = self._to_answer(qid, qdef, raw["answers"][qid])
+                tokens += int(raw["usage"]["input_tokens"])
+            latency_ms = (time.perf_counter() - t0) * 1000.0
         return Prediction(answers=answers, latency_ms=latency_ms, input_tokens=tokens)
 
     def logits_batch(
@@ -249,7 +281,8 @@ class LayaDecider:
                 self._agent._encode_state(dict(st), ids, internal) for st in chunk
             ]  # laya-internal
             batch = collate_items(encoded, self._tok.pad_token_id)
-            logits, _act = self._agent._forward(batch)  # laya-internal
+            with self._inference():
+                logits, _act = self._agent._forward(batch)  # laya-internal
             row = 0
             for items in encoded:
                 per_q: dict[str, QuestionLogits] = {}
