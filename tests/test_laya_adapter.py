@@ -4,7 +4,9 @@ The first test needs only the installed package. The rest load the pinned checkp
 ~0.9 GB download on first use) and run on a developer machine, not in CI.
 """
 
+import json
 from collections.abc import Iterator
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -98,3 +100,22 @@ def test_inference_ignores_a_model_left_in_train_mode(decider: LayaDecider) -> N
     assert a == b
     for qid in la:
         assert np.array_equal(la[qid].logits, lb[qid].logits)
+
+
+@pytest.mark.model
+def test_saved_checkpoint_reloads_through_plain_laya(decider: LayaDecider, tmp_path: Path) -> None:
+    # No training: the stock weights are saved in Laya's layout and reloaded by laya.Agent. They are
+    # fp16 on disk to begin with, so on CPU (fp32 compute) the logits must match exactly.
+    out = tmp_path / "ckpt"
+    decider.save_checkpoint(out, {"note": "untrained round trip"})
+    reloaded = LayaDecider(LayaSettings(checkpoint=str(out), revision=None, device="cpu"))
+    qs = questions.questions_for(questions.Event.USER_PAUSE)
+    (a,) = decider.logits_batch([STATE], qs)
+    (b,) = reloaded.logits_batch([STATE], qs)
+    for qid in a:
+        assert np.array_equal(a[qid].logits, b[qid].logits), qid
+    cfg = json.loads((out / "rl_agent_config.json").read_text(encoding="utf-8"))
+    assert cfg["temperature"] == [1.0, 1.0, 1.0]  # floorcall applies its own (D-021)
+    assert "temperature_by_options" not in cfg
+    assert cfg["fine_tuned"] is True
+    assert cfg["floorcall"] == {"note": "untrained round trip"}

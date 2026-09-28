@@ -90,7 +90,9 @@ def run_stock_laya(
     budget = (
         decider.state_room(questions.questions_for(event)) - settings.state.safety_margin_tokens
     )
-    states = test.packed_states(budget=budget, count_tokens=decider.count_tokens)
+    states = test.packed_states(
+        state=settings.state, budget=budget, count_tokens=decider.count_tokens
+    )
     t0 = time.perf_counter()
     per_row = decider.logits_batch(states, qdef, batch_size=32)
     seconds = time.perf_counter() - t0

@@ -10,7 +10,7 @@ import numpy as np
 import numpy.typing as npt
 
 from floorcall import questions
-from floorcall.config import Settings
+from floorcall.config import Settings, StateSettings
 from floorcall.data.build import processed_file, test_file
 from floorcall.data.freeze import read_jsonl_gz
 from floorcall.state import Snapshot, Turn, pack_state
@@ -49,14 +49,17 @@ class EvalSet:
         return questions.Event(event)
 
     def packed_states(
-        self, *, budget: int, count_tokens: Callable[[str], int], normalize_text: bool = True
+        self, *, state: StateSettings, budget: int, count_tokens: Callable[[str], int]
     ) -> list[dict[str, Any]]:
+        """Every row packed as Decider.pack packs it, with the same StateSettings."""
         return [
             pack_state(
                 snapshot_of(r),
                 budget=budget,
                 count_tokens=count_tokens,
-                normalize_text=normalize_text,
+                normalize_text=state.normalize,
+                include_history=state.include_history,
+                include_agent=state.include_agent,
             ).state
             for r in self.rows
         ]

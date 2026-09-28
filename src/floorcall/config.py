@@ -149,6 +149,21 @@ class TrainSettings(BaseModel):
     # bf16; bf16's range makes the scaler unnecessary.
     amp_dtype: str = "bf16"
     seed: int = 20260927
+    # Rows drawn per task per epoch (floorcall.train.data.epoch_mixture). The raw train sets differ
+    # 30x in size; these quotas keep the checkpoint multi-task. D3 (1,750 rows) is repeated 3x per
+    # epoch. The escalate quota is provisional until D4's training source is decided (D-009).
+    rows_per_epoch: dict[str, int] = Field(
+        default_factory=lambda: {
+            "turn_complete": 20_000,
+            "barge_in": 20_000,
+            "route": 5_250,
+            "escalate": 5_000,
+        }
+    )
+    # Gold labels here are hard; 0 keeps the target one-hot. Temperature scaling on calib, not
+    # smoothing, is what calibrates the output.
+    label_smoothing: float = 0.0
+    log_every_updates: int = 10
 
 
 class PathSettings(BaseModel):
@@ -179,3 +194,20 @@ class Settings(BaseSettings):
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
     return Settings()
+
+
+# Table D (CLAUDE.md §12): each ablation is a named set of StateSettings overrides, applied to
+# training, calibration and evaluation alike and recorded in the run's run.json.
+ABLATIONS: dict[str, dict[str, bool]] = {
+    "full": {},
+    "no_history": {"include_history": False},
+    "no_agent": {"include_agent": False},
+    "no_normalize": {"normalize": False},
+}
+
+
+def with_ablation(settings: Settings, name: str) -> Settings:
+    if name not in ABLATIONS:
+        raise ValueError(f"unknown ablation {name!r}; one of {sorted(ABLATIONS)}")
+    state = settings.state.model_copy(update=ABLATIONS[name])
+    return settings.model_copy(update={"state": state})

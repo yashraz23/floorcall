@@ -65,7 +65,8 @@ def cases(d: LayaDecider, per_decision: int) -> list[tuple[dict[str, Any], dict[
         budget = d.state_room(qs) - s.state.safety_margin_tokens
         step = len(ev.rows) // per_decision
         ev.rows = ev.rows[::step][:per_decision]
-        out += [(st, qs) for st in ev.packed_states(budget=budget, count_tokens=d.count_tokens)]
+        packed = ev.packed_states(state=s.state, budget=budget, count_tokens=d.count_tokens)
+        out += [(st, qs) for st in packed]
     return out
 
 

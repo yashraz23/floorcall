@@ -19,6 +19,7 @@ import time
 from collections.abc import Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Literal, cast
 
 import laya
@@ -532,6 +533,34 @@ class LayaDecider:
             gradient_checkpointing_kwargs={"use_reentrant": False}
         )
         self._agent.model.head_checkpointing = True
+
+    def save_checkpoint(self, out_dir: Path, meta: Mapping[str, Any]) -> None:
+        """Write the model in Laya's own checkpoint layout, loadable by `laya.Agent(out_dir)`.
+
+        Same layout and precision as the notebook's export: fp16 `model.safetensors`, `encoder/`
+        config, `tokenizer/`, `rl_agent_config.json`. Two deliberate differences in the config:
+        `temperature` is neutral ([1, 1, 1]) and `temperature_by_options` is removed, because
+        floorcall applies its own per-decision temperatures from `floorcall_calibration.json`
+        (DECISIONS.md D-021). Loaded by plain Laya, this checkpoint gives uncalibrated
+        probabilities, and the model card says so. `meta` (provenance) is stored under "floorcall".
+        """
+        from safetensors.torch import save_file
+
+        out_dir.mkdir(parents=True, exist_ok=True)
+        state = {
+            k: (v.detach().half() if v.is_floating_point() else v.detach()).contiguous().cpu()
+            for k, v in self._agent.model.state_dict().items()
+        }
+        save_file(state, str(out_dir / "model.safetensors"))
+        self._agent.model.encoder.config.save_pretrained(str(out_dir / "encoder"))
+        self._tok.save_pretrained(str(out_dir / "tokenizer"))
+        cfg = dict(self._agent.cfg)
+        cfg.update(fine_tuned=True, model_name="floorcall", temperature=[1.0, 1.0, 1.0])
+        cfg.pop("temperature_by_options", None)
+        cfg["floorcall"] = dict(meta)
+        with (out_dir / "rl_agent_config.json").open("w", encoding="utf-8", newline="\n") as f:
+            json.dump(cfg, f, indent=2, default=str)
+            f.write("\n")
 
     @staticmethod
     def proper_reward(
