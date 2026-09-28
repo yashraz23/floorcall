@@ -51,7 +51,7 @@ readme`; a row without a results file says TODO.
 | D3 route | fine-tuned + temperature | TODO | TODO | TODO | TODO | TODO |
 | D3 route | prompted LLM, stated probabilities | TODO | TODO | TODO | TODO | TODO |
 | D4 escalate | majority class (train prior) | TODO | TODO | TODO | TODO | TODO |
-| D4 escalate | stock Laya, zero-shot | TODO | TODO | TODO | TODO | TODO |
+| D4 escalate | stock Laya, zero-shot | 0.639 [0.590, 0.685] | 0.579 | 0.062 | 0.454 | 0.662 (198) |
 | D4 escalate | fine-tuned | TODO | TODO | TODO | TODO | TODO |
 | D4 escalate | fine-tuned + temperature | TODO | TODO | TODO | TODO | TODO |
 | D4 escalate | prompted LLM, stated probabilities | TODO | TODO | TODO | TODO | TODO |

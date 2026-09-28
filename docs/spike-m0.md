@@ -39,6 +39,11 @@ zero-shot decision engine"):
   pin_change) and flags weather and restaurant requests as out_of_scope. Its confidences read 1.00
   because the checkpoint's `choice:11+` temperature is 0.1006. Laya clamps it to 0.5, which still
   *sharpens* (T < 1), so stock route probabilities are overconfident by construction.
+  **Correction (2026-09-28): that last inference was wrong.** It was reasoned from "T < 1
+  sharpens", not measured. Measured on the full D3 test set (`results/curves/stock_laya.json`),
+  the raw logits are *under*confident, and sharpening them with T = 0.5 lowers ECE from 0.153 to
+  0.030. The shipped temperature helps. What remains true is that the unclamped 0.1006 would have
+  sharpened far past that.
 - **escalate is noisy**: 0.84 for "can i just talk to a real person please", but also 0.78 for
   "when is my electric bill due".
 

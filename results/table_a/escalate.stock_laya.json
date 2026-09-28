@@ -1,0 +1,55 @@
+{
+  "decision": "escalate",
+  "test_file": "escalate.test.v1.jsonl.gz",
+  "test_sha256": "e69e48237ad70244c17eb336e0114a38166ad16c0c2bfd5e9dc172276b458d48",
+  "code": "c7cb645",
+  "labels": [
+    "false",
+    "true"
+  ],
+  "model": "stock_laya",
+  "checkpoint": "convaiinnovations/laya",
+  "revision": "55cf4c4ebb4ebe31b2550e8bdf3bd21b99753851",
+  "device": "cuda",
+  "autocast": "bfloat16",
+  "event": "user_pause",
+  "state_budget_tokens": 331,
+  "temperature": 1.983399510383606,
+  "seconds": 4.4004133000271395,
+  "metrics": {
+    "n": 396,
+    "accuracy": 0.6388888888888888,
+    "accuracy_ci95": [
+      0.5904546190910172,
+      0.6846543240504668
+    ],
+    "macro_f1": 0.5793336552390149,
+    "ece": 0.061653032893574725,
+    "brier": 0.4539811185119196,
+    "mean_confidence": 0.5804985593622201,
+    "per_class": {
+      "false": {
+        "support": 260,
+        "precision": 0.7052631578947368,
+        "recall": 0.7730769230769231
+      },
+      "true": {
+        "support": 136,
+        "precision": 0.46846846846846846,
+        "recall": 0.38235294117647056
+      }
+    },
+    "confusion": [
+      [
+        201,
+        59
+      ],
+      [
+        84,
+        52
+      ]
+    ],
+    "hard_n": 198,
+    "hard_accuracy": 0.6616161616161617
+  }
+}
