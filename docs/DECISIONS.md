@@ -199,3 +199,27 @@ informative next to a model's overall accuracy, and the README says so under the
 *Stock Laya* is scored from `logits_batch` with the checkpoint's own shipped temperatures, including
 the clamped `choice:11+` bucket that sharpens D3 (docs/spike-m0.md §2). Every state is packed with
 its event's budget, exactly as in serving.
+
+**D-021 · 2026-09-28 · §11** — floorcall fits **one temperature per decision**, on the calib split,
+and applies it itself to the raw logits (`evaluate/calibration.py`, `decider.py`). Laya keeps one
+temperature per question type and option count (`noul:2`, `choice:3-5`, ...), and its notebook fits
+one per type. D1 turn_complete and D4 escalate are both two-option `noul` questions, so under
+Laya's scheme they would share a temperature fitted on a mixture of two unrelated tasks. The fit
+minimises NLL over beta = 1/T, which is convex, with a golden-section search bounded to
+[0.25, 10] (`EvalSettings`); a fit that ends on a bound is flagged. The temperatures live in
+`floorcall_calibration.json` beside the checkpoint, with the calib files' hashes. A checkpoint
+without that file (the stock one) uses Laya's shipped temperatures, so it behaves as Laya serves
+it. The serving path therefore bypasses Laya's decode: `LayaDecider.logits_one` returns raw scores
+from one batched call, and `Decider` packs, scores and applies temperatures.
+
+**D-022 · 2026-09-28 · §12 Table B** — How the CUDA-graphed forward (D-012) is built and checked.
+Graphs are keyed by (rows, sequence length rounded up to 32 tokens, options), captured on first
+use, and share one memory pool; states in the same bucket share a graph. Two facts from the
+installed transformers 5.17 source make padding safe. ModernBERT skips its attention mask when a
+batch has no padding, a data-dependent branch, but `is_tracing()` is true during stream capture,
+so a graph always takes the masked path. And end padding moves no RoPE position of a real token.
+Measured against eager on frozen-test states: replay is bit-identical, max |dp| is 0.031, and
+median forward time falls from 80.8 ms to 35.2 ms on full-length states. Argmax flipped on 1 of 240
+and 4 of 160 decisions, and every flip had an eager top-2 margin of exactly 2^-8, one bf16 step:
+exact ties, since the head scores under bf16 autocast. `tests/test_cuda_graphs.py` therefore
+forbids flips with a real margin (> 0.02) rather than demanding a fixed agreement rate.
