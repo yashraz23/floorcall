@@ -184,3 +184,18 @@ never enter a set. Guidelines: `docs/labelling-escalate.md` v1, recorded on ever
 *Cleaning*: agent signatures (`^MG`, `^Clarissa`) are stripped from agent tweets only, since a
 trailing `*word` on a customer tweet may be content. A simple function-word test keeps non-English
 messages out of the pool; the labeller can skip anything it misses.
+
+**D-020 · 2026-09-27 · §12 Table A** — How Table A is produced and read.
+*README numbers are generated*: `floorcall eval readme` renders the tables from `results/table_a/*.json`
+(each written by a committed command, with the test file's hash, code commit, checkpoint revision,
+device and temperature inside). A cell with no file renders as TODO, and `tests/test_readme.py`
+fails if README.md differs from the render, so no number can be typed in by hand.
+*Majority baseline* predicts the train split's majority class with the **train class prior** as its
+probabilities. The majority is taken from train because taking it from test is peeking. The prior,
+rather than a one-hot, gives a meaningful Brier score and ECE.
+*D1's hard subset is single-class*: truncations, all labelled incomplete. A constant "incomplete"
+predictor, which is what the majority baseline is on D1, scores 1.000 there. The column is only
+informative next to a model's overall accuracy, and the README says so under the table.
+*Stock Laya* is scored from `logits_batch` with the checkpoint's own shipped temperatures, including
+the clamped `choice:11+` bucket that sharpens D3 (docs/spike-m0.md §2). Every state is packed with
+its event's budget, exactly as in serving.

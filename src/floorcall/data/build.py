@@ -15,17 +15,17 @@ from __future__ import annotations
 
 import json
 import random
-import subprocess
 from collections import Counter
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
-from floorcall.config import REPO_ROOT, Settings
+from floorcall.config import Settings
 from floorcall.data import clinc, swda
 from floorcall.data.download import SOURCES, fetch
 from floorcall.data.freeze import freeze, write_jsonl_gz
 from floorcall.data.splits import SPLITS, assert_disjoint
+from floorcall.provenance import git_head
 
 TEST_VERSION = "v1"
 
@@ -36,27 +36,6 @@ def test_file(decision: str, version: str = TEST_VERSION) -> str:
 
 def processed_file(decision: str, split: str) -> str:
     return f"{decision}.{split}.jsonl.gz"
-
-
-def _git_head() -> str:
-    try:
-        sha = subprocess.run(
-            ["git", "rev-parse", "--short", "HEAD"],
-            cwd=REPO_ROOT,
-            capture_output=True,
-            text=True,
-            check=True,
-        ).stdout.strip()
-        dirty = subprocess.run(
-            ["git", "status", "--porcelain", "--untracked-files=no"],
-            cwd=REPO_ROOT,
-            capture_output=True,
-            text=True,
-            check=True,
-        ).stdout.strip()
-    except (OSError, subprocess.CalledProcessError):
-        return "unknown"
-    return f"{sha}{'-dirty' if dirty else ''}"
 
 
 def balance(rows: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
@@ -96,7 +75,7 @@ def _emit(
             "source_url": src.url,
             "source_sha256": src.sha256,
             "licence": src.licence,
-            "built_at": _git_head(),
+            "built_at": git_head(),
             "labels": balance(rows)["test"]["labels"],
         },
     )
@@ -205,7 +184,7 @@ def freeze_escalate(settings: Settings) -> dict[str, Any]:
             "source_url": src.url,
             "source_sha256": src.sha256,
             "licence": src.licence,
-            "built_at": _git_head(),
+            "built_at": git_head(),
             "labels": balance(rows)["test"]["labels"],
             "labeller": "yash",
             "guidelines": "docs/labelling-escalate.md v1",

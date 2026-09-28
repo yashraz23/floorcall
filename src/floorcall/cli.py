@@ -15,8 +15,10 @@ data_app = typer.Typer(
     help="Download, build, freeze and verify the datasets.", no_args_is_help=True
 )
 label_app = typer.Typer(help="Hand labelling.", no_args_is_help=True)
+eval_app = typer.Typer(help="Evaluate on the frozen test sets.", no_args_is_help=True)
 app.add_typer(data_app, name="data")
 app.add_typer(label_app, name="label")
+app.add_typer(eval_app, name="eval")
 console = Console()
 
 ESCALATE_CANDIDATES = "escalate.candidates.v1.jsonl"
@@ -177,6 +179,43 @@ def data_freeze_escalate() -> None:
 
     card = build.freeze_escalate(get_settings())
     console.print(build.summarize([card]))
+
+
+@eval_app.command("baselines")
+def eval_baselines(
+    decision: str = typer.Option("all", help="turn_complete | barge_in | route | escalate | all"),
+    device: str = typer.Option("cuda", help="device for stock Laya"),
+    skip_laya: bool = typer.Option(False, help="majority class only"),
+) -> None:
+    """Majority-class and stock-Laya rows of Table A -> results/table_a/."""
+    from floorcall.data.build import test_file
+    from floorcall.evaluate import baselines
+
+    s = get_settings()
+    wanted = baselines.DECISIONS if decision == "all" else (decision,)
+    for d in wanted:
+        if not (s.paths.test_frozen / test_file(d)).exists():
+            console.print(f"[yellow]skip {d}: no frozen test set yet[/yellow]")
+            continue
+        runs = [baselines.run_majority(s, d)]
+        if not skip_laya:
+            runs.append(baselines.run_stock_laya(s, d, device=device))
+        for r in runs:
+            m = r["metrics"]
+            hard = "n/a" if m["hard_accuracy"] is None else f"{m['hard_accuracy']:.3f}"
+            console.print(
+                f"{d:14s} {r['model']:11s} acc {m['accuracy']:.3f}  macroF1 {m['macro_f1']:.3f}  "
+                f"ECE {m['ece']:.3f}  Brier {m['brier']:.3f}  hard {hard}  (n={m['n']})"
+            )
+
+
+@eval_app.command("readme")
+def eval_readme() -> None:
+    """Rewrite README.md's result tables from results/ (TODO where no file exists)."""
+    from floorcall.evaluate.report import write_readme
+
+    changed = write_readme()
+    console.print("README.md updated" if changed else "README.md already up to date")
 
 
 if __name__ == "__main__":
