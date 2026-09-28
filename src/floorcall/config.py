@@ -8,7 +8,7 @@ Values are experiment variables. Change them here, never inline, and say so in t
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -176,6 +176,41 @@ class TrainSettings(BaseModel):
     log_every_updates: int = 10
 
 
+class LLMSettings(BaseModel):
+    """Groq-hosted LLMs: the D4 training labeller and the prompted-LLM baseline (D-030)."""
+
+    base_url: str = "https://api.groq.com/openai/v1"
+    # Strict JSON-schema output is supported on the gpt-oss models (Groq docs, structured outputs).
+    labeller_model: str = "openai/gpt-oss-120b"
+    baseline_model: str = "openai/gpt-oss-20b"
+    reasoning_effort: str = "low"
+    seed: int = 20260927
+    # USD per million tokens (input, output), from Groq's published rates in September 2026. The
+    # ledger prices every call from the usage the API returns; a model missing here is refused,
+    # because its spend could not be capped.
+    prices_per_million: dict[str, tuple[float, float]] = Field(
+        default_factory=lambda: {
+            "openai/gpt-oss-120b": (0.15, 0.60),
+            "openai/gpt-oss-20b": (0.075, 0.30),
+        }
+    )
+    # Yash's cap for all Groq use in this project. A call is refused unless its worst-case cost
+    # still fits under cap * margin, counting everything already spent.
+    budget_usd: float = 5.0
+    budget_margin: float = 0.95
+    max_output_tokens: int = 600
+    concurrency: int = 4
+    max_retries: int = 6
+    timeout_s: float = 60.0
+    # D4 training rows to label from train-split banking threads, one message per thread.
+    d4_train_rows: int = 6000
+    # Prompted-LLM baseline: D1 and D2 test sets are subsampled (evenly spaced, fixed); D3 and D4
+    # are scored whole. The n is reported beside every number.
+    baseline_rows: dict[str, int] = Field(
+        default_factory=lambda: {"turn_complete": 1000, "barge_in": 1000}
+    )
+
+
 class PathSettings(BaseModel):
     data_raw: Path = REPO_ROOT / "data" / "raw"
     data_processed: Path = REPO_ROOT / "data" / "processed"
@@ -198,7 +233,10 @@ class Settings(BaseSettings):
     data: DataSettings = DataSettings()
     eval: EvalSettings = EvalSettings()
     train: TrainSettings = TrainSettings()
+    llm: LLMSettings = LLMSettings()
     paths: PathSettings = PathSettings()
+    # Read from the environment or .env, never logged or written anywhere.
+    groq_api_key: SecretStr | None = Field(default=None, validation_alias="GROQ_API_KEY")
 
 
 @lru_cache(maxsize=1)

@@ -316,3 +316,33 @@ dependency and would still leave a published head-to-head in a grey area under t
 Only the model's Hub metadata and its licence file were read. The model was never downloaded or
 run, and nothing from it reached any data or result. The README says why the row is missing, and the row is removed from Table B.
 
+
+**D-030 · 2026-09-28 · §4 D4, §12 Tables A and B** — Groq for D4 training labels and for the
+prompted-LLM baseline. (Yash's decisions: LLM-label real messages, never generate synthetic ones;
+the baseline on Groq; a $5 cap on all Groq use.)
+*D4 training rows* are real customer messages from **train-split** banking threads (the same
+thread-level hash as test and calib), one per thread, 6,000 sampled with a fixed seed. Any message
+whose normalized text equals a test or calib message is also dropped, because a complaint can be
+pasted into several threads. Each is labelled by `openai/gpt-oss-120b` (strict JSON schema, low
+reasoning effort, temperature 0, fixed seed) from Yash's guidelines, whose seven decision rules
+appear in the prompt word for word (checked by a test). "unsure" drops the message, as his skip
+did. Rows carry `source=llm_labelled`; test sets carry no such rows (`tests/test_frozen_data.py`).
+Every label, with its model and prompt version (`llm-labeller-v1`), is committed in
+`data/labels/escalate.llm_labels.v1.jsonl`, so the train set rebuilds without the API.
+*Agreement with Yash* (Cohen's kappa, accuracy, confusion, per stratum) is reported on calib and
+test, and is **measurement only**. The prompt was fixed before it saw a test message, and nothing
+is tuned or filtered on the test agreement.
+*The baseline* is `openai/gpt-oss-20b`, a small model (21B total, about 3.6B active parameters) with
+strict JSON schemas. It gets exactly Laya's inputs: the same packed state and the same question
+wording. **Groq returns no log-probabilities** ("not yet supported by any of our models"), so the
+baseline *states* a probability per option, and its ECE and Brier score measure stated
+confidence. The README says so. D1 and D2 are scored on fixed, evenly spaced 1,000-row subsamples to
+stay inside the cap, and D3 and D4 whole. The n is in each results file. For Table B, all three
+user_pause questions go in one prompt, under the same protocol as every other row (50 warmup, 1,000
+timed calls, cache bypassed), timed end to end with the network.
+*The cap is enforced in code* (`floorcall.llm.groq.Ledger`). Every billed call's cost comes from the
+usage the API returns, at Groq's published September 2026 rates (gpt-oss-120b $0.15/$0.60,
+gpt-oss-20b $0.075/$0.30 per million tokens). Before a call, its worst case is reserved, and the call
+is refused if spent + reserved + worst case would pass 95% of $5. A model with no known price is
+refused. Responses are cached, so reruns cost nothing. The API key is a `SecretStr`, which keeps it
+out of the settings dump that every run.json stores (a test asserts this).

@@ -20,7 +20,9 @@ data_app = typer.Typer(
 label_app = typer.Typer(help="Hand labelling.", no_args_is_help=True)
 eval_app = typer.Typer(help="Evaluate on the frozen test sets.", no_args_is_help=True)
 train_app = typer.Typer(help="Fine-tune and calibrate.", no_args_is_help=True)
+llm_app = typer.Typer(help="Groq usage: spend against the cap.", no_args_is_help=True)
 app.add_typer(data_app, name="data")
+app.add_typer(llm_app, name="llm")
 app.add_typer(train_app, name="train")
 app.add_typer(label_app, name="label")
 app.add_typer(eval_app, name="eval")
@@ -324,6 +326,61 @@ def eval_figures() -> None:
 
     for path in render_all():
         console.print(f"wrote {path}")
+
+
+@data_app.command("escalate-llm-label")
+def data_escalate_llm_label(
+    split: Annotated[str, typer.Option(help="calib | test | train")],
+) -> None:
+    """Label D4 messages with the Groq labeller. calib/test: agreement with Yash (measurement
+    only). train: the D4 training rows, source=llm_labelled."""
+    from floorcall.data.d4_llm import run
+
+    out = run(get_settings(), split)
+    console.print_json(data={k: v for k, v in out.items() if k != "agreement"})
+    if "agreement" in out:
+        a = out["agreement"]
+        console.print(
+            f"agreement with Yash on {split}: n={a['n']}  accuracy {a['accuracy']:.3f}  "
+            f"kappa {a['cohen_kappa']:.3f}  (LLM unsure on {a['llm_unsure']})"
+        )
+
+
+@eval_app.command("llm-baseline")
+def eval_llm_baseline() -> None:
+    """Table A: the prompted-LLM baseline on every decision (D1/D2 subsampled)."""
+    from floorcall.evaluate.llm_baseline import run_table_a
+
+    for r in run_table_a(get_settings()):
+        m = r["metrics"]
+        console.print(
+            f"{r['decision']:14s} n={m['n']:5d}  acc {m['accuracy']:.3f}  macroF1 {m['macro_f1']:.3f}  "
+            f"ECE {m['ece']:.3f}  invalid {r['invalid_answers']}  ${r['cost_usd']:.4f}"
+        )
+
+
+@eval_app.command("llm-latency")
+def eval_llm_latency() -> None:
+    """Table B: the prompted LLM, end to end with the network, user_pause event."""
+    from floorcall.evaluate.llm_baseline import run_latency
+
+    r = run_latency(get_settings())
+    t = r["total_ms"]
+    console.print(
+        f"prompted_llm p50 {t['p50']:.1f}  p95 {t['p95']:.1f}  p99 {t['p99']:.1f} ms  "
+        f"failed {r['failed_calls']}  ${r['cost_usd']:.4f}"
+    )
+
+
+@llm_app.command("spend")
+def llm_spend() -> None:
+    """Groq spend so far, by purpose, against the cap. Needs no key."""
+    from floorcall.config import REPO_ROOT
+    from floorcall.llm.groq import Ledger
+
+    console.print_json(
+        data=Ledger(REPO_ROOT / "runs" / "llm" / "ledger.sqlite", get_settings().llm).summary()
+    )
 
 
 @eval_app.command("readme")

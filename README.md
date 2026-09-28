@@ -39,18 +39,22 @@ readme`; a row without a results file says TODO.
 | D1 turn_complete | stock Laya, zero-shot | 0.488 [0.480, 0.496] | 0.485 | 0.028 | 0.510 | 0.505 (775) |
 | D1 turn_complete | fine-tuned | TODO | TODO | TODO | TODO | TODO |
 | D1 turn_complete | fine-tuned + temperature | TODO | TODO | TODO | TODO | TODO |
+| D1 turn_complete | prompted LLM, stated probabilities | TODO | TODO | TODO | TODO | TODO |
 | D2 barge_in | majority class (train prior) | 0.501 [0.493, 0.510] | 0.223 | 0.010 | 0.564 | 0.453 (5012) |
 | D2 barge_in | stock Laya, zero-shot | 0.368 [0.360, 0.376] | 0.238 | 0.005 | 0.661 | 0.439 (5012) |
 | D2 barge_in | fine-tuned | TODO | TODO | TODO | TODO | TODO |
 | D2 barge_in | fine-tuned + temperature | TODO | TODO | TODO | TODO | TODO |
+| D2 barge_in | prompted LLM, stated probabilities | TODO | TODO | TODO | TODO | TODO |
 | D3 route | majority class (train prior) | 0.690 [0.666, 0.713] | 0.051 | 0.547 | 0.837 | n/a |
 | D3 route | stock Laya, zero-shot | 0.934 [0.921, 0.946] | 0.866 | 0.030 | 0.115 | n/a |
 | D3 route | fine-tuned | TODO | TODO | TODO | TODO | TODO |
 | D3 route | fine-tuned + temperature | TODO | TODO | TODO | TODO | TODO |
+| D3 route | prompted LLM, stated probabilities | TODO | TODO | TODO | TODO | TODO |
 | D4 escalate | majority class (train prior) | TODO | TODO | TODO | TODO | TODO |
 | D4 escalate | stock Laya, zero-shot | TODO | TODO | TODO | TODO | TODO |
 | D4 escalate | fine-tuned | TODO | TODO | TODO | TODO | TODO |
 | D4 escalate | fine-tuned + temperature | TODO | TODO | TODO | TODO | TODO |
+| D4 escalate | prompted LLM, stated probabilities | TODO | TODO | TODO | TODO | TODO |
 <!-- table-a:end -->
 
 Brier is the multi-class form Σₖ(pₖ − yₖ)², range [0, 2]; for a binary decision it is twice the
@@ -83,7 +87,7 @@ readme`). Budgets: p99 ≤ 50 ms on GPU, ≤ 100 ms on CPU.
 | CPU: user_pause, 3 questions in 1 call | 1160.9 | 2577.6 | 2647.8 | 1156.7 | 0.7 | no (≤ 100 ms) |
 | CPU: user_pause, 3 questions in 3 calls | 822.6 | 2299.0 | 2347.1 | 814.9 | 0.6 | no (≤ 100 ms) |
 | CPU: user_speech_during_agent, 2 questions in 1 call | 1351.5 | 1716.0 | 1750.9 | 1347.1 | 1.6 | no (≤ 100 ms) |
-| prompted LLM, end to end, network included | TODO | TODO | TODO | TODO | TODO | TODO |
+| prompted LLM (Groq), user_pause, 3 questions in 1 call, network included | TODO | TODO | TODO | TODO | TODO | TODO |
 <!-- table-b:end -->
 
 <!-- table-b-env:start -->

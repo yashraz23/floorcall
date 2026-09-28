@@ -38,6 +38,7 @@ MODELS = (
     ("stock_laya", "stock Laya, zero-shot"),
     ("finetuned", "fine-tuned"),
     ("finetuned_temp", "fine-tuned + temperature"),
+    ("prompted_llm", "prompted LLM, stated probabilities"),
 )
 
 
@@ -88,7 +89,7 @@ LATENCY_ROWS = (
     ("cpu_pause", "CPU: user_pause, 3 questions in 1 call"),
     ("cpu_pause_seq", "CPU: user_pause, 3 questions in 3 calls"),
     ("cpu_barge", "CPU: user_speech_during_agent, 2 questions in 1 call"),
-    ("prompted_llm", "prompted LLM, end to end, network included"),
+    ("prompted_llm", "prompted LLM (Groq), user_pause, 3 questions in 1 call, network included"),
 )
 
 
@@ -106,10 +107,10 @@ def table_b(root: Path = RESULTS_B) -> str:
         r = json.loads(path.read_text(encoding="utf-8"))
         t = r["total_ms"]
         verdict = "yes" if r["fits_budget"] else "no"
+        parts = [f"{r[k]['p50']:.1f}" if k in r else "n/a" for k in ("forward_ms", "pack_ms")]
         lines.append(
             f"| {label} | {t['p50']:.1f} | {t['p95']:.1f} | {t['p99']:.1f} | "
-            f"{r['forward_ms']['p50']:.1f} | {r['pack_ms']['p50']:.1f} | "
-            f"{verdict} (≤ {r['budget_p99_ms']:.0f} ms) |"
+            f"{parts[0]} | {parts[1]} | {verdict} (≤ {r['budget_p99_ms']:.0f} ms) |"
         )
     return "\n".join(lines)
 
