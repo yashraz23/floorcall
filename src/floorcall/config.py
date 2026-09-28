@@ -23,6 +23,10 @@ class LayaSettings(BaseModel):
     revision: str | None = "55cf4c4ebb4ebe31b2550e8bdf3bd21b99753851"
     # None lets Laya pick (CUDA if it can place the model there). The latency harness pins it.
     device: str | None = None
+    # Replay the forward as CUDA graphs (DECISIONS.md D-012). Sequence lengths are padded up to a
+    # multiple of this many tokens, so one graph serves every state in its bucket.
+    cuda_graphs: bool = False
+    graph_bucket_tokens: int = 32
 
 
 class StateSettings(BaseModel):
@@ -35,6 +39,10 @@ class StateSettings(BaseModel):
     # ASR-style normalization of every text field. False only for the Table D ablation that shows
     # what punctuation leakage does; never for a reported main-table number.
     normalize: bool = True
+    # Table D ablations: leave the conversation history, or the agent's last utterance, out of
+    # every state, in training and evaluation alike. True for every main-table number.
+    include_history: bool = True
+    include_agent: bool = True
 
 
 class PolicySettings(BaseModel):
@@ -106,6 +114,10 @@ class EvalSettings(BaseModel):
     # 15 equal-width bins, the convention laya.common.ece_score uses, so ECE here is comparable
     # to the figures Laya publishes.
     ece_bins: int = 15
+    # Bounds on a fitted temperature (floorcall.evaluate.calibration). A fit that lands on one is
+    # flagged: on data the model separates perfectly, the unbounded optimum is T -> 0.
+    temperature_min: float = 0.25
+    temperature_max: float = 10.0
     latency_warmup: int = 50
     latency_iters: int = 1000
     gpu_p99_budget_ms: float = 50.0

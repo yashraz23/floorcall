@@ -14,6 +14,7 @@ What goes in and out of this module is plain Python and numpy. No laya object es
 from __future__ import annotations
 
 import json
+import math
 import time
 from collections.abc import Iterator, Mapping, Sequence
 from contextlib import contextmanager
@@ -81,6 +82,121 @@ class QuestionLogits:
     logits: np.ndarray  # shape (n_options,), float64
 
 
+@dataclass(frozen=True)
+class TimedLogits:
+    """Raw scores for one state's questions from one batched forward call, with timings.
+
+    encode_ms covers tokenizing the state and building one row per question; forward_ms covers
+    the forward pass and copying the scores back to the host, which on CUDA also waits for the
+    kernels to finish.
+    """
+
+    logits: dict[str, QuestionLogits]
+    encode_ms: float
+    forward_ms: float
+    input_tokens: int
+    graphed: bool
+
+    @property
+    def total_ms(self) -> float:
+        return self.encode_ms + self.forward_ms
+
+
+def bucket_length(length: int, bucket: int, max_len: int) -> int:
+    """`length` rounded up to a multiple of `bucket`, never past `max_len` nor below `length`."""
+    return max(length, min(math.ceil(length / bucket) * bucket, max_len))
+
+
+class _CudaGraphs:
+    """The decision model's forward, captured as CUDA graphs and replayed.
+
+    At batch 1 the eager forward is launch-bound: around a thousand small kernels dispatched one at
+    a time from Python (docs/spike-m0.md §3). A CUDA graph records them once and replays them as a
+    single launch. A graph has fixed shapes, so inputs are padded to a bucket: rows (questions) x
+    sequence length rounded up to `bucket` tokens x options. Each shape is captured the first time
+    it is seen, and all graphs share one memory pool.
+
+    Correctness notes, both verified against the installed transformers 5.17 source:
+    - ModernBERT skips its attention mask when a batch has no padding, a data-dependent branch.
+      During capture `is_tracing()` is true (it checks `is_cuda_stream_capturing()`), so the mask
+      is never skipped inside a graph, and the masked path is correct for any padding on replay.
+    - Padding at the end of a row is masked out of attention, and RoPE positions of real tokens do
+      not move, so padded rows compute the same function. Kernel choice can differ with length, so
+      graphed and eager agree closely rather than bit for bit; tests/test_cuda_graphs.py measures it.
+    """
+
+    def __init__(
+        self, model: torch.nn.Module, dtype: torch.dtype, pad_id: int, bucket: int, max_len: int
+    ) -> None:
+        self.model = model
+        self.dtype = dtype
+        self.pad_id = pad_id
+        self.bucket = bucket
+        self.max_len = max_len
+        self.pool = torch.cuda.graph_pool_handle()
+        self.graphs: dict[
+            tuple[int, int, int], tuple[torch.cuda.CUDAGraph, dict[str, torch.Tensor], torch.Tensor]
+        ] = {}
+
+    def key(self, batch: Mapping[str, torch.Tensor]) -> tuple[int, int, int]:
+        rows, length = batch["input_ids"].shape
+        padded = bucket_length(int(length), self.bucket, self.max_len)
+        return int(rows), padded, int(batch["marker_pos"].shape[1])
+
+    def _fill(self, static: dict[str, torch.Tensor], batch: Mapping[str, torch.Tensor]) -> None:
+        length = batch["input_ids"].shape[1]
+        static["input_ids"].fill_(self.pad_id)
+        static["input_ids"][:, :length].copy_(batch["input_ids"])
+        static["attention_mask"].zero_()
+        static["attention_mask"][:, :length].copy_(batch["attention_mask"])
+        for name in ("marker_pos", "marker_mask", "qtype"):
+            static[name].copy_(batch[name])
+
+    def _forward(self, static: dict[str, torch.Tensor]) -> torch.Tensor:
+        with torch.autocast(device_type="cuda", dtype=self.dtype):
+            logits, _act = self.model(
+                static["input_ids"],
+                static["attention_mask"],
+                static["marker_pos"],
+                static["marker_mask"],
+                static["qtype"],
+            )
+        return cast(torch.Tensor, logits)
+
+    def _capture(
+        self, key: tuple[int, int, int], batch: Mapping[str, torch.Tensor]
+    ) -> tuple[torch.cuda.CUDAGraph, dict[str, torch.Tensor], torch.Tensor]:
+        rows, length, kmax = key
+        dev = torch.device("cuda")
+        static = {
+            "input_ids": torch.full((rows, length), self.pad_id, dtype=torch.long, device=dev),
+            "attention_mask": torch.zeros((rows, length), dtype=torch.long, device=dev),
+            "marker_pos": torch.zeros((rows, kmax), dtype=torch.long, device=dev),
+            "marker_mask": torch.zeros((rows, kmax), dtype=torch.bool, device=dev),
+            "qtype": torch.zeros((rows,), dtype=torch.long, device=dev),
+        }
+        self._fill(static, batch)
+        side = torch.cuda.Stream()  # type: ignore[no-untyped-call]
+        side.wait_stream(torch.cuda.current_stream())
+        with torch.cuda.stream(side):
+            for _ in range(3):
+                self._forward(static)
+        torch.cuda.current_stream().wait_stream(side)
+        graph = torch.cuda.CUDAGraph()
+        with torch.cuda.graph(graph, pool=self.pool):
+            out = self._forward(static)
+        return graph, static, out
+
+    def __call__(self, batch: Mapping[str, torch.Tensor]) -> np.ndarray:
+        key = self.key(batch)
+        if key not in self.graphs:
+            self.graphs[key] = self._capture(key, batch)
+        graph, static, out = self.graphs[key]
+        self._fill(static, batch)
+        graph.replay()
+        return out.float().cpu().numpy()
+
+
 def serialize(state: State) -> str:
     """The exact text the model reads for a state (laya.common.serialize_state)."""
     return str(serialize_state(dict(state)))
@@ -111,6 +227,9 @@ class LayaDecider:
         self.head_max_len: int = int(self._agent.cfg.get("head_max_len", 192))
         self._tok = self._agent.tok
         self._room_cache: dict[str, int] = {}
+        self._graphs: _CudaGraphs | None = None
+        if settings.cuda_graphs:
+            self.enable_cuda_graphs(settings.graph_bucket_tokens)
 
     # -- introspection ---------------------------------------------------------------------
 
@@ -126,6 +245,26 @@ class LayaDecider:
     @property
     def autocast_dtype(self) -> str | None:
         return str(self._agent.dtype).removeprefix("torch.") if self._agent.amp_enabled else None
+
+    @property
+    def cuda_graphs(self) -> bool:
+        return self._graphs is not None
+
+    @property
+    def captured_shapes(self) -> list[tuple[int, int, int]]:
+        return sorted(self._graphs.graphs) if self._graphs else []
+
+    def enable_cuda_graphs(self, bucket: int) -> None:
+        if self.device != "cuda":
+            raise RuntimeError(f"CUDA graphs need the model on cuda; it is on {self.device}")
+        if not self._agent.amp_enabled:
+            raise RuntimeError("CUDA graphs are built for the autocast forward Laya serves with")
+        self._graphs = _CudaGraphs(
+            self._agent.model, self._agent.dtype, self._tok.pad_token_id, bucket, self.max_len
+        )
+
+    def disable_cuda_graphs(self) -> None:
+        self._graphs = None
 
     def effective_temperature(self, qtype: QuestionType, n_options: int) -> float:
         """The temperature Agent.predict applies to a question of this type and size.
@@ -253,6 +392,44 @@ class LayaDecider:
                 tokens += int(raw["usage"]["input_tokens"])
             latency_ms = (time.perf_counter() - t0) * 1000.0
         return Prediction(answers=answers, latency_ms=latency_ms, input_tokens=tokens)
+
+    def logits_one(self, state: State, questions: Questions, *, check: bool = True) -> TimedLogits:
+        """The serving path: every question about one state in one batched forward call.
+
+        Raw scores only. floorcall applies its own per-decision temperatures
+        (floorcall.decider.Decider), so this bypasses Laya's decode and its temperature buckets.
+        Uses the CUDA graphs when they are enabled.
+        """
+        if check:
+            self.check_fits(state, questions)
+        ids = list(questions.keys())
+        internal = {qid: self._validated(qid, questions[qid]) for qid in ids}
+        with self._inference():
+            t0 = time.perf_counter()
+            items = self._agent._encode_state(dict(state), ids, internal)  # laya-internal
+            batch = collate_items([items], self._tok.pad_token_id)
+            t1 = time.perf_counter()
+            if self._graphs is not None:
+                logits = self._graphs(batch)
+            else:
+                logits, _act = self._agent._forward(batch)  # laya-internal
+            t2 = time.perf_counter()
+        out = {
+            qid: QuestionLogits(
+                qid=qid,
+                qtype=cast(QuestionType, questions[qid]["type"]),
+                labels=option_labels(questions[qid]),
+                logits=np.asarray(logits[j, : len(items[j]["markers"])], dtype=np.float64),
+            )
+            for j, qid in enumerate(ids)
+        }
+        return TimedLogits(
+            logits=out,
+            encode_ms=(t1 - t0) * 1000.0,
+            forward_ms=(t2 - t1) * 1000.0,
+            input_tokens=int(batch["attention_mask"].sum()),
+            graphed=self._graphs is not None,
+        )
 
     def logits_batch(
         self,
