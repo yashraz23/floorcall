@@ -5,7 +5,6 @@ from typing import Any
 
 import pytest
 
-from floorcall.config import REPO_ROOT
 from floorcall.data import d4_llm
 from floorcall.data.escalate import Candidate
 from floorcall.llm import prompts
@@ -30,7 +29,8 @@ def cand(
 # -- prompts ---------------------------------------------------------------------------------
 
 
-# Each decision rule of docs/labelling-escalate.md, word for word.
+# Each decision rule of guideline v1 (git show 808f0ef:docs/labelling-escalate.md), word for word.
+# Guideline v2 replaced it in the doc (D-033); labeller prompts v1 and v2 quote v1.
 RULES = [
     "The customer asks for a person: a human, a representative, a supervisor or manager, a phone "
     'call, "someone who can actually help".',
@@ -54,8 +54,6 @@ def _flat(text: str) -> str:
 
 @pytest.mark.parametrize("rule", RULES)
 def test_the_labeller_gets_yashs_rules_verbatim(rule: str) -> None:
-    doc = _flat((REPO_ROOT / "docs" / "labelling-escalate.md").read_text(encoding="utf-8"))
-    assert rule.lower() in doc.lower(), "the rule is not in the guidelines"
     assert rule.lower() in _flat(prompts.LABELLER_SYSTEM).lower(), "the rule is not in the prompt"
 
 

@@ -179,6 +179,97 @@ def label_escalate(
     console.print(f"labels saved to {labels_path}")
 
 
+@data_app.command("escalate-relabel-sample")
+def data_escalate_relabel_sample() -> None:
+    """Draw the guideline-v2 relabel sample from the v1 eval sets (seeded, stratified; D-033)."""
+    from floorcall.data import labelling
+
+    s = get_settings()
+    cands = labelling.load_candidates(s.paths.labels / ESCALATE_CANDIDATES)
+    v1 = labelling.load_labels(s.paths.labels / ESCALATE_LABELS)
+    sample = labelling.draw_relabel_sample(
+        cands, v1, s.data.d4_relabel_sizes, s.data.d4_relabel_seed
+    )
+    path = s.paths.labels / labelling.RELABEL_SAMPLE_FILE
+    wrote = labelling.save_relabel_sample(path, sample)
+    console.print(f"seed {sample['seed']}")
+    for split, cells in sample["allocation"].items():
+        console.print(f"{split}: {cells} of {sample['population'][split]}")
+    console.print(f"{'wrote' if wrote else 'unchanged:'} {path}")
+
+
+@label_app.command("escalate-relabel")
+def label_escalate_relabel(
+    labeller: str = typer.Option("yash", help="recorded on every label"),
+) -> None:
+    """Blind relabel under guideline v2: y escalate, n not escalate, u undo, q quit.
+
+    Shows the sample in its shuffled order with the same context as the first pass, and guideline
+    v2 above every message. Earlier labels (Yash's v1 or any LLM's) are never read, and nothing
+    shows a message's split or stratum. Every keypress is saved to escalate.labels.v2.jsonl.
+    """
+    import json
+
+    from rich.markup import escape
+    from rich.panel import Panel
+    from rich.text import Text
+
+    from floorcall.data import labelling
+
+    s = get_settings()
+    sample_path = s.paths.labels / labelling.RELABEL_SAMPLE_FILE
+    if not sample_path.exists():
+        raise typer.BadParameter(f"{sample_path} is missing: run data escalate-relabel-sample")
+    order: list[str] = json.loads(sample_path.read_text(encoding="utf-8"))["order"]
+    by_id = {c.id: c for c in labelling.load_candidates(s.paths.labels / ESCALATE_CANDIDATES)}
+    labels_path = s.paths.labels / labelling.LABELS_V2_FILE
+    labels = labelling.load_labels(labels_path)
+    history: list[str] = []
+    keys = {"y": "true", "n": "false"}
+
+    while True:
+        pending = [cid for cid in order if cid not in labels]
+        if not pending:
+            console.print(f"[green]All {len(order)} messages are relabelled.[/green]")
+            break
+        c = by_id[pending[0]]
+        console.clear()
+        console.print(
+            Panel(Text(labelling.GUIDELINE_V2), title="guideline v2", border_style="green")
+        )
+        console.print(
+            f"[bold]relabel[/bold]  {len(order) - len(pending)}/{len(order)} done   "
+            f"company: {escape(c.company)}"
+        )
+        for t in c.recent_turns[-2:]:
+            console.print(Text(f"{t['speaker']:>5}: {t['text']}", style="dim"))
+        if c.agent_last_utterance:
+            console.print(
+                Panel(Text(c.agent_last_utterance), title="agent (last reply)", border_style="blue")
+            )
+        else:
+            console.print("[dim](no agent reply yet: the customer opened the thread)[/dim]")
+        console.print(Panel(Text(c.user_partial), title="customer", border_style="yellow"))
+        console.print(
+            "Hand to a human?  [bold]y[/bold] escalate   [bold]n[/bold] not escalate   "
+            "[bold]u[/bold] undo   [bold]q[/bold] quit"
+        )
+        key = _read_key()
+        if key == "q":
+            break
+        if key == "u":
+            if history:
+                labels.pop(history.pop(), None)
+                labelling.save_labels(labels_path, labels, order)
+            continue
+        if key not in keys:
+            continue
+        labels[c.id] = labelling.label_record(c.id, keys[key], labeller, guidelines="v2")
+        labelling.save_labels(labels_path, labels, order)
+        history.append(c.id)
+    console.print(f"labels saved to {labels_path}")
+
+
 @data_app.command("freeze-escalate")
 def data_freeze_escalate() -> None:
     """Freeze the hand-labelled D4 test set and write the D4 calib set."""

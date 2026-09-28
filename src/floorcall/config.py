@@ -113,6 +113,10 @@ class DataSettings(BaseModel):
     d4_candidates_test: int = 400
     d4_candidates_calib: int = 200
     d4_min_test_labels: int = 300
+    # Guideline v2 relabel (D-033): a seeded sample of each v1 eval set, stratified by the four
+    # sampling strata, relabelled blind. Only these messages stay in the D4 eval sets, as v2.
+    d4_relabel_seed: int = 20260928
+    d4_relabel_sizes: dict[str, int] = Field(default_factory=lambda: {"test": 200, "calib": 100})
 
 
 class EvalSettings(BaseModel):

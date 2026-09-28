@@ -410,3 +410,48 @@ labelled once, with the accepted prompt, and its agreement is measurement only.
 label records the provider that served it. Results go to
 `results/d4_labeller/<prompt version>/<split>.json`, with the pin, the serving providers, the gate
 verdict (calib) and every disagreement.
+
+**D-033 · 2026-09-28 · §4 D4, §10 rules 2 and 5** — **Guideline v2 for D4, and the D4 eval sets
+become a blind relabel of a seeded sample under it.** (Yash's decisions, option A after D-032,
+relabelling a subset to save labelling time.)
+*Why the guideline changed.* The labeller's agreement with the v1 hand labels stalled at kappa 0.43
+(prompt v1) and 0.42 (prompt v2) on calib (D-032). The calib disagreements showed the gap was
+largely between guideline v1 as written and as applied. Several messages the written rule 2 covers
+("No one could help me", "should I just take my business somewhere else?") were labelled n, and
+some annoyance the written "n" rule covers was labelled y. Guideline v2 is Yash's rewrite: three
+literal triggers, an explicit "n" list, and "if none clearly fits, n" in place of a skip. It is in
+`docs/labelling-escalate.md` verbatim, and a test checks the doc and the code
+(`labelling.GUIDELINE_V2`) against his text. v1's text stays in git (`808f0ef`).
+*Informed by calib only.* The disagreements that prompted it were calib's. The LLM labeller has
+never labelled a test message, so no test disagreement exists. The only D4 test-set results
+produced so far are stock Laya's aggregates on test v1 (the Table A row with its 2x2 confusion,
+and its reliability panel). None is per message, and the D4 majority row was never run.
+*The sample.* Seed **20260928** (`DataSettings.d4_relabel_seed`). **200 from test, 100 from calib**
+(`d4_relabel_sizes`), drawn from the v1 eval sets: 396 test and 195 calib messages. The 9 v1 skips
+were never in an eval set. Each split's sample is allocated to the four sampling strata in
+proportion to their sizes (largest remainder) and drawn uniformly within each stratum:
+- test: cue/reply 51 of 100, cue/opener 49 of 98, plain/reply 51 of 100, plain/opener 49 of 98;
+- calib: 26 of 50, 25 of 49, 25 of 49, 24 of 47, in the same order.
+Only ids, splits, strata and whether a v1 label exists were read; never a label's value, an LLM
+label or a disagreement. A test shows that flipping every v1 label leaves the sample unchanged.
+The sample and its display order are committed in `data/labels/escalate.relabel_v2.sample.json`,
+which is write-once.
+*Blind relabel.* `floorcall label escalate-relabel` shows the 300 messages in a seeded shuffle, test
+and calib interleaved. It shows the same context as the first pass (company, up to two earlier
+turns, the agent's last reply, the message), with guideline v2 printed above every message. It
+never reads the v1 labels or any LLM label, and shows no split or stratum. The keys are y and n
+only. Labels go to `data/labels/escalate.labels.v2.jsonl` (`"guidelines": "v2"`); the v1 file
+`escalate.labels.jsonl` is never written again.
+*Eval sets v2.* Only the sampled messages stay in the D4 eval sets, with their v2 labels. The rest
+leave, and v1 and v2 labels are never mixed in one set. Test v2 (200) and calib v2 (100) are frozen
+as new versioned files with new hashes; the frozen v1 test file is not edited. **Test v2's 200 is
+below the 300 minimum of CLAUDE.md §4**, by Yash's decision. Every D4 number is reported with its n,
+and the majority-class and stock-Laya rows are re-run on test v2 with bootstrap 95% CIs.
+Yash's self-agreement (v1 against v2 labels on the 300 sampled messages, kappa and confusion) is
+reported as a measurement of the guideline change and of label consistency.
+*Order.* Test is relabelled blind **before any fine-tuned model is evaluated**: no training run
+has happened, and D4 training data does not exist yet.
+*Labeller prompt v3* is guideline v2 verbatim, on the same pinned endpoint (`crusoe/bf16`). It is
+judged on calib v2 against the same bars (kappa ≥ 0.60 and escalate precision ≥ 0.70). It is the
+last prompt revision (D-032 allowed two: v2 and v3). Yash sees the result before test or train is
+labelled.
