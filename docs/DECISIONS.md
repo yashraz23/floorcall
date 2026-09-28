@@ -346,3 +346,29 @@ gpt-oss-20b $0.075/$0.30 per million tokens). Before a call, its worst case is r
 is refused if spent + reserved + worst case would pass 95% of $5. A model with no known price is
 refused. Responses are cached, so reruns cost nothing. The API key is a `SecretStr`, which keeps it
 out of the settings dump that every run.json stores (a test asserts this).
+
+**D-031 · 2026-09-28 · supersedes the provider parts of D-030** — **LLM calls go through
+OpenRouter, not Groq.** (Yash's decision: Groq's paid tier is unavailable.) No Groq call was ever
+made. Everything else in D-030 stands: the same models, by their exact ids and never OpenRouter's
+`:batch` variants (`openai/gpt-oss-120b` labels, `openai/gpt-oss-20b` is the baseline); the same
+prompts; the same $5 cap with its stop at $4.75.
+*Cost is OpenRouter's own.* Every response carries `usage.cost` (OpenRouter: "the base currency is
+US dollars"), and the ledger charges exactly that per call. A response without it would be charged
+at its upper bound and marked `upper_bound`, so spend can only be over-counted, never under.
+*The worst case is a bound, not a guess.* Every request sends `provider.max_price` at the rates
+the budget was planned at (gpt-oss-120b ≤ $0.15/$0.60, gpt-oss-20b ≤ $0.075/$0.30 per million
+tokens), so OpenRouter cannot route to a dearer provider. On 2026-09-28 prices across providers
+ranged from $0.03/$0.17 to $0.35/$0.75 for gpt-oss-120b. Before each call, its worst case at that
+ceiling is reserved against the stop.
+*Only compliant providers.* `provider.require_parameters: true` routes only to providers that
+support strict JSON-schema output, the seed and reasoning effort; providers without seed support
+drop out. Reasoning is requested as `{"effort": "low", "exclude": true}`. Excluded reasoning
+tokens are still billed and count against `max_tokens`, which rises to 800 to leave room for them.
+*Which provider answered is recorded* per call in the ledger and per cached answer. Different
+providers serve different quantizations (fp4, fp8, bf16), so labels can come from more than one
+build of the same model; the record makes that inspectable.
+*Stated probabilities, restated.* Behind OpenRouter some providers do return log-probabilities.
+The baseline still states its probabilities, because support varies by provider and the answer is
+a JSON object rather than one option token. The README says what its ECE measures.
+The key is `OPENROUTER_API_KEY`, a `SecretStr`: it goes into one request header and nowhere else,
+and a test asserts it stays out of the settings dump every run.json stores.

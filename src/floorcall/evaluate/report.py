@@ -89,7 +89,10 @@ LATENCY_ROWS = (
     ("cpu_pause", "CPU: user_pause, 3 questions in 1 call"),
     ("cpu_pause_seq", "CPU: user_pause, 3 questions in 3 calls"),
     ("cpu_barge", "CPU: user_speech_during_agent, 2 questions in 1 call"),
-    ("prompted_llm", "prompted LLM (Groq), user_pause, 3 questions in 1 call, network included"),
+    (
+        "prompted_llm",
+        "prompted LLM (OpenRouter), user_pause, 3 questions in 1 call, network included",
+    ),
 )
 
 

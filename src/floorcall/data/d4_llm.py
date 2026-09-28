@@ -1,7 +1,7 @@
 """D4 training rows: real customer messages from train-split threads, labelled by an LLM.
 
 Yash's decision (DECISIONS.md D-030): real messages from the Twitter support corpus, labelled by a
-Groq-hosted LLM, never synthetic ones, every row tagged `source=llm_labelled`. The test and calib
+LLM (via OpenRouter, D-031), never synthetic ones, every row tagged `source=llm_labelled`. The test and calib
 sets stay his hand labels.
 
 - **Pool.** Banking threads in the *train* split (thread-level hash, as for test and calib), one
@@ -214,14 +214,14 @@ def run(settings: Any, split: str) -> dict[str, Any]:
     from floorcall.data.escalate import build_candidates
     from floorcall.data.freeze import write_jsonl_gz
     from floorcall.data.labelling import load_candidates, load_labels
-    from floorcall.llm.groq import GroqClient, Ledger
+    from floorcall.llm.client import Ledger, LLMClient
     from floorcall.llm.prompts import LABELLER_SCHEMA, LABELLER_VERSION, labeller_messages
 
     s: Settings = settings
     if split not in ("calib", "test", "train"):
         raise ValueError(f"split must be calib, test or train, not {split!r}")
-    if s.groq_api_key is None:
-        raise RuntimeError("GROQ_API_KEY is not set (put it in .env, which git ignores)")
+    if s.openrouter_api_key is None:
+        raise RuntimeError("OPENROUTER_API_KEY is not set (put it in .env, which git ignores)")
     labels_dir = s.paths.labels
     held_out = load_candidates(labels_dir / "escalate.candidates.v1.jsonl")
     pool_report: dict[str, int] = {}
@@ -237,7 +237,7 @@ def run(settings: Any, split: str) -> dict[str, Any]:
         cands = [c for c in held_out if c.split == split]
 
     ledger = Ledger(REPO_ROOT / "runs" / "llm" / "ledger.sqlite", s.llm)
-    client = GroqClient(s.llm, s.groq_api_key.get_secret_value(), ledger)
+    client = LLMClient(s.llm, s.openrouter_api_key.get_secret_value(), ledger)
     model = s.llm.labeller_model
 
     def ask(c: Candidate) -> str:

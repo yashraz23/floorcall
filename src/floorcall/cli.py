@@ -20,7 +20,7 @@ data_app = typer.Typer(
 label_app = typer.Typer(help="Hand labelling.", no_args_is_help=True)
 eval_app = typer.Typer(help="Evaluate on the frozen test sets.", no_args_is_help=True)
 train_app = typer.Typer(help="Fine-tune and calibrate.", no_args_is_help=True)
-llm_app = typer.Typer(help="Groq usage: spend against the cap.", no_args_is_help=True)
+llm_app = typer.Typer(help="LLM usage (OpenRouter): spend against the cap.", no_args_is_help=True)
 app.add_typer(data_app, name="data")
 app.add_typer(llm_app, name="llm")
 app.add_typer(train_app, name="train")
@@ -332,7 +332,7 @@ def eval_figures() -> None:
 def data_escalate_llm_label(
     split: Annotated[str, typer.Option(help="calib | test | train")],
 ) -> None:
-    """Label D4 messages with the Groq labeller. calib/test: agreement with Yash (measurement
+    """Label D4 messages with the LLM labeller. calib/test: agreement with Yash (measurement
     only). train: the D4 training rows, source=llm_labelled."""
     from floorcall.data.d4_llm import run
 
@@ -374,9 +374,9 @@ def eval_llm_latency() -> None:
 
 @llm_app.command("spend")
 def llm_spend() -> None:
-    """Groq spend so far, by purpose, against the cap. Needs no key."""
+    """LLM spend so far, by purpose and provider, against the $4.75 stop. Needs no key."""
     from floorcall.config import REPO_ROOT
-    from floorcall.llm.groq import Ledger
+    from floorcall.llm.client import Ledger
 
     console.print_json(
         data=Ledger(REPO_ROOT / "runs" / "llm" / "ledger.sqlite", get_settings().llm).summary()

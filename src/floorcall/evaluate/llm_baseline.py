@@ -1,12 +1,13 @@
-"""The prompted-LLM baseline (CLAUDE.md §12, Tables A and B), on Groq (DECISIONS.md D-030).
+"""The prompted-LLM baseline (CLAUDE.md §12, Tables A and B), via OpenRouter (D-030, D-031).
 
     uv run floorcall eval llm-baseline     # Table A row, every decision
     uv run floorcall eval llm-latency      # Table B row
 
 The LLM sees exactly what Laya sees: the state packed by the same packer with the same event
 budget, and each question's instructions and option descriptions from floorcall.questions. It
-states a probability per option under a strict JSON schema. Groq returns no log-probabilities, so
-its ECE and Brier score measure *stated* confidence, and the README says so.
+states a probability per option under a strict JSON schema. Token log-probabilities are not used
+(provider support varies behind OpenRouter, and the answer is a JSON object, not one option
+token), so its ECE and Brier score measure *stated* confidence, and the README says so.
 
 Table A: D1 and D2 are scored on fixed, evenly spaced subsamples (`LLMSettings.baseline_rows`), to
 stay inside the $5 cap; D3 and D4 are scored whole. The n is in every results file, and the
@@ -36,7 +37,7 @@ from floorcall.evaluate.dataset import EvalSet, load_test
 from floorcall.evaluate.latency import RESULTS as RESULTS_B
 from floorcall.evaluate.latency import environment, inputs, percentiles
 from floorcall.evaluate.scoring import score
-from floorcall.llm.groq import GroqClient, Ledger, LLMError
+from floorcall.llm.client import Ledger, LLMClient, LLMError
 from floorcall.llm.prompts import (
     BASELINE_VERSION,
     baseline_messages,
@@ -48,11 +49,11 @@ from floorcall.provenance import git_head
 DECISIONS = ("turn_complete", "barge_in", "route", "escalate")
 
 
-def _client(settings: Settings) -> tuple[GroqClient, Ledger]:
-    if settings.groq_api_key is None:
-        raise RuntimeError("GROQ_API_KEY is not set (put it in .env, which git ignores)")
+def _client(settings: Settings) -> tuple[LLMClient, Ledger]:
+    if settings.openrouter_api_key is None:
+        raise RuntimeError("OPENROUTER_API_KEY is not set (put it in .env, which git ignores)")
     ledger = Ledger(REPO_ROOT / "runs" / "llm" / "ledger.sqlite", settings.llm)
-    return GroqClient(settings.llm, settings.groq_api_key.get_secret_value(), ledger), ledger
+    return LLMClient(settings.llm, settings.openrouter_api_key.get_secret_value(), ledger), ledger
 
 
 def _packer(settings: Settings) -> Decider:
@@ -119,7 +120,7 @@ def run_table_a(settings: Settings) -> list[dict[str, Any]]:
             "n_test_rows": len(full.rows),
             "subsampled": len(test.rows) < len(full.rows),
             "invalid_answers": sum(1 for _, ok in answers if not ok),
-            "probabilities": "stated by the model (Groq returns no log-probabilities)",
+            "probabilities": "stated by the model, not token log-probabilities",
             "cost_usd": ledger.spent() - spent_before,
             "metrics": score(probs, test.y, test.hard, test.labels, n_bins=settings.eval.ece_bins),
         }
@@ -169,8 +170,8 @@ def run_latency(settings: Settings) -> dict[str, Any]:
     total = percentiles(timed)
     payload = {
         "row": "prompted_llm",
-        "label": f"prompted LLM ({model} via Groq), user_pause, 3 questions in 1 call",
-        "device": "remote (Groq)",
+        "label": f"prompted LLM ({model} via OpenRouter), user_pause, 3 questions in 1 call",
+        "device": "remote (OpenRouter)",
         "event": event.value,
         "questions": list(qs),
         "warmup": settings.eval.latency_warmup,

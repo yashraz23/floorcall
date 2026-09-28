@@ -9,7 +9,8 @@ version.
 
 The baseline is given exactly what Laya is given: the packed, normalized state and the question's
 instructions and option descriptions from floorcall.questions. It is asked for a probability per
-option, which is all Groq can offer: no token log-probabilities.
+option. Token log-probabilities are not used: provider support varies behind OpenRouter, and the
+answer is a JSON object rather than a single option token.
 """
 
 from __future__ import annotations
