@@ -101,6 +101,12 @@ def train_model(
     torch.manual_seed(cfg.seed)
     gen = torch.Generator(device=device).manual_seed(cfg.seed)
     amp = torch.bfloat16 if cfg.amp_dtype == "bf16" else torch.float16
+    # fp16 has too little range for raw gradients, so it trains with dynamic loss scaling, as
+    # Laya's Kaggle notebook does on T4s; bf16 (local, Blackwell) needs none. Disabled, the scaler
+    # passes everything through unchanged.
+    scaler = torch.amp.GradScaler(
+        device.type, enabled=device.type == "cuda" and amp == torch.float16
+    )
 
     rows_per_update = cfg.micro_batch * cfg.grad_accum
     updates_per_epoch = math.ceil(sum(quotas.values()) / rows_per_update)
@@ -143,7 +149,7 @@ def train_model(
                 generator=gen,
             )
             # act.sum() * 0 keeps the unused action head in the graph, as the notebook does.
-            ((step.loss + 0.0 * act.sum()) / cfg.grad_accum).backward()
+            scaler.scale((step.loss + 0.0 * act.sum()) / cfg.grad_accum).backward()
             micro_in_update += 1
             for key in ("ce", "rl", "reward"):
                 acc[key] += getattr(step, key)
@@ -158,9 +164,11 @@ def train_model(
                 acc["task"].setdefault(it["decision"], []).append(ce)
             last = lo + cfg.micro_batch >= len(rows)
             if micro_in_update == cfg.grad_accum or last:
+                scaler.unscale_(opt)  # clip and log the true gradient, not the scaled one
                 norm = torch.nn.utils.clip_grad_norm_(model.parameters(), cfg.clip_grad_norm)
                 acc["norms"].append(float(norm))
-                opt.step()
+                scaler.step(opt)  # skipped when the scaled gradient overflowed
+                scaler.update()
                 sched.step()
                 opt.zero_grad(set_to_none=True)
                 micro_in_update = 0

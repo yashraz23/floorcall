@@ -771,3 +771,13 @@ place for the GPU measurements so far, so:
   rows remain the stock checkpoint's, from 28 September; they involved no GPU.
 - **Table D ablations run on Kaggle, started by Yash.** The notebook, the dataset bundle and the
   upload steps are in `docs/runbook-kaggle.md`. Nothing is started locally.
+*D-037 addendum (2026-09-29): Table D on Kaggle.* Kaggle's T4 and P100 GPUs have no fast bf16, so
+arms trained there run in fp16 with dynamic loss scaling (`TrainSettings.amp_dtype = "fp16"`, set
+by the notebook when the GPU's compute capability is below 8). Laya likewise serves those GPUs in
+fp16. That is a different precision on different hardware from r2 (bf16, RTX 5070 Ti), so the
+runbook recommends a Kaggle `full` arm as Table D's reference: every Table D row then comes from
+the same conditions, and Table A's fine-tuned row stays r2. Whether 4 epochs fit a 12-hour
+Kaggle session is measured by the notebook's smoke run. Whatever epoch count is chosen applies to
+every arm and is logged before the first full arm starts. Kaggle results cite the bundle's commit
+as their code (`FLOORCALL_CODE`, `<commit>-kaggle`). A `max_train_rows_per_task` cap exists for
+the smoke run only; its default, None, leaves every run unchanged.

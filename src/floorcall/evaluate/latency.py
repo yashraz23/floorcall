@@ -455,6 +455,19 @@ def wait_until_cool(
         waited += poll_s
 
 
+def weight_dtypes(model: Any) -> dict[str, int]:
+    """Parameter count per dtype of the loaded network (D-037: weights stored differently could
+    run at different speeds)."""
+    net = getattr(model, "model", None)
+    if net is None or not hasattr(net, "parameters"):
+        return {}
+    counts: dict[str, int] = {}
+    for p in net.parameters():
+        key = str(p.dtype).removeprefix("torch.")
+        counts[key] = counts.get(key, 0) + p.numel()
+    return counts
+
+
 def _write(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8", newline="\n") as f:
@@ -579,6 +592,7 @@ def measure_row(
             "inputs": len(snaps),
             "checkpoint": model.checkpoint,
             "revision": model.revision,
+            "weight_dtypes": weight_dtypes(model),
             "model": name,
             "code": code,
             "environment": env,

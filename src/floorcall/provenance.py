@@ -2,13 +2,18 @@
 
 from __future__ import annotations
 
+import os
 import subprocess
 
 from floorcall.config import REPO_ROOT
 
 
 def git_head() -> str:
-    """Short HEAD sha, suffixed `-dirty` if tracked files have uncommitted changes."""
+    """Short HEAD sha, suffixed `-dirty` if tracked files have uncommitted changes.
+
+    Outside a git checkout (the Kaggle bundle, docs/runbook-kaggle.md) it is FLOORCALL_CODE, which
+    the bundle sets to the clean commit it was built from.
+    """
     try:
         sha = subprocess.run(
             ["git", "rev-parse", "--short", "HEAD"],
@@ -25,5 +30,5 @@ def git_head() -> str:
             check=True,
         ).stdout.strip()
     except (OSError, subprocess.CalledProcessError):
-        return "unknown"
+        return os.environ.get("FLOORCALL_CODE", "unknown")
     return f"{sha}{'-dirty' if dirty else ''}"

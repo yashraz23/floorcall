@@ -42,26 +42,29 @@ uv run floorcall eval robustness --checkpoint checkpoints/main    # Table C
 
 Check that Table C's noise-0.00 row equals Table A's "+ temperature" row (D-024).
 
-## 3. Ablations for Table D (projected ~3 h each)
+## 3. Ablations for Table D: on Kaggle
 
-```bash
-uv run floorcall train run --ablation no_history   --out checkpoints/no_history
-uv run floorcall train run --ablation no_agent     --out checkpoints/no_agent
-uv run floorcall train run --ablation no_normalize --out checkpoints/no_normalize
-uv run floorcall eval ablation --checkpoint checkpoints/main          # the "full" reference row
-uv run floorcall eval ablation --checkpoint checkpoints/no_history
-uv run floorcall eval ablation --checkpoint checkpoints/no_agent
-uv run floorcall eval ablation --checkpoint checkpoints/no_normalize  # scored on written and ASR text
-```
+The ablation arms run on Kaggle, started by Yash, not on the laptop (D-037). Follow
+`docs/runbook-kaggle.md`: build the bundle, upload it, then run one arm per session, including a
+Kaggle `full` arm as the reference.
 
 ## 4. Latency on the trained checkpoint, figures, README
 
+GPU work waits for Yash's go (D-037). GPU rows, stock and fine-tuned back to back, at stock clocks
+on a cool machine:
+
 ```bash
-FLOORCALL_LAYA__CHECKPOINT=checkpoints/main FLOORCALL_LAYA__REVISION= uv run floorcall eval latency
+FLOORCALL_LAYA__CHECKPOINT=checkpoints/main-r2 FLOORCALL_LAYA__REVISION=   uv run floorcall eval latency --rows gpu --compare-stock
+```
+
+Each row waits for the GPU to reach 55 C or below, is sampled by nvidia-smi throughout
+(temperature, clocks, power, clock-event reasons), and is discarded and retried if it throttled
+while timed; it aborts at 85 C. The fine-tuned rows go to `results/table_b/`, the stock rows to
+`results/table_b/stock/`, and the discarded attempts to `runs/latency/discarded/`. CPU rows come
+later (`--rows cpu`), in chunks of at most 20 minutes with cooldowns between them.
+
+```bash
 uv run floorcall eval figures
 uv run floorcall eval readme
 uv run pytest                              # includes the README-drift check
 ```
-
-Latency depends on architecture and input length, not on weights. This rerun confirms it, and it
-also puts the release checkpoint in each Table B row's provenance.

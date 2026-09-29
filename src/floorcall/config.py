@@ -218,6 +218,9 @@ class TrainSettings(BaseModel):
     # (never calib or test). Cross-entropy on it at T = 1, averaged equally over the tasks, is
     # scored after every epoch; the epoch with the lowest is the checkpoint that is kept.
     dev_fraction: float = 0.05
+    # Smoke runs only (the Kaggle notebook's first cell): cap each task's train rows, drawn with
+    # the seed, so the whole path runs in minutes. None, the default, uses every row.
+    max_train_rows_per_task: int | None = None
     log_every_updates: int = 10
 
 

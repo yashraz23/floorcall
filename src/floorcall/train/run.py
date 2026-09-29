@@ -17,6 +17,7 @@ Order of operations, and why:
 from __future__ import annotations
 
 import json
+import random
 import shutil
 import time
 from collections.abc import Sequence
@@ -152,7 +153,10 @@ def _train(
             )
         data_sha256[task] = sha256_file(path)
         data = load_processed(settings, task, "train")
-        train_rows, dev = carve_dev(data.rows, fraction=cfg.dev_fraction, seed=cfg.seed, task=task)
+        rows = data.rows
+        if cfg.max_train_rows_per_task is not None and len(rows) > cfg.max_train_rows_per_task:
+            rows = random.Random(f"{cfg.seed}:cap:{task}").sample(rows, cfg.max_train_rows_per_task)
+        train_rows, dev = carve_dev(rows, fraction=cfg.dev_fraction, seed=cfg.seed, task=task)
         dev_rows[task] = len(dev)
         log({"building_items": task, "rows": len(train_rows), "dev_rows": len(dev)})
         items_by_task[task] = build_items(
