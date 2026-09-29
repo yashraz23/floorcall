@@ -728,3 +728,46 @@ replace the stock-checkpoint rows, which stay in git history.
   0.681; the D2 lexical rule scores 0.908. On D4 the bag-of-words model trained on the same
   llm_v3 labels matches the fine-tuned model (0.681). D3's C was chosen at the top of the fixed
   grid (100); the grid is not widened after scoring.
+
+**D-037 · 2026-09-29 · §12 Table B, §14 · the crash, the overclock, and rules for GPU work** —
+(Yash's decisions.)
+*The crash.* At 18:43 the laptop blue-screened: bugcheck `0x116` (VIDEO_TDR_FAILURE, the display
+driver failed to recover from a GPU timeout) and a WHEA "fatal hardware error", then it rebooted
+at 18:46. The crash dump is `C:\Windows\Minidump\092926-15921-01.dmp`. Yash traced it to heat: the
+laptop reached 95 °C. It came during the CPU rows of the latency run, after the six GPU rows had
+finished, and after many hours of sustained GPU load that day (training r2, evaluation, recovery).
+No committed result was lost.
+*The overclock.* The GPU (RTX 5070 Ti Laptop, driver 591.86) carried a **+150 MHz core /
++150 MHz memory overclock**. It has been removed, and the card now runs at stock clocks. It was in
+place for the GPU measurements so far, so:
+- **Every GPU latency number so far is discarded:** Table B's GPU rows from 28 September (stock
+  checkpoint), and the six GPU rows measured on the fine-tuned checkpoint today, which were never
+  committed. The committed rows leave `results/table_b/` and stay in git history. The spike's GPU
+  numbers (`docs/spike-m0.md`, D-012) were also taken overclocked and are superseded.
+- The discarded fine-tuned rows had come in about a third faster than the stock rows of the day
+  before (user_pause with CUDA graphs: p50 29.9 against 45.2 ms). So "latency does not depend on
+  the weights" is no longer assumed; stock and fine-tuned are measured side by side.
+- Training r1 and r2 and every evaluation also ran overclocked. Their results are numbers, not
+  timings, and r2's test logits were reproduced identically in a second pass (D-036), so there is
+  no sign of a compute error. They stand. Training throughput figures (rows/s) are overclocked
+  figures.
+*Rules for the rest of the project.*
+- **No GPU work until Yash says go.**
+- **GPU latency rows only for now,** at stock clocks on a cool machine. Stock and fine-tuned run
+  back to back, interleaved row by row.
+  - Each row starts only once the GPU is at or below `EvalSettings.latency_start_max_temp_c`.
+  - Telemetry is logged with every row: `nvidia-smi` sampled throughout warmup and timing, giving
+    temperature, SM and memory clocks, power draw, power limit, and the clock-event (throttle)
+    reasons.
+  - A row taken while throttling is **discarded**: any thermal slowdown, hardware slowdown or
+    power-brake event during its timed window. It is kept under `runs/latency/discarded/` for the
+    record and never written to `results/`. The software power cap is recorded but is not a
+    discard reason, because a laptop GPU runs against its power limit whenever it is busy.
+  - A row that reaches `latency_abort_temp_c` stops at once.
+- **CPU latency rows later, in chunks of at most 20 minutes, with cooldowns between them.** One
+  CPU row (1,050 calls at 1–2.6 s) is longer than 20 minutes, so its timed calls are split into
+  chunks. Each chunk has its own short warmup, and a cooldown precedes the next chunk.
+  Percentiles are computed over all the timed calls. Until they are re-measured, Table B's CPU
+  rows remain the stock checkpoint's, from 28 September; they involved no GPU.
+- **Table D ablations run on Kaggle, started by Yash.** The notebook, the dataset bundle and the
+  upload steps are in `docs/runbook-kaggle.md`. Nothing is started locally.

@@ -49,6 +49,11 @@ zero-shot decision engine"):
 
 ## 3. Latency
 
+> **Correction, 2026-09-29.** Every GPU number in this section was measured with the GPU
+> overclocked (+150 MHz core, +150 MHz memory), since removed. They are superseded by Table B's
+> re-measurement at stock clocks (DECISIONS.md D-037) and are kept here only as the record of the
+> spike.
+
 Quick look only: 20 warmup / 200 timed on GPU, 5 / 50 on CPU. Table B uses 50 / ≥1,000 through
 `floorcall.evaluate.latency`.
 

@@ -98,12 +98,12 @@ readme`). Budgets: p99 ≤ 50 ms on GPU, ≤ 100 ms on CPU.
 <!-- table-b:start -->
 | Path | p50 ms | p95 ms | p99 ms | of which forward, p50 | of which packing, p50 | Fits budget (p99) |
 |---|---|---|---|---|---|---|
-| GPU, CUDA graphs: user_pause, 3 questions in 1 call | 45.2 | 89.0 | 95.2 | 38.2 | 1.3 | no (≤ 50 ms) |
-| GPU, CUDA graphs: user_pause, 3 questions in 3 calls | 53.0 | 89.0 | 93.1 | 40.6 | 1.0 | no (≤ 50 ms) |
-| GPU, CUDA graphs: user_speech_during_agent, 2 questions in 1 call | 55.5 | 67.0 | 70.6 | 47.8 | 2.6 | no (≤ 50 ms) |
-| GPU, eager: user_pause, 3 questions in 1 call | 72.3 | 97.0 | 104.0 | 65.4 | 1.3 | no (≤ 50 ms) |
-| GPU, eager: user_pause, 3 questions in 3 calls | 174.8 | 218.5 | 232.9 | 160.1 | 1.2 | no (≤ 50 ms) |
-| GPU, eager: user_speech_during_agent, 2 questions in 1 call | 72.6 | 87.4 | 92.2 | 64.2 | 2.9 | no (≤ 50 ms) |
+| GPU, CUDA graphs: user_pause, 3 questions in 1 call | TODO | TODO | TODO | TODO | TODO | TODO |
+| GPU, CUDA graphs: user_pause, 3 questions in 3 calls | TODO | TODO | TODO | TODO | TODO | TODO |
+| GPU, CUDA graphs: user_speech_during_agent, 2 questions in 1 call | TODO | TODO | TODO | TODO | TODO | TODO |
+| GPU, eager: user_pause, 3 questions in 1 call | TODO | TODO | TODO | TODO | TODO | TODO |
+| GPU, eager: user_pause, 3 questions in 3 calls | TODO | TODO | TODO | TODO | TODO | TODO |
+| GPU, eager: user_speech_during_agent, 2 questions in 1 call | TODO | TODO | TODO | TODO | TODO | TODO |
 | CPU: user_pause, 3 questions in 1 call | 1160.9 | 2577.6 | 2647.8 | 1156.7 | 0.7 | no (≤ 100 ms) |
 | CPU: user_pause, 3 questions in 3 calls | 822.6 | 2299.0 | 2347.1 | 814.9 | 0.6 | no (≤ 100 ms) |
 | CPU: user_speech_during_agent, 2 questions in 1 call | 1351.5 | 1716.0 | 1750.9 | 1347.1 | 1.6 | no (≤ 100 ms) |
@@ -115,8 +115,12 @@ Measured on NVIDIA GeForce RTX 5070 Ti Laptop GPU (driver, power limit: 591.86, 
 <!-- table-b-env:end -->
 
 "3 questions in 1 call" is one batched forward pass with one row per question; each row re-reads
-the state (docs/DECISIONS.md D-003). Latency depends on the architecture and input lengths, not the
-weights, so these numbers hold for the stock and the fine-tuned checkpoint alike.
+the state (docs/DECISIONS.md D-003). **The GPU rows are being re-measured.** Every earlier GPU
+number was taken with the GPU overclocked, and the laptop later crashed from heat, so all of them
+were discarded. They are re-measured at stock clocks, stock and fine-tuned checkpoints back to
+back, with GPU temperature, clocks and power logged beside every row, and any row taken while
+throttling is thrown out (docs/DECISIONS.md D-037). The CPU rows above are the stock checkpoint's
+from 28 September; they will be re-measured in chunks with cooldowns between them.
 
 Each row is one run, and on this laptop the tail moves between runs. Two runs of the GPU rows
 (f4c7e87, then ae690c4) differed by 10–20% at p99 in both directions, more than the code change
