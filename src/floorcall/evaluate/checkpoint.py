@@ -103,6 +103,57 @@ def _base(settings: Settings, checkpoint: Path, test: EvalSet, code: str) -> dic
     }
 
 
+PREDICTIONS = REPO_ROOT / "runs" / "eval"
+
+
+def save_predictions(
+    name: str, logits: npt.NDArray[np.floating], test: EvalSet, **extra: Any
+) -> Path:
+    """Per-row logits of one scoring pass, so any later comparison reuses them (D-036): never a
+    second pass over a test set. `runs/` is gitignored; the rows are rebuilt by rerunning."""
+    path = PREDICTIONS / f"{name}.npz"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    arrays: dict[str, Any] = {
+        "logits": np.asarray(logits, dtype=np.float64),
+        "y": test.y,
+        "hard": test.hard,
+        "ids": np.array([r["id"] for r in test.rows]),
+        **{k: np.asarray(v) for k, v in extra.items()},
+    }
+    np.savez_compressed(path, **arrays)
+    return path
+
+
+def table_a_rows(cal: Calibration, decision: str) -> list[tuple[str, float, dict[str, Any] | None]]:
+    """(model id, temperature, threshold choice) for each fine-tuned Table A row of a decision."""
+    t_cal = cal.temperatures[decision]
+    rows: list[tuple[str, float, dict[str, Any] | None]] = [
+        ("finetuned", 1.0, None),
+        ("finetuned_temp", t_cal, None),
+    ]
+    if decision in cal.thresholds:  # chosen on calib after temperature (D-035)
+        rows.append(("finetuned_temp_threshold", t_cal, cal.thresholds[decision]))
+    return rows
+
+
+def score_row(
+    settings: Settings,
+    logits: npt.NDArray[np.floating],
+    test: EvalSet,
+    temperature: float,
+    choice: dict[str, Any] | None,
+) -> dict[str, Any]:
+    return score(
+        softmax(np.asarray(logits, dtype=np.float64), temperature),
+        test.y,
+        test.hard,
+        test.labels,
+        n_bins=settings.eval.ece_bins,
+        bootstrap=(settings.eval.bootstrap_samples, settings.eval.bootstrap_seed),
+        threshold=None if choice is None else choice["theta"],
+    )
+
+
 def evaluate_table_a(
     settings: Settings, checkpoint: Path, *, device: str = "cuda"
 ) -> list[dict[str, Any]]:
@@ -115,33 +166,61 @@ def evaluate_table_a(
     for decision in _frozen(settings):
         test = load_test(settings, decision)
         z = logits_for(decider, test, settings.state)
-        t_cal = cal.temperatures[decision]
-        rows: list[tuple[str, float, dict[str, Any] | None]] = [
-            ("finetuned", 1.0, None),
-            ("finetuned_temp", t_cal, None),
-        ]
-        if decision in cal.thresholds:  # chosen on calib after temperature (D-035)
-            rows.append(("finetuned_temp_threshold", t_cal, cal.thresholds[decision]))
-        for model, t, choice in rows:
+        save_predictions(f"{decision}.finetuned", z, test, temperature=cal.temperatures[decision])
+        for model, t, choice in table_a_rows(cal, decision):
             payload = {
                 **_base(settings, checkpoint, test, code),
                 "model": model,
                 "temperature": t,
-                "metrics": score(
-                    softmax(z, t),
-                    test.y,
-                    test.hard,
-                    test.labels,
-                    n_bins=settings.eval.ece_bins,
-                    bootstrap=(settings.eval.bootstrap_samples, settings.eval.bootstrap_seed),
-                    threshold=None if choice is None else choice["theta"],
-                ),
+                "metrics": score_row(settings, z, test, t, choice),
             }
             if choice is not None:
                 payload["threshold_choice"] = choice
             _write(RESULTS / "table_a" / f"{decision}.{model}.json", payload)
             out.append(payload)
     return out
+
+
+def recover_predictions(
+    settings: Settings, checkpoint: Path, *, device: str = "cuda"
+) -> dict[str, list[str]]:
+    """Recompute a checkpoint's test logits and check them against its committed Table A rows.
+
+    Inference only (D-036): it writes the per-row logits to runs/eval and nothing to results/.
+    Every committed metric of every fine-tuned row, bootstrap intervals and confusion included,
+    must come out identical from the recovered logits. Returns the differences per decision,
+    which must all be empty before the logits are used.
+    """
+    cal = _calibration(checkpoint)
+    decider = _load(checkpoint, device)
+    diffs: dict[str, list[str]] = {}
+    for decision in _frozen(settings):
+        test = load_test(settings, decision)
+        z = logits_for(decider, test, settings.state)
+        found: list[str] = []
+        for model, t, choice in table_a_rows(cal, decision):
+            committed = json.loads(
+                (RESULTS / "table_a" / f"{decision}.{model}.json").read_text(encoding="utf-8")
+            )
+            if committed["test_sha256"] != sha256_file(
+                settings.paths.test_frozen / test_file(decision)
+            ):
+                found.append(f"{model}: the test file changed")
+            if committed["checkpoint"] != str(checkpoint) or committed["temperature"] != t:
+                found.append(f"{model}: checkpoint or temperature differs")
+            again = score_row(settings, z, test, t, choice)
+            for key in sorted(set(again) | set(committed["metrics"])):
+                if again.get(key) != committed["metrics"].get(key):
+                    found.append(
+                        f"{model}.{key}: committed {committed['metrics'].get(key)!r}, "
+                        f"recovered {again.get(key)!r}"
+                    )
+        diffs[decision] = found
+        if not found:
+            save_predictions(
+                f"{decision}.finetuned", z, test, temperature=cal.temperatures[decision]
+            )
+    return diffs
 
 
 def evaluate_table_c(
@@ -165,6 +244,7 @@ def evaluate_table_c(
             test.rows = [noisy_row(r, level, seed=rng_seed, vocab=vocab) for r in clean.rows]
             z = logits_for(decider, test, settings.state)
             t = cal.temperatures[decision]
+            save_predictions(f"table_c/{decision}.{level:.2f}", z, test, temperature=t)
             payload = {
                 **_base(settings, checkpoint, test, code),
                 "model": "finetuned_temp",
@@ -204,6 +284,7 @@ def evaluate_table_d(
         for variant, state in variants.items():
             z = logits_for(decider, test, state)
             t = cal.temperatures[decision]
+            save_predictions(f"table_d/{decision}.{variant}", z, test, temperature=t)
             payload = {
                 **_base(settings, checkpoint, test, code),
                 "model": "finetuned_temp",

@@ -168,8 +168,15 @@ def run_stock_laya_threshold(
         logits = np.stack([r[decision].logits for r in per_row])
         temperature = decider.effective_temperature(per_row[0][decision].qtype, len(data.labels))
         probs[split] = softmax(logits, temperature)
+        test_logits = logits  # the last split is test
     calib, test = sets["calib"], sets["test"]
     choice = choose_threshold(probs["calib"][:, calib.labels.index("true")], calib.y)
+    from floorcall.evaluate.checkpoint import save_predictions
+
+    save_predictions(
+        f"{decision}.stock_laya_threshold", test_logits, test, temperature=temperature,
+        threshold=choice.theta,
+    )  # fmt: skip
     payload = {
         **_provenance(settings, test),
         "model": "stock_laya_threshold",

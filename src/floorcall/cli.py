@@ -474,6 +474,23 @@ def eval_checkpoint(
     _print_rows(evaluate_table_a(get_settings(), checkpoint))
 
 
+@eval_app.command("recover-predictions")
+def eval_recover_predictions(
+    checkpoint: Annotated[Path, typer.Option(help="a floorcall training run directory")],
+) -> None:
+    """Inference only (D-036): recompute a checkpoint's test logits, check every committed Table A
+    metric reproduces from them, and only then save them to runs/eval. Writes no results."""
+    from floorcall.evaluate.checkpoint import recover_predictions
+
+    diffs = recover_predictions(get_settings(), checkpoint)
+    for decision, found in diffs.items():
+        console.print(f"{decision}: {'identical' if not found else f'{len(found)} differences'}")
+        for line in found:
+            console.print(f"  {line}")
+    if any(diffs.values()):
+        raise typer.Exit(1)
+
+
 @eval_app.command("robustness")
 def eval_robustness(
     checkpoint: Annotated[Path, typer.Option(help="a floorcall training run directory")],
