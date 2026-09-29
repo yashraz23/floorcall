@@ -31,6 +31,8 @@ from floorcall.data.build import processed_file, test_file
 from floorcall.data.freeze import sha256_file, verify
 from floorcall.evaluate.calibration import Calibration, fit_temperature, save_calibration
 from floorcall.evaluate.dataset import load_processed
+from floorcall.evaluate.scoring import softmax
+from floorcall.evaluate.thresholds import choose_threshold
 from floorcall.provenance import git_head
 from floorcall.train.data import build_items, event_budget
 
@@ -69,6 +71,7 @@ def calibrate(settings: Settings, checkpoint: Path, *, device: str = "cuda") -> 
         LayaSettings(checkpoint=str(checkpoint), revision=None, device=device, cuda_graphs=False)
     )
     temps: dict[str, float] = {}
+    thresholds: dict[str, dict[str, Any]] = {}
     fits: dict[str, dict[str, Any]] = {}
     hashes: dict[str, str] = {}
     for decision in DECISIONS:
@@ -96,12 +99,16 @@ def calibrate(settings: Settings, checkpoint: Path, *, device: str = "cuda") -> 
             "at_bound": fit.at_bound,
         }
         hashes[decision] = sha256_file(path)
+        if decision in settings.eval.threshold_decisions:
+            p = softmax(logits, fit.temperature)[:, calib.labels.index("true")]
+            thresholds[decision] = choose_threshold(p, calib.y).to_json()
     cal = Calibration(
         temperatures=temps,
         fits=fits,
         calib_sha256=hashes,
         checkpoint=str(checkpoint),
         code=git_head(),
+        thresholds=thresholds,
     )
     save_calibration(checkpoint, cal)
     return cal
@@ -135,8 +142,8 @@ def _train(
         path = settings.paths.data_processed / processed_file(task, "train")
         if not path.exists():
             raise TrainingNotAllowedError(
-                f"no training rows for {task} ({path}). For D4 the training source is an open "
-                "decision; train without it only by passing tasks explicitly."
+                f"no training rows for {task} ({path}). D4's are the prompt-v3 labels of the "
+                "train pool (D-035): `floorcall data escalate-llm-label --split train`."
             )
         data_sha256[task] = sha256_file(path)
         data = load_processed(settings, task, "train")

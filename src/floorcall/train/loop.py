@@ -73,7 +73,7 @@ def train_model(
     t_start = time.perf_counter()
     for epoch in range(cfg.epochs):
         sigma = sigma_for_epoch(epoch, cfg.epochs, cfg.sigma_start, cfg.sigma_end)
-        rows, mix = epoch_mixture(items_by_task, quotas, rng)
+        rows, mix = epoch_mixture(items_by_task, quotas, rng, balance=cfg.balance_classes)
         opt.zero_grad(set_to_none=True)
         acc = {"loss": 0.0, "ce": 0.0, "rl": 0.0, "reward": 0.0, "n": 0}
         task_ce: dict[str, list[float]] = {}
@@ -143,6 +143,7 @@ def train_model(
             "epoch": epoch + 1,
             "rows": mix.rows,
             "repeats": mix.repeats,
+            "rows_by_class": mix.by_class,
             "sigma": sigma,
             "seconds": time.perf_counter() - t_epoch,
             "mean_ce_by_task": {t: sum(v) / len(v) for t, v in task_ce.items()},

@@ -181,13 +181,13 @@ def test_test_is_refused_before_calib_accepts_the_prompt(
         d4_llm.run(Settings(), "test")
 
 
-@pytest.mark.parametrize(("split", "ablation"), [("train", False), ("calib", True), ("test", True)])
-def test_llm_train_labels_are_the_ablation_arm_only(split: str, ablation: bool) -> None:
-    # D-034: the primary D4 model trains on hand labels; refused before any call or key lookup
-    from floorcall.config import Settings
+def test_d4_trains_on_the_prompt_v3_pool_file() -> None:
+    from floorcall.data.build import processed_file
 
-    with pytest.raises(RuntimeError, match="ablation arm only"):
-        d4_llm.run(Settings(), split, ablation=ablation)
+    assert d4_llm.TRAIN_PROMPT == "llm-labeller-v3" and d4_llm.TRAIN_SOURCE == "llm_v3"
+    assert processed_file("escalate", "train") == "escalate.train.llm_v3.jsonl.gz"
+    assert processed_file("escalate", "calib") == "escalate.calib.jsonl.gz"
+    assert processed_file("route", "train") == "route.train.jsonl.gz"
 
 
 def test_disagreements_list_only_real_disagreements() -> None:
@@ -208,9 +208,8 @@ def test_train_rows_drop_unsure_and_carry_their_source() -> None:
     rows = d4_llm.train_rows(cands, labels)
     assert [r["id"] for r in rows] == ["twcs-1", "twcs-3"]
     assert {r["source"] for r in rows} == {"llm_labelled"}
-    ablation = d4_llm.train_rows(cands, labels, source=d4_llm.ABLATION_SOURCE)
-    assert {r["source"] for r in ablation} == {"llm_v3"}
-    assert d4_llm.ABLATION_TRAIN_FILE == "escalate.train.llm_v3.jsonl.gz"
+    v3 = d4_llm.train_rows(cands, labels, source=d4_llm.TRAIN_SOURCE)
+    assert {r["source"] for r in v3} == {"llm_v3"}
     assert [r["label"] for r in rows] == ["true", "false"]
     assert rows[0]["hard"] is False and rows[1]["hard"] is True
 

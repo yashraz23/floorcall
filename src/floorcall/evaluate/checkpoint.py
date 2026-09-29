@@ -115,15 +115,30 @@ def evaluate_table_a(
     for decision in _frozen(settings):
         test = load_test(settings, decision)
         z = logits_for(decider, test, settings.state)
-        for model, t in (("finetuned", 1.0), ("finetuned_temp", cal.temperatures[decision])):
+        t_cal = cal.temperatures[decision]
+        rows: list[tuple[str, float, dict[str, Any] | None]] = [
+            ("finetuned", 1.0, None),
+            ("finetuned_temp", t_cal, None),
+        ]
+        if decision in cal.thresholds:  # chosen on calib after temperature (D-035)
+            rows.append(("finetuned_temp_threshold", t_cal, cal.thresholds[decision]))
+        for model, t, choice in rows:
             payload = {
                 **_base(settings, checkpoint, test, code),
                 "model": model,
                 "temperature": t,
                 "metrics": score(
-                    softmax(z, t), test.y, test.hard, test.labels, n_bins=settings.eval.ece_bins
+                    softmax(z, t),
+                    test.y,
+                    test.hard,
+                    test.labels,
+                    n_bins=settings.eval.ece_bins,
+                    bootstrap=(settings.eval.bootstrap_samples, settings.eval.bootstrap_seed),
+                    threshold=None if choice is None else choice["theta"],
                 ),
             }
+            if choice is not None:
+                payload["threshold_choice"] = choice
             _write(RESULTS / "table_a" / f"{decision}.{model}.json", payload)
             out.append(payload)
     return out

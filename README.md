@@ -53,8 +53,10 @@ readme`; a row without a results file says TODO.
 | D3 route | prompted LLM, stated probabilities | TODO | TODO | TODO | TODO | TODO |
 | D4 escalate | majority class (calib prior) | 0.555 [0.485, 0.625] | 0.357 [0.327, 0.385] | 0.025 [0.000, 0.095] | 0.495 [0.487, 0.504] | 0.710 [0.620, 0.800] (100) |
 | D4 escalate | stock Laya, zero-shot | 0.665 [0.600, 0.730] | 0.625 [0.554, 0.693] | 0.092 [0.057, 0.159] | 0.422 [0.396, 0.447] | 0.730 [0.640, 0.810] (100) |
+| D4 escalate | stock Laya, calib threshold | TODO | TODO | TODO | TODO | TODO |
 | D4 escalate | fine-tuned | TODO | TODO | TODO | TODO | TODO |
 | D4 escalate | fine-tuned + temperature | TODO | TODO | TODO | TODO | TODO |
+| D4 escalate | fine-tuned + temperature, calib threshold | TODO | TODO | TODO | TODO | TODO |
 | D4 escalate | prompted LLM, stated probabilities | TODO | TODO | TODO | TODO | TODO |
 <!-- table-a:end -->
 

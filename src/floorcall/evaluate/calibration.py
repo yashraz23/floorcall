@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import json
 import math
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -100,6 +100,9 @@ class Calibration:
     calib_sha256: dict[str, str]
     checkpoint: str
     code: str
+    # Binary decisions' thresholds chosen on calib after temperature scaling (D-035): per decision,
+    # a ThresholdChoice as JSON. Absent in calibrations made before D-035.
+    thresholds: dict[str, dict[str, Any]] = field(default_factory=dict)
 
 
 def save_calibration(directory: Path, cal: Calibration) -> Path:

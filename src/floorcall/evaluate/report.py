@@ -32,13 +32,18 @@ DECISION_NAMES = {
     "route": "D3 route",
     "escalate": "D4 escalate",
 }
-# (results file model id, row label), in the order CLAUDE.md §12 lists Table A's rows
-MODELS = (
-    ("majority", "majority class (train prior)"),
-    ("stock_laya", "stock Laya, zero-shot"),
-    ("finetuned", "fine-tuned"),
-    ("finetuned_temp", "fine-tuned + temperature"),
-    ("prompted_llm", "prompted LLM, stated probabilities"),
+# (results file model id, row label, the decisions it applies to or None for all), in the order
+# CLAUDE.md §12 lists Table A's rows. The calib-threshold rows exist for binary decisions whose
+# threshold is chosen on calib (D-035).
+THRESHOLD_ROWS = ("escalate",)
+MODELS: tuple[tuple[str, str, tuple[str, ...] | None], ...] = (
+    ("majority", "majority class (train prior)", None),
+    ("stock_laya", "stock Laya, zero-shot", None),
+    ("stock_laya_threshold", "stock Laya, calib threshold", THRESHOLD_ROWS),
+    ("finetuned", "fine-tuned", None),
+    ("finetuned_temp", "fine-tuned + temperature", None),
+    ("finetuned_temp_threshold", "fine-tuned + temperature, calib threshold", THRESHOLD_ROWS),
+    ("prompted_llm", "prompted LLM, stated probabilities", None),
 )
 
 
@@ -72,7 +77,9 @@ def table_a(root: Path = RESULTS) -> str:
         "|---|---|---|---|---|---|---|",
     ]
     for decision, name in DECISION_NAMES.items():
-        for model, label in MODELS:
+        for model, label, only in MODELS:
+            if only is not None and decision not in only:
+                continue
             r = _load(decision, model, root)
             if r is None:
                 lines.append(f"| {name} | {label} | TODO | TODO | TODO | TODO | TODO |")
@@ -80,6 +87,8 @@ def table_a(root: Path = RESULTS) -> str:
             if "prior_split" in r:
                 label = f"majority class ({r['prior_split']} prior)"
             m = r["metrics"]
+            if m.get("threshold") is not None:
+                label = f"{label} (θ = {m['threshold']:.3f})"
             hard = (
                 "n/a"
                 if m["hard_accuracy"] is None

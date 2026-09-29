@@ -7,6 +7,7 @@ four test sets are frozen, which is also tested.
 """
 
 import random
+from collections import Counter
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
@@ -162,6 +163,22 @@ def test_mixture_samples_without_replacement_when_there_is_enough() -> None:
     assert len(rows) == 20
     assert len({id(r) for r in rows}) == 20
     assert rep.repeats["a"] == pytest.approx(20 / 30)
+
+
+def test_a_balanced_task_draws_its_classes_evenly() -> None:
+    items = [{"label": 1} for _ in range(9)] + [{"label": 0} for _ in range(51)]
+    rows, rep = epoch_mixture({"d": items}, {"d": 50}, random.Random(0), balance=("d",))
+    assert Counter(r["label"] for r in rows) == {0: 25, 1: 25}
+    assert rep.by_class == {"d": {0: 25, 1: 25}} and rep.repeats["d"] == pytest.approx(25 / 9)
+    # 25 draws from 9 positives: every one twice, 7 of them a third time
+    assert sorted(Counter(id(r) for r in rows if r["label"] == 1).values()) == [2, 2] + [3] * 7
+    assert len({id(r) for r in rows if r["label"] == 0}) == 25  # negatives: no repeats
+    _, odd = epoch_mixture({"d": items}, {"d": 51}, random.Random(0), balance=("d",))
+    assert odd.by_class == {"d": {0: 26, 1: 25}}
+
+
+def test_d4_is_class_balanced_by_default() -> None:
+    assert TrainSettings().balance_classes == ("escalate",)
 
 
 def test_mixture_refuses_a_task_without_rows() -> None:

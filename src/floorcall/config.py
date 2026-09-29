@@ -141,6 +141,9 @@ class EvalSettings(BaseModel):
     # replacement this many times, by a generator with this seed.
     bootstrap_samples: int = 10_000
     bootstrap_seed: int = 20260927
+    # Binary decisions whose threshold is chosen on calib by macro-F1 (D-035,
+    # floorcall.evaluate.thresholds), for the fine-tuned model and, the same way, for stock Laya.
+    threshold_decisions: tuple[str, ...] = ("escalate",)
     latency_warmup: int = 50
     latency_iters: int = 1000
     gpu_p99_budget_ms: float = 50.0
@@ -174,7 +177,7 @@ class TrainSettings(BaseModel):
     seed: int = 20260927
     # Rows drawn per task per epoch (floorcall.train.data.epoch_mixture). The raw train sets differ
     # 30x in size; these quotas keep the checkpoint multi-task. D3 (1,750 rows) is repeated 3x per
-    # epoch. The escalate quota is provisional until D4's training source is decided (D-009).
+    # epoch. D4's 5,000 come from its 6,000 llm_v3 rows (D-035), class-balanced (balance_classes).
     rows_per_epoch: dict[str, int] = Field(
         default_factory=lambda: {
             "turn_complete": 20_000,
@@ -186,6 +189,10 @@ class TrainSettings(BaseModel):
     # Gold labels here are hard; 0 keeps the target one-hot. Temperature scaling on calib, not
     # smoothing, is what calibrates the output.
     label_smoothing: float = 0.0
+    # Tasks whose epoch quota is split evenly across classes (D-035). D4 trains on the natural mix
+    # (15% escalate) but is calibrated and tested on sets drawn in equal strata (~45%); temperature
+    # scaling cannot move a prior, so the balance is set in sampling.
+    balance_classes: tuple[str, ...] = ("escalate",)
     log_every_updates: int = 10
 
 

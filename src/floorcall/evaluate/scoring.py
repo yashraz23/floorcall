@@ -33,13 +33,27 @@ def score(
     *,
     n_bins: int,
     bootstrap: tuple[int, int] | None = None,
+    threshold: float | None = None,
 ) -> dict[str, Any]:
     """Every Table A metric. `bootstrap` = (samples, seed) adds a percentile-bootstrap 95%
-    interval for each metric, resampling rows (the hard subset's accuracy resamples hard rows)."""
-    pred = probs.argmax(axis=1)
+    interval for each metric, resampling rows (the hard subset's accuracy resamples hard rows).
+
+    `threshold` (binary decisions only) predicts "true" when p(true) >= threshold, instead of
+    the argmax. It changes the predictions, so accuracy, macro-F1, the confusion and the hard
+    subset; ECE and Brier describe the probabilities, which it does not change, so they stay
+    computed on the argmax answer and its confidence.
+    """
+    k = len(labels)
+    argmax = probs.argmax(axis=1)
+    if threshold is None:
+        pred = argmax
+    else:
+        if labels != ("false", "true"):
+            raise ValueError(f"a threshold applies to a binary true/false decision, not {labels}")
+        pred = (probs[:, 1] >= threshold).astype(np.int64)
     conf = probs.max(axis=1)
     correct = (pred == y).astype(np.int64)
-    k = len(labels)
+    argmax_correct = (argmax == y).astype(np.int64)
     per_class = {}
     for c, name in enumerate(labels):
         tp = int(((pred == c) & (y == c)).sum())
@@ -56,7 +70,7 @@ def score(
         "accuracy": accuracy(y, pred),
         "accuracy_ci95": [lo, hi],
         "macro_f1": macro_f1(y, pred, labels=list(range(k))),
-        "ece": ece(conf, correct, n_bins=n_bins),
+        "ece": ece(conf, argmax_correct, n_bins=n_bins),
         "brier": brier(probs, y),
         "mean_confidence": float(conf.mean()),
         "per_class": per_class,
@@ -64,13 +78,15 @@ def score(
         "hard_n": int(hard.sum()),
         "hard_accuracy": accuracy(y[hard], pred[hard]) if hard.any() else None,
     }
+    if threshold is not None:
+        out["threshold"] = threshold
     if bootstrap is not None:
         samples, seed = bootstrap
         cls = list(range(k))
         stats = {
             "accuracy": lambda i: accuracy(y[i], pred[i]),
             "macro_f1": lambda i: macro_f1(y[i], pred[i], labels=cls),
-            "ece": lambda i: ece(conf[i], correct[i], n_bins=n_bins),
+            "ece": lambda i: ece(conf[i], argmax_correct[i], n_bins=n_bins),
             "brier": lambda i: brier(probs[i], y[i]),
         }
         ci = {

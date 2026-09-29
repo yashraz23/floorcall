@@ -10,6 +10,10 @@ differ by 30x (D1 49k rows, D3 1.75k), and without a mixture the multi-task chec
 model that also saw some routing. A task with more rows than its quota is subsampled without
 replacement each epoch (so every epoch sees different rows); a task with fewer is repeated whole
 and topped up with a sample. Seeded, so a run is reproducible.
+
+A task named in `balance` (D4, D-035) splits its quota evenly across its classes, and each class
+is drawn by the same rule. D4's training pool follows the natural mix while its calib and test sets
+were drawn in equal strata; temperature scaling cannot move a prior, so the balance is set here.
 """
 
 from __future__ import annotations
@@ -75,28 +79,46 @@ def build_items(
 class MixtureReport:
     rows: dict[str, int]
     repeats: dict[str, float]  # quota / available: > 1 means rows are repeated
+    by_class: dict[str, dict[int, int]]  # balanced tasks only: rows drawn per class
+
+
+def _draw(pool: Sequence[Item], quota: int, rng: random.Random) -> list[Item]:
+    """`quota` rows: the pool repeated whole as often as it fits, topped up with a sample."""
+    whole, rest = divmod(quota, len(pool))
+    return list(pool) * whole + rng.sample(list(pool), rest)
 
 
 def epoch_mixture(
     items_by_task: Mapping[str, Sequence[Item]],
     rows_per_epoch: Mapping[str, int],
     rng: random.Random,
+    *,
+    balance: Sequence[str] = (),
 ) -> tuple[list[Item], MixtureReport]:
-    """One epoch's rows: each task's quota, then shuffled together."""
+    """One epoch's rows: each task's quota (class-balanced for tasks in `balance`), shuffled."""
     missing = set(rows_per_epoch) - set(items_by_task)
     if missing:
         raise ValueError(f"no training rows for {sorted(missing)}")
     out: list[Item] = []
-    rows, repeats = {}, {}
+    rows, repeats, by_class = {}, {}, {}
     for task in sorted(rows_per_epoch):
         pool = list(items_by_task[task])
         quota = rows_per_epoch[task]
         if not pool or quota <= 0:
             raise ValueError(f"{task}: {len(pool)} rows, quota {quota}")
-        whole, rest = divmod(quota, len(pool))
-        chosen = pool * whole + rng.sample(pool, rest)
+        if task in balance:
+            classes: dict[int, list[Item]] = {}
+            for item in pool:
+                classes.setdefault(int(item["label"]), []).append(item)
+            share, extra = divmod(quota, len(classes))
+            counts = {c: share + (i < extra) for i, c in enumerate(sorted(classes))}
+            chosen = [x for c in sorted(classes) for x in _draw(classes[c], counts[c], rng)]
+            by_class[task] = counts
+            repeats[task] = max(counts[c] / len(classes[c]) for c in classes)
+        else:
+            chosen = _draw(pool, quota, rng)
+            repeats[task] = quota / len(pool)
         out += chosen
         rows[task] = len(chosen)
-        repeats[task] = quota / len(pool)
     rng.shuffle(out)
-    return out, MixtureReport(rows=rows, repeats=repeats)
+    return out, MixtureReport(rows=rows, repeats=repeats, by_class=by_class)

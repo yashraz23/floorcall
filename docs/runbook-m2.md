@@ -11,11 +11,13 @@ uv run floorcall data freeze-escalate      # after `floorcall label escalate` (t
 uv run floorcall data verify               # all four test sets present and hash-matched
 ```
 
-`floorcall train run` refuses to start until all four test sets are frozen (D-009, D-023). D4 also
-needs a **training source**, which is still an open decision (synthetic LLM-generated rows tagged
-`source=synthetic`, more hand labels, or weak labels). Until it exists, the run refuses the
-`escalate` task; `--tasks turn_complete,barge_in,route` trains without it, as a deliberate and
-recorded choice.
+`floorcall train run` refuses to start until all four test sets are frozen (D-009, D-023). D4
+evaluates on test v2 and calibrates on calib v2 (D-033). Its training rows are the 6,000-message
+train pool labelled by prompt v3, `source=llm_v3` (D-035), built by
+`uv run floorcall data escalate-llm-label --split train` (cached, so a rerun costs nothing). D4
+rows are drawn class-balanced each epoch (`TrainSettings.balance_classes`), and calibration also
+picks D4's threshold on calib v2 by macro-F1. Stock Laya's threshold is picked the same way by
+`uv run floorcall eval stock-threshold`.
 
 ## 1. Train and calibrate the main model (projected ~3 h)
 

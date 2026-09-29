@@ -38,7 +38,14 @@ def test_file(decision: str, version: str | None = None) -> str:
     return f"{decision}.test.{version or TEST_VERSIONS[decision]}.jsonl.gz"
 
 
+# Training files named other than <decision>.train.jsonl.gz. D4 trains on the train pool labelled
+# by prompt v3, source=llm_v3 (DECISIONS.md D-035).
+TRAIN_FILES = {"escalate": "escalate.train.llm_v3.jsonl.gz"}
+
+
 def processed_file(decision: str, split: str) -> str:
+    if split == "train" and decision in TRAIN_FILES:
+        return TRAIN_FILES[decision]
     return f"{decision}.{split}.jsonl.gz"
 
 

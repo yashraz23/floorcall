@@ -28,6 +28,7 @@ from floorcall.data.build import test_file
 from floorcall.data.freeze import sha256_file
 from floorcall.evaluate.dataset import EvalSet, class_prior, load_processed, load_test
 from floorcall.evaluate.scoring import score, softmax
+from floorcall.evaluate.thresholds import choose_threshold
 from floorcall.provenance import git_head
 
 RESULTS = REPO_ROOT / "results" / "table_a"
@@ -131,4 +132,61 @@ def run_stock_laya(
         ),
     }
     _write(decision, "stock_laya", payload)
+    return payload
+
+
+def run_stock_laya_threshold(
+    settings: Settings, decision: str, *, device: str | None = None
+) -> dict[str, Any]:
+    """Stock Laya with its threshold chosen on calib by macro-F1, as the fine-tuned model's is.
+
+    Probabilities at the shipped temperature on calib pick the threshold (D-035); the test set is
+    then scored once with it. The default-threshold row (`stock_laya`) is left as it is. Set
+    beside the fine-tuned row, this separates the gain from fine-tuning from the gain from
+    thresholding.
+    """
+    from floorcall.model.laya_adapter import LayaDecider
+
+    if decision not in settings.eval.threshold_decisions:
+        raise ValueError(f"{decision} has no calib threshold (EvalSettings.threshold_decisions)")
+    decider = LayaDecider(LayaSettings(**{**settings.laya.model_dump(), "device": device}))
+    qdef = questions.questions_by_id(decision)
+    probs = {}
+    sets = {
+        "calib": load_processed(settings, decision, "calib"),
+        "test": load_test(settings, decision),
+    }
+    for split, data in sets.items():
+        budget = (
+            decider.state_room(questions.questions_for(data.event))
+            - settings.state.safety_margin_tokens
+        )
+        states = data.packed_states(
+            state=settings.state, budget=budget, count_tokens=decider.count_tokens
+        )
+        per_row = decider.logits_batch(states, qdef, batch_size=32)
+        logits = np.stack([r[decision].logits for r in per_row])
+        temperature = decider.effective_temperature(per_row[0][decision].qtype, len(data.labels))
+        probs[split] = softmax(logits, temperature)
+    calib, test = sets["calib"], sets["test"]
+    choice = choose_threshold(probs["calib"][:, calib.labels.index("true")], calib.y)
+    payload = {
+        **_provenance(settings, test),
+        "model": "stock_laya_threshold",
+        "checkpoint": decider.checkpoint,
+        "revision": decider.revision,
+        "device": decider.device,
+        "temperature": temperature,
+        "threshold_choice": choice.to_json(),
+        "metrics": score(
+            probs["test"],
+            test.y,
+            test.hard,
+            test.labels,
+            n_bins=settings.eval.ece_bins,
+            bootstrap=(settings.eval.bootstrap_samples, settings.eval.bootstrap_seed),
+            threshold=choice.theta,
+        ),
+    }
+    _write(decision, "stock_laya_threshold", payload)
     return payload

@@ -326,10 +326,11 @@ def data_escalate_train_sample() -> None:
 def label_escalate_train(
     labeller: str = typer.Option("yash", help="recorded on every label"),
 ) -> None:
-    """Label the primary D4 model's training messages under guideline v2: y, n, u, q (D-034).
+    """Label D4 training messages by hand under guideline v2: y, n, u, q (D-034). Unused.
 
-    Same blind screen as the relabel. Every keypress is saved to escalate.train_labels.v2.jsonl;
-    stop with q at any time and rerun to resume.
+    D-035 dropped hand-labelled training data before any was labelled; D4 trains on the llm_v3
+    labels. The tool stays: same blind screen as the relabel, every keypress saved to
+    escalate.train_labels.v2.jsonl, resumable.
     """
     from floorcall.data import labelling
 
@@ -358,6 +359,23 @@ def data_freeze_escalate(
 
     card = build.freeze_escalate(get_settings(), guidelines)
     console.print(build.summarize([card]))
+
+
+@eval_app.command("stock-threshold")
+def eval_stock_threshold(
+    decision: str = typer.Option("escalate", help="a decision in threshold_decisions"),
+    device: str = typer.Option("cuda", help="device for stock Laya"),
+) -> None:
+    """Table A: stock Laya with its threshold chosen on calib by macro-F1 (D-035)."""
+    from floorcall.evaluate.baselines import run_stock_laya_threshold
+
+    r = run_stock_laya_threshold(get_settings(), decision, device=device)
+    m, c = r["metrics"], r["threshold_choice"]
+    console.print(
+        f"{decision}  stock_laya_threshold  theta {c['theta']:.3f} (calib macro-F1 "
+        f"{c['macro_f1']:.3f}, {c['tied']} tied)  test acc {m['accuracy']:.3f}  "
+        f"macroF1 {m['macro_f1']:.3f}  (n={m['n']})"
+    )
 
 
 @eval_app.command("baselines")
@@ -503,16 +521,13 @@ def eval_figures() -> None:
 @data_app.command("escalate-llm-label")
 def data_escalate_llm_label(
     split: Annotated[str, typer.Option(help="calib | test | train")],
-    ablation: Annotated[
-        bool, typer.Option(help="train only: the D-034 ablation arm, source=llm_v3")
-    ] = False,
 ) -> None:
     """Label D4 messages with the LLM labeller. calib: agreement with Yash, and the gate the
-    prompt must pass. test (measurement only) runs only with a prompt calib accepted. train runs
-    only as the D-034 ablation arm (--ablation), never as the primary D4 training data."""
+    prompt must pass. test (measurement only) runs only with a prompt calib accepted. train: the
+    D-030 pool labelled by prompt v3, D4's training rows (D-035), source=llm_v3."""
     from floorcall.data.d4_llm import run
 
-    out = run(get_settings(), split, ablation=ablation)
+    out = run(get_settings(), split)
     console.print_json(
         data={k: v for k, v in out.items() if k not in ("agreement", "disagreements")}
     )

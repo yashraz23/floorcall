@@ -36,10 +36,10 @@ from floorcall.normalize import normalize
 
 # "escalate"/"no" are prompts v1 and v2; "y"/"n" are v3, in guideline v2's own terms.
 LABEL_TO_BOOL = {"escalate": "true", "no": "false", "y": "true", "n": "false"}
-# The D-034 ablation arm: the train pool labelled by prompt v3, in a file of its own.
-ABLATION_PROMPT = "llm-labeller-v3"
-ABLATION_SOURCE = "llm_v3"
-ABLATION_TRAIN_FILE = f"escalate.train.{ABLATION_SOURCE}.jsonl.gz"
+# D4's training rows (D-035): the train pool labelled by prompt v3, tagged with this source and
+# written to build.TRAIN_FILES["escalate"].
+TRAIN_PROMPT = "llm-labeller-v3"
+TRAIN_SOURCE = "llm_v3"
 
 
 def llm_labels_file(prompt_version: str) -> str:
@@ -273,15 +273,14 @@ def train_rows(
     return out
 
 
-def run(settings: Any, split: str, *, ablation: bool = False) -> dict[str, Any]:
+def run(settings: Any, split: str) -> dict[str, Any]:
     """Label one split with the LLM: "calib" or "test" (agreement with Yash), or "train".
 
-    "train" runs only as the ablation arm of D-034: the primary D4 model trains on Yash's hand
-    labels, and the LLM-labelled pool (prompt v3, which the gate did not accept) is written to its
-    own file, tagged `source=llm_v3`, never to the primary train file.
+    "train" labels the D-030 pool with prompt v3, D4's training data since D-035, tagged
+    `source=llm_v3`. The gate did not accept v3; D-035 chose it anyway, so train is not gated.
     """
     from floorcall.config import REPO_ROOT, Settings
-    from floorcall.data.build import TEST_VERSIONS, balance, escalate_eval_rows
+    from floorcall.data.build import TEST_VERSIONS, balance, escalate_eval_rows, processed_file
     from floorcall.data.download import fetch
     from floorcall.data.escalate import build_candidates
     from floorcall.data.freeze import write_jsonl_gz
@@ -292,14 +291,10 @@ def run(settings: Any, split: str, *, ablation: bool = False) -> dict[str, Any]:
     s: Settings = settings
     if split not in ("calib", "test", "train"):
         raise ValueError(f"split must be calib, test or train, not {split!r}")
-    if (split == "train") != ablation:
+    if split == "train" and LABELLER_VERSION != TRAIN_PROMPT:
         raise RuntimeError(
-            "LLM labels of the train pool are the D-034 ablation arm only, and the ablation arm "
-            "labels only the train pool: use --split train --ablation. The primary D4 model "
-            "trains on Yash's hand labels."
+            f"D4's training labels are {TRAIN_PROMPT} (D-035), not {LABELLER_VERSION}"
         )
-    if ablation and LABELLER_VERSION != ABLATION_PROMPT:
-        raise RuntimeError(f"the ablation arm is {ABLATION_PROMPT}, not {LABELLER_VERSION}")
     model = s.llm.labeller_model
     pin = s.llm.provider_pins.get(model)
     guidelines = TEST_VERSIONS["escalate"]  # the hand labels of the eval sets D4 is scored on
@@ -312,7 +307,7 @@ def run(settings: Any, split: str, *, ablation: bool = False) -> dict[str, Any]:
         "min_escalate_precision": s.llm.labeller_min_escalate_precision,
     }
     results_dir = REPO_ROOT / "results" / "d4_labeller" / LABELLER_VERSION
-    if split == "test":  # the ablation arm is labelled by a prompt the gate did not accept
+    if split == "test":  # measurement against Yash's test labels needs an accepted prompt
         calib_file = results_dir / "calib.json"
         calib = json.loads(calib_file.read_text(encoding="utf-8")) if calib_file.exists() else None
         if failures := gate_failures(calib, **gate_kw):
@@ -370,16 +365,15 @@ def run(settings: Any, split: str, *, ablation: bool = False) -> dict[str, Any]:
         "prompt": LABELLER_VERSION,
         "provider_pin": gate_kw["endpoint"],
         "hand_labels": gate_kw["hand_labels"],
-        "arm": "ablation (D-034), not the primary D4 training data" if ablation else None,
         "served_by": dict(Counter(str(labels[c.id].get("provider")) for c in cands)),
         "labels": dict(Counter(labels[c.id]["label"] for c in cands)),
         "spent_usd_total": ledger.spent(),
         **pool_report,
     }
     if split == "train":
-        rows = train_rows(cands, labels, source=ABLATION_SOURCE)
-        write_jsonl_gz(s.paths.data_processed / ABLATION_TRAIN_FILE, rows)
-        summary["train_file"] = ABLATION_TRAIN_FILE
+        rows = train_rows(cands, labels, source=TRAIN_SOURCE)
+        write_jsonl_gz(s.paths.data_processed / processed_file("escalate", "train"), rows)
+        summary["train_file"] = processed_file("escalate", "train")
         summary["train_rows"] = len(rows)
         summary["train_balance"] = balance(rows)["train"]["labels"]
     else:
@@ -395,7 +389,7 @@ def run(settings: Any, split: str, *, ablation: bool = False) -> dict[str, Any]:
                 "failures": failures,
             }
         summary["disagreements"] = disagreements(cands, hand, llm)
-    out = results_dir / (f"train.{ABLATION_SOURCE}.json" if ablation else f"{split}.json")
+    out = results_dir / (f"train.{TRAIN_SOURCE}.json" if split == "train" else f"{split}.json")
     out.parent.mkdir(parents=True, exist_ok=True)
     with out.open("w", encoding="utf-8", newline="\n") as f:
         json.dump(summary, f, indent=2)
