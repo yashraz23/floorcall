@@ -491,6 +491,34 @@ def eval_recover_predictions(
         raise typer.Exit(1)
 
 
+@eval_app.command("paired")
+def eval_paired() -> None:
+    """Paired bootstrap of fine-tuned vs stock on the same test rows, from saved predictions."""
+    from floorcall.evaluate.paired import run_paired
+
+    for r in run_paired(get_settings()):
+        d = r["differences"]
+        console.print(
+            f"{r['decision']:14s} {r['a']} - {r['b']}: "
+            + "  ".join(
+                f"{m} {v['difference']:+.3f} [{v['ci95'][0]:+.3f}, {v['ci95'][1]:+.3f}]"
+                for m, v in d.items()
+            )
+        )
+
+
+@eval_app.command("cheap-baselines")
+def eval_cheap_baselines() -> None:
+    """Sanity baselines (D-036): TF-IDF + logistic regression for every decision, and a lexical
+    rule for D2. Trained on train minus the dev split, C chosen on dev, scored once on test."""
+    from floorcall.evaluate.cheap_baselines import run_lexical_rule, run_tfidf_lr
+    from floorcall.provenance import git_head
+
+    s, code = get_settings(), git_head()
+    rows = [run_tfidf_lr(s, d, code) for d in ("turn_complete", "barge_in", "route", "escalate")]
+    _print_rows([*rows, run_lexical_rule(s, code)])
+
+
 @eval_app.command("robustness")
 def eval_robustness(
     checkpoint: Annotated[Path, typer.Option(help="a floorcall training run directory")],

@@ -672,3 +672,39 @@ fine-tuned model and stock Laya. The fine-tuned model was evaluated once on test
 | D3 | 0.948 [0.937, 0.959] | 0.906 [0.881, 0.926] | 0.011 | 0.934 / 0.866 |
 
 Hard subsets: D1 0.725 [0.693, 0.755] and D2 0.977 [0.972, 0.981].
+
+**D-036 · 2026-09-29 · §12 Table A · added after the main test pass** — **Paired comparisons from
+saved predictions, and two sanity baselines. Nothing here is tuned on test.** (Yash's decisions.)
+*Recovering r2's test predictions.* The fine-tuned rows (D-035 outcome) were scored without saving
+per-row predictions, and a paired comparison needs them. They were recovered by one inference-only
+pass of the same checkpoint over the same frozen test sets (`floorcall eval recover-predictions`).
+That pass writes nothing to `results/`, and its logits are used only if every committed metric of
+every fine-tuned Table A row reproduces from them identically: confusion, intervals and all.
+Otherwise the pass stops and shows the difference. From now on every scoring pass saves its
+per-row logits (`runs/eval/`, gitignored and rebuilt by rerunning), so later comparisons never
+need another pass.
+*Paired bootstrap* (`floorcall eval paired`): fine-tuned against stock Laya on the same resampled
+rows, 10,000 resamples, seed 20260927.
+- For D4, the fine-tuned model with temperature at its calib threshold, against stock Laya at
+  argmax and against stock Laya at its own calib threshold.
+- For D1–D3, the fine-tuned model with temperature, against stock Laya.
+- Reported per metric: the difference, its 95% percentile interval, and the share of resamples in
+  which the fine-tuned model is not better.
+- Each model is first checked against its committed Table A row.
+*Sanity baselines* (`floorcall eval cheap-baselines`), added after the main test pass. Each is
+fitted without test and scored once on test.
+- **TF-IDF + logistic regression, all four decisions.** Features are the user's word 1- and
+  2-grams and the context's words, through the same normalizer as everything else.
+  - It trains on the same rows as r2: each task's train rows minus the same dev split.
+  - C is chosen on that dev split by cross-entropy over the grid 0.01, 0.1, 1, 10 and 100.
+  - D4 uses balanced class weights, the counterpart of D-035's class-balanced sampling, and its
+    threshold is chosen on calib v2 by the D-035 rule.
+- **A lexical rule for D2**, fixed before it was scored after looking only at train rows.
+  - No words, or fillers only (um, uh, er, ah): noise.
+  - At most three words, all from {uh, huh, mhm, hm, hmm, mm, yeah, yep, yes, right, okay, ok,
+    oh, sure, really, wow, i, see, true, exactly}: backchannel.
+  - Anything else: interruption.
+  - Each branch's probabilities are the train class frequencies of the rows taking it
+    (add-one smoothed).
+*Latency.* Table B is re-measured on the fine-tuned checkpoint (`checkpoints/main-r2`). Its rows
+replace the stock-checkpoint rows, which stay in git history.

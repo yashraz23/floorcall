@@ -38,6 +38,8 @@ DECISION_NAMES = {
 THRESHOLD_ROWS = ("escalate",)
 MODELS: tuple[tuple[str, str, tuple[str, ...] | None], ...] = (
     ("majority", "majority class (train prior)", None),
+    ("lexical_rule", "lexical rule: backchannel words + length", ("barge_in",)),
+    ("tfidf_lr", "TF-IDF + logistic regression", None),
     ("stock_laya", "stock Laya, zero-shot", None),
     ("stock_laya_threshold", "stock Laya, calib threshold", THRESHOLD_ROWS),
     ("finetuned", "fine-tuned", None),
