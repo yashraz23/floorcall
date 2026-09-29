@@ -1,0 +1,26 @@
+{
+  "split": "train",
+  "model": "openai/gpt-oss-120b",
+  "prompt": "llm-labeller-v3",
+  "provider_pin": "crusoe/bf16",
+  "hand_labels": "guideline v2",
+  "arm": "ablation (D-034), not the primary D4 training data",
+  "served_by": {
+    "Crusoe": 6000
+  },
+  "labels": {
+    "n": 5101,
+    "y": 899
+  },
+  "spent_usd_total": 0.197265906,
+  "train_candidates": 35807,
+  "dropped_text_matches_held_out": 61,
+  "train_threads": 22870,
+  "chosen": 6000,
+  "train_file": "escalate.train.llm_v3.jsonl.gz",
+  "train_rows": 6000,
+  "train_balance": {
+    "false": 5101,
+    "true": 899
+  }
+}
