@@ -17,6 +17,7 @@ import torch
 from torch import nn
 
 from floorcall.config import Settings, TrainSettings
+from floorcall.data.build import test_file as frozen_name
 from floorcall.data.freeze import freeze
 from floorcall.train.data import epoch_mixture
 from floorcall.train.loop import train_model
@@ -173,7 +174,7 @@ def test_mixture_refuses_a_task_without_rows() -> None:
 
 def settings_with_frozen(tmp_path: Path, decisions: Sequence[str]) -> Settings:
     for d in decisions:
-        freeze(tmp_path, f"{d}.test.v1.jsonl.gz", [{"id": d}], {})
+        freeze(tmp_path, frozen_name(d), [{"id": d}], {})  # the version d is evaluated on
     s = Settings()
     return s.model_copy(update={"paths": s.paths.model_copy(update={"test_frozen": tmp_path})})
 

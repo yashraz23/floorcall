@@ -13,10 +13,11 @@ It runs [Laya](https://github.com/NandhaKishorM/laya), an open-weight (Apache-2.
 non-autoregressive decision model, fine-tuned and recalibrated on real conversational data. It is
 plugged into a [Pipecat](https://github.com/pipecat-ai/pipecat) voice pipeline.
 
-> **Status, 2026-09-27.** Milestone 0 (the feasibility spike, [docs/spike-m0.md](docs/spike-m0.md))
-> is done. So is milestone 1 (data, [docs/data.md](docs/data.md)), apart from the hand-labelled D4
-> test set, which is being labelled. Table A's baseline rows for D1–D3 are measured. Every other
-> cell says TODO until a committed command measures it, and nothing in this README is an estimate.
+> **Status, 2026-09-29.** Milestone 0 (the feasibility spike, [docs/spike-m0.md](docs/spike-m0.md))
+> is done. So is milestone 1 (data, [docs/data.md](docs/data.md)), including D4's hand-labelled
+> test set: v2, 200 messages relabelled blind under guideline v2 (docs/DECISIONS.md D-033). Table
+> A's baseline rows are measured for all four decisions. Every other cell says TODO until a
+> committed command measures it, and nothing in this README is an estimate.
 
 ## Why a decision model and not an LLM
 
@@ -50,8 +51,8 @@ readme`; a row without a results file says TODO.
 | D3 route | fine-tuned | TODO | TODO | TODO | TODO | TODO |
 | D3 route | fine-tuned + temperature | TODO | TODO | TODO | TODO | TODO |
 | D3 route | prompted LLM, stated probabilities | TODO | TODO | TODO | TODO | TODO |
-| D4 escalate | majority class (train prior) | TODO | TODO | TODO | TODO | TODO |
-| D4 escalate | stock Laya, zero-shot | 0.639 [0.590, 0.685] | 0.579 | 0.062 | 0.454 | 0.662 (198) |
+| D4 escalate | majority class (calib prior) | 0.555 [0.485, 0.625] | 0.357 [0.327, 0.385] | 0.025 [0.000, 0.095] | 0.495 [0.487, 0.504] | 0.710 [0.620, 0.800] (100) |
+| D4 escalate | stock Laya, zero-shot | 0.665 [0.600, 0.730] | 0.625 [0.554, 0.693] | 0.092 [0.057, 0.159] | 0.422 [0.396, 0.447] | 0.730 [0.640, 0.810] (100) |
 | D4 escalate | fine-tuned | TODO | TODO | TODO | TODO | TODO |
 | D4 escalate | fine-tuned + temperature | TODO | TODO | TODO | TODO | TODO |
 | D4 escalate | prompted LLM, stated probabilities | TODO | TODO | TODO | TODO | TODO |
@@ -59,7 +60,11 @@ readme`; a row without a results file says TODO.
 
 Brier is the multi-class form Σₖ(pₖ − yₖ)², range [0, 2]; for a binary decision it is twice the
 familiar (p − y)². ECE uses 15 equal-width bins over the probability of the reported answer. The
-95% interval on accuracy is Wilson's. D1's hard subset is truncations only, all labelled
+95% interval on accuracy is Wilson's, except in rows scored with a percentile bootstrap (10,000
+resamples of the rows): there every metric has its 95% interval in brackets. The D4 rows are
+bootstrapped because D4's test set is small: 200 hand-labelled messages, drawn in four equal
+strata, so its escalation rate (89 of 200) is not the natural one. D4's majority prior comes from calib,
+which is drawn the same way. D1's hard subset is truncations only, all labelled
 incomplete, so a constant "incomplete" predictor such as the majority baseline scores 1.000 on it;
 the column is only informative for models that are not constant. D3's test set is 69%
 out_of_scope, so macro-F1 is its headline number.

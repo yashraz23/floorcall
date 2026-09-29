@@ -216,6 +216,16 @@ def reliability(d: dict[str, Any], t: dict[str, Any], *, min_count: int) -> Figu
         ax.plot([0, 1], [0, 1], color=t["muted"], linewidth=1, label="perfect calibration")
         for slot, key, name in ((0, "before", "no temperature"), (1, "after", "with temperature")):
             bins = [b for b in r[key]["bins"] if b["count"] >= min_count]
+            if len(bins) < 2:  # say so, rather than let a series vanish on a small test set
+                ax.text(
+                    0.98,
+                    0.04 + 0.07 * slot,
+                    f"{name}: {'only 1' if bins else 'no'} bin holds ≥ {min_count} rows",
+                    transform=ax.transAxes,
+                    ha="right",
+                    fontsize=7.5,
+                    color=t["ink2"],
+                )
             ax.plot(
                 [b["confidence"] for b in bins],
                 [b["accuracy"] for b in bins],

@@ -6,9 +6,8 @@ Writes results/table_a/<decision>.<model>.json (committed: every Table A cell co
 these files) and runs/eval/<decision>.<model>.npz with per-row logits (gitignored).
 
 - **majority**: predicts the most common class of the train split, with the train class prior as
-  its probabilities. D4 has no train split of hand labels (its train rows are LLM-labelled), so
-  its prior comes from calib. Never from test: taking the majority from the test set would be
-  peeking. Using the prior, not a one-hot, gives a meaningful Brier score and ECE.
+  its probabilities. D4's prior comes from calib, which is sampled like its test set. Never from
+  test: taking the majority from the test set would be peeking. Using the prior, not a one-hot, gives a meaningful Brier score and ECE.
 - **stock_laya**: the pinned checkpoint zero-shot, with its own shipped temperatures (including the
   clamped `choice:11+` bucket that sharpens D3). Every state is packed with its event's budget,
   exactly as it would be served.
@@ -61,8 +60,8 @@ def _provenance(settings: Settings, test: EvalSet) -> dict[str, Any]:
 
 def run_majority(settings: Settings, decision: str) -> dict[str, Any]:
     test = load_test(settings, decision)
-    # D4's train rows are LLM-labelled (D-030); its only hand-labelled split besides test is calib,
-    # so its prior comes from calib, which is still not test.
+    # D4's prior comes from calib, which is still not test: calib is drawn in the same four equal
+    # strata as test, while D4's training rows are a plain random sample of the train pool.
     prior_split = "calib" if decision == "escalate" else "train"
     prior = class_prior(load_processed(settings, decision, prior_split))
     probs = np.tile(prior, (len(test.y), 1))
