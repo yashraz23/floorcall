@@ -708,3 +708,23 @@ fitted without test and scored once on test.
     (add-one smoothed).
 *Latency.* Table B is re-measured on the fine-tuned checkpoint (`checkpoints/main-r2`). Its rows
 replace the stock-checkpoint rows, which stay in git history.
+*D-036 outcome (2026-09-29).*
+- **Recovery.** The inference-only pass reproduced every committed fine-tuned Table A row
+  identically for all four decisions (metrics, bootstrap intervals and confusion), so its logits
+  were used.
+- **Paired bootstrap, fine-tuned minus stock** (`results/paired/`). Macro-F1 difference [95%]
+  and the share of resamples in which fine-tuning is not better:
+
+  | Decision | Compared with | Macro-F1 difference | Not better |
+  |---|---|---|---|
+  | D4 | stock Laya at argmax | +0.055 [−0.050, +0.160] | 15.2% |
+  | D4 | stock Laya at its calib threshold | +0.101 [−0.003, +0.206] | 2.9% |
+  | D1 | stock Laya | +0.329 [+0.318, +0.339] | 0.0% |
+  | D2 | stock Laya | +0.699 [+0.690, +0.707] | 0.0% |
+  | D3 | stock Laya | +0.039 [+0.016, +0.064] | 0.0% |
+
+  On 200 messages, D4's gain over stock Laya is not established.
+- **Sanity baselines** (macro-F1, test): TF-IDF + LR scores D1 0.544, D2 0.850, D3 0.848 and D4
+  0.681; the D2 lexical rule scores 0.908. On D4 the bag-of-words model trained on the same
+  llm_v3 labels matches the fine-tuned model (0.681). D3's C was chosen at the top of the fixed
+  grid (100); the grid is not widened after scoring.

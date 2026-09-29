@@ -1,0 +1,54 @@
+{
+  "decision": "barge_in",
+  "test_file": "barge_in.test.v1.jsonl.gz",
+  "test_sha256": "c3b1461f0b625ad7cdf33732746786011a7f3e39a8d1798975875a2235716f14",
+  "a": "finetuned_temp",
+  "b": "stock_laya",
+  "n": 13360,
+  "samples": 10000,
+  "seed": 20260927,
+  "method": "paired percentile bootstrap: both models on the same resampled rows",
+  "code": "cf4f529",
+  "differences": {
+    "accuracy": {
+      "a": 0.9690868263473054,
+      "b": 0.36788922155688625,
+      "difference": 0.6011976047904191,
+      "ci95": [
+        0.5922885479041915,
+        0.6099550898203593
+      ],
+      "share_a_not_better": 0.0
+    },
+    "macro_f1": {
+      "a": 0.9369472104482933,
+      "b": 0.2383237913496239,
+      "difference": 0.6986234190986694,
+      "ci95": [
+        0.6898115150005413,
+        0.7073571117091446
+      ],
+      "share_a_not_better": 0.0
+    },
+    "ece": {
+      "a": 0.0032918806489943358,
+      "b": 0.005014852299262116,
+      "difference": -0.0017229716502677804,
+      "ci95": [
+        -0.009313142715593218,
+        0.001382253550104194
+      ],
+      "share_a_not_better": 0.1129
+    },
+    "brier": {
+      "a": 0.041736429904966704,
+      "b": 0.6610560889299052,
+      "difference": -0.6193196590249385,
+      "ci95": [
+        -0.6229267044207136,
+        -0.6156398279103978
+      ],
+      "share_a_not_better": 0.0
+    }
+  }
+}
