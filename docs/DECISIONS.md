@@ -517,3 +517,42 @@ plain/opener 620, cue/opener 241, plain/reply 108, cue/reply 31. That is the poo
 unlike the equal strata of test and calib, so its escalation rate will be lower. The sample is
 committed in `data/labels/escalate.train_sample.v2.jsonl`; labels go to
 `escalate.train_labels.v2.jsonl`.
+
+**D-035 · 2026-09-29 · supersedes D-034's choice of primary · declared before training** — **The
+primary D4 arm is the llm_v3 labels. The hand-labelling arm is removed.** (Yash's decision.)
+*Why.* Yash abandoned hand-labelling the D4 training sample before labelling any of it: no
+`escalate.train_labels.v2.jsonl` exists, and no fine-tuned D4 result exists either, since no
+training run has happened. D-034 is left as written. The `label escalate-train` tool and the drawn
+sample (`escalate.train_sample.v2.jsonl`) stay in the repository, unused.
+*What the primary now learns from.* The D-030 train pool of 6,000 messages, labelled by
+`llm-labeller-v3` on Crusoe bf16 (`source=llm_v3`): **899 escalate (15.0%)** and 5,101 not. The
+gate did not accept these labels. Against Yash's calib v2 labels, v3 had kappa 0.420, escalate
+precision 0.952 and recall 0.426 (D-033). The model therefore learns a stricter notion of
+escalation than his, and its recall on his test labels is expected to suffer. `build.TRAIN_FILES`
+names `escalate.train.llm_v3.jsonl.gz` as D4's training file.
+*The prior shift.* The training pool follows the natural mix (15.0% escalate by v3's labels).
+Calib v2 (47 of 100) and test v2 (89 of 200) were drawn in equal strata. Temperature scaling cannot
+move a prior; it rescales the logits but adds no offset. So the shift is handled in training:
+- **Each epoch draws D4 rows class-balanced**, 50/50 (`TrainSettings.balance_classes`). With the
+  5,000-row D4 quota that is 2,500 escalate rows, so each of the 899 is repeated about 2.8 times,
+  and 2,500 of the 5,101 not-escalate rows, subsampled.
+- Sampling rather than a weighted loss keeps the RLCD loss (policy gradient plus soft
+  cross-entropy) untouched, and it is equivalent in expectation to class weights.
+- The residual gap between 50% and calib's 47% is left to the threshold chosen on calib.
+- The strata mix also differs (the pool is 25% cue messages, test and calib 50%), and that is not
+  corrected.
+*The escalate threshold.* p(escalate) ≥ θ predicts escalate. θ is chosen on **calib v2** by
+maximising macro-F1 over a grid of 0.000 to 1.000 in steps of 0.005; when several grid points
+tie, the median of them is taken. For the fine-tuned model, θ is chosen on its calib
+probabilities after temperature scaling. For stock Laya, it is chosen on its calib probabilities
+at its shipped temperature, the same way, so the gain from fine-tuning can be separated from the
+gain from thresholding. The chosen values are logged here once measured. ECE and Brier are
+properties of the probabilities, so a threshold does not change them.
+*Evaluated once on test v2, with bootstrap 95% intervals:*
+- majority;
+- stock Laya at the default threshold (argmax);
+- stock Laya at its calib threshold;
+- the fine-tuned model (llm_v3) with temperature, at its calib threshold.
+The same single pass also gives Table A's standard fine-tuned rows at argmax (T = 1 and with
+temperature), and the multi-task checkpoint's D1–D3 rows. Every training setting other than D4's
+data and its class balancing is `TrainSettings` as committed, including the seed.
