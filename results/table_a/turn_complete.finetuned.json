@@ -1,0 +1,77 @@
+{
+  "decision": "turn_complete",
+  "test_file": "turn_complete.test.v1.jsonl.gz",
+  "test_sha256": "61535c7876b307c20001be578eb692dfb9d43d7e7c5e59c1a7f2cc6108ff7f3c",
+  "checkpoint": "checkpoints\\main-r2",
+  "trained_at": "00fac02",
+  "code": "00fac02",
+  "labels": [
+    "false",
+    "true"
+  ],
+  "model": "finetuned",
+  "temperature": 1.0,
+  "metrics": {
+    "n": 14998,
+    "accuracy": 0.8195759434591279,
+    "accuracy_ci95": [
+      0.8133400156463615,
+      0.825648200307072
+    ],
+    "macro_f1": 0.8134118522252107,
+    "ece": 0.019945807905174914,
+    "brier": 0.24329344903779368,
+    "mean_confidence": 0.8395217513643028,
+    "per_class": {
+      "false": {
+        "support": 8843,
+        "precision": 0.8455128926922644,
+        "recall": 0.8491462173470542
+      },
+      "true": {
+        "support": 6155,
+        "precision": 0.7819192414582311,
+        "recall": 0.7770917952883835
+      }
+    },
+    "confusion": [
+      [
+        7509,
+        1334
+      ],
+      [
+        1372,
+        4783
+      ]
+    ],
+    "hard_n": 775,
+    "hard_accuracy": 0.7251612903225807,
+    "ci95": {
+      "accuracy": [
+        0.8133751166822243,
+        0.8256450860114681
+      ],
+      "macro_f1": [
+        0.8070039490035187,
+        0.819707894270163
+      ],
+      "ece": [
+        0.015156095311886851,
+        0.025614605718098187
+      ],
+      "brier": [
+        0.23667128844394647,
+        0.24984167724583844
+      ],
+      "hard_accuracy": [
+        0.6929032258064516,
+        0.7548387096774194
+      ]
+    },
+    "bootstrap": {
+      "samples": 10000,
+      "seed": 20260927,
+      "method": "percentile interval; rows resampled with replacement"
+    }
+  }
+}

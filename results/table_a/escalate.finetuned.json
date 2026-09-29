@@ -1,0 +1,77 @@
+{
+  "decision": "escalate",
+  "test_file": "escalate.test.v2.jsonl.gz",
+  "test_sha256": "91994160a288950ef3a820df09359149c65bcb636b146dedc41a9d5a6c1ece97",
+  "checkpoint": "checkpoints\\main-r2",
+  "trained_at": "00fac02",
+  "code": "00fac02",
+  "labels": [
+    "false",
+    "true"
+  ],
+  "model": "finetuned",
+  "temperature": 1.0,
+  "metrics": {
+    "n": 200,
+    "accuracy": 0.695,
+    "accuracy_ci95": [
+      0.6280132012185453,
+      0.7546368564733095
+    ],
+    "macro_f1": 0.6719636471189265,
+    "ece": 0.2767694464207206,
+    "brier": 0.5441554413729149,
+    "mean_confidence": 0.9324604855602101,
+    "per_class": {
+      "false": {
+        "support": 111,
+        "precision": 0.676056338028169,
+        "recall": 0.8648648648648649
+      },
+      "true": {
+        "support": 89,
+        "precision": 0.7413793103448276,
+        "recall": 0.48314606741573035
+      }
+    },
+    "confusion": [
+      [
+        96,
+        15
+      ],
+      [
+        46,
+        43
+      ]
+    ],
+    "hard_n": 100,
+    "hard_accuracy": 0.74,
+    "ci95": {
+      "accuracy": [
+        0.63,
+        0.755
+      ],
+      "macro_f1": [
+        0.6017258546299369,
+        0.7373859771677869
+      ],
+      "ece": [
+        0.22028063558813085,
+        0.340357881513581
+      ],
+      "brier": [
+        0.4339160058251395,
+        0.6583074136766222
+      ],
+      "hard_accuracy": [
+        0.65,
+        0.82
+      ]
+    },
+    "bootstrap": {
+      "samples": 10000,
+      "seed": 20260927,
+      "method": "percentile interval; rows resampled with replacement"
+    }
+  }
+}

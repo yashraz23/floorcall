@@ -16,8 +16,8 @@ plugged into a [Pipecat](https://github.com/pipecat-ai/pipecat) voice pipeline.
 > **Status, 2026-09-29.** Milestone 0 (the feasibility spike, [docs/spike-m0.md](docs/spike-m0.md))
 > is done. So is milestone 1 (data, [docs/data.md](docs/data.md)), including D4's hand-labelled
 > test set: v2, 200 messages relabelled blind under guideline v2 (docs/DECISIONS.md D-033). Table
-> A's baseline rows are measured for all four decisions. Every other cell says TODO until a
-> committed command measures it, and nothing in this README is an estimate.
+> A's baseline and fine-tuned rows are measured for all four decisions. Every other cell says TODO
+> until a committed command measures it, and nothing in this README is an estimate.
 
 ## Why a decision model and not an LLM
 
@@ -38,35 +38,43 @@ readme`; a row without a results file says TODO.
 |---|---|---|---|---|---|---|
 | D1 turn_complete | majority class (train prior) | 0.590 [0.582, 0.597] | 0.371 | 0.000 | 0.484 | 1.000 (775) |
 | D1 turn_complete | stock Laya, zero-shot | 0.488 [0.480, 0.496] | 0.485 | 0.028 | 0.510 | 0.505 (775) |
-| D1 turn_complete | fine-tuned | TODO | TODO | TODO | TODO | TODO |
-| D1 turn_complete | fine-tuned + temperature | TODO | TODO | TODO | TODO | TODO |
+| D1 turn_complete | fine-tuned | 0.820 [0.813, 0.826] | 0.813 [0.807, 0.820] | 0.020 [0.015, 0.026] | 0.243 [0.237, 0.250] | 0.725 [0.693, 0.755] (775) |
+| D1 turn_complete | fine-tuned + temperature | 0.820 [0.813, 0.826] | 0.813 [0.807, 0.820] | 0.010 [0.007, 0.016] | 0.243 [0.236, 0.249] | 0.725 [0.693, 0.755] (775) |
 | D1 turn_complete | prompted LLM, stated probabilities | TODO | TODO | TODO | TODO | TODO |
 | D2 barge_in | majority class (train prior) | 0.501 [0.493, 0.510] | 0.223 | 0.010 | 0.564 | 0.453 (5012) |
 | D2 barge_in | stock Laya, zero-shot | 0.368 [0.360, 0.376] | 0.238 | 0.005 | 0.661 | 0.439 (5012) |
-| D2 barge_in | fine-tuned | TODO | TODO | TODO | TODO | TODO |
-| D2 barge_in | fine-tuned + temperature | TODO | TODO | TODO | TODO | TODO |
+| D2 barge_in | fine-tuned | 0.969 [0.966, 0.972] | 0.937 [0.931, 0.943] | 0.008 [0.006, 0.010] | 0.042 [0.039, 0.046] | 0.977 [0.972, 0.981] (5012) |
+| D2 barge_in | fine-tuned + temperature | 0.969 [0.966, 0.972] | 0.937 [0.931, 0.943] | 0.003 [0.003, 0.006] | 0.042 [0.038, 0.045] | 0.977 [0.972, 0.981] (5012) |
 | D2 barge_in | prompted LLM, stated probabilities | TODO | TODO | TODO | TODO | TODO |
 | D3 route | majority class (train prior) | 0.690 [0.666, 0.713] | 0.051 | 0.547 | 0.837 | n/a |
 | D3 route | stock Laya, zero-shot | 0.934 [0.921, 0.946] | 0.866 | 0.030 | 0.115 | n/a |
-| D3 route | fine-tuned | TODO | TODO | TODO | TODO | TODO |
-| D3 route | fine-tuned + temperature | TODO | TODO | TODO | TODO | TODO |
+| D3 route | fine-tuned | 0.948 [0.937, 0.959] | 0.906 [0.881, 0.926] | 0.043 [0.033, 0.054] | 0.090 [0.071, 0.111] | n/a |
+| D3 route | fine-tuned + temperature | 0.948 [0.937, 0.959] | 0.906 [0.881, 0.926] | 0.011 [0.008, 0.023] | 0.082 [0.065, 0.100] | n/a |
 | D3 route | prompted LLM, stated probabilities | TODO | TODO | TODO | TODO | TODO |
 | D4 escalate | majority class (calib prior) | 0.555 [0.485, 0.625] | 0.357 [0.327, 0.385] | 0.025 [0.000, 0.095] | 0.495 [0.487, 0.504] | 0.710 [0.620, 0.800] (100) |
 | D4 escalate | stock Laya, zero-shot | 0.665 [0.600, 0.730] | 0.625 [0.554, 0.693] | 0.092 [0.057, 0.159] | 0.422 [0.396, 0.447] | 0.730 [0.640, 0.810] (100) |
 | D4 escalate | stock Laya, calib threshold (θ = 0.505) | 0.645 [0.580, 0.710] | 0.579 [0.506, 0.649] | 0.092 [0.057, 0.159] | 0.422 [0.396, 0.447] | 0.700 [0.610, 0.790] (100) |
-| D4 escalate | fine-tuned | TODO | TODO | TODO | TODO | TODO |
-| D4 escalate | fine-tuned + temperature | TODO | TODO | TODO | TODO | TODO |
-| D4 escalate | fine-tuned + temperature, calib threshold | TODO | TODO | TODO | TODO | TODO |
+| D4 escalate | fine-tuned | 0.695 [0.630, 0.755] | 0.672 [0.602, 0.737] | 0.277 [0.220, 0.340] | 0.544 [0.434, 0.658] | 0.740 [0.650, 0.820] (100) |
+| D4 escalate | fine-tuned + temperature | 0.695 [0.630, 0.755] | 0.672 [0.602, 0.737] | 0.064 [0.040, 0.135] | 0.418 [0.363, 0.475] | 0.740 [0.650, 0.820] (100) |
+| D4 escalate | fine-tuned + temperature, calib threshold (θ = 0.505) | 0.705 [0.640, 0.765] | 0.681 [0.612, 0.747] | 0.064 [0.040, 0.135] | 0.418 [0.363, 0.475] | 0.750 [0.660, 0.830] (100) |
 | D4 escalate | prompted LLM, stated probabilities | TODO | TODO | TODO | TODO | TODO |
 <!-- table-a:end -->
 
 Brier is the multi-class form Σₖ(pₖ − yₖ)², range [0, 2]; for a binary decision it is twice the
 familiar (p − y)². ECE uses 15 equal-width bins over the probability of the reported answer. The
 95% interval on accuracy is Wilson's, except in rows scored with a percentile bootstrap (10,000
-resamples of the rows): there every metric has its 95% interval in brackets. The D4 rows are
-bootstrapped because D4's test set is small: 200 hand-labelled messages, drawn in four equal
-strata, so its escalation rate (89 of 200) is not the natural one. D4's majority prior comes from calib,
-which is drawn the same way. D1's hard subset is truncations only, all labelled
+resamples of the rows): there every metric has its 95% interval in brackets. All fine-tuned rows
+and all D4 rows are bootstrapped; the earlier stock-Laya and majority rows of D1–D3 are not. D4's
+test set is small: 200 hand-labelled messages, drawn in four equal strata, so its escalation rate
+(89 of 200) is not the natural one. D4's majority prior comes from calib, which is drawn the same
+way. θ is p(escalate) at or above which a row counts as escalate, chosen on calib by macro-F1
+(docs/DECISIONS.md D-035); ECE and Brier describe the probabilities, which θ does not change.
+
+The fine-tuned rows are one multi-task checkpoint (`checkpoints/main-r2`): epoch 2 of 4, chosen by
+cross-entropy on a dev split carved from train, trained with soft cross-entropy only (D-035
+amendment 1), temperatures fitted on calib. D4 trained on LLM labels (prompt v3, 6,000 train-pool
+messages) that the gate did not accept: against Yash's calib labels they under-escalate (recall
+0.426). Its test labels are Yash's. D1's hard subset is truncations only, all labelled
 incomplete, so a constant "incomplete" predictor such as the majority baseline scores 1.000 on it;
 the column is only informative for models that are not constant. D3's test set is 69%
 out_of_scope, so macro-F1 is its headline number.

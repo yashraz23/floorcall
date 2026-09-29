@@ -1,0 +1,437 @@
+{
+  "decision": "route",
+  "test_file": "route.test.v1.jsonl.gz",
+  "test_sha256": "9d1850a88cf6411c4b54e8e04bc596905f7379e29b5383620bcd41618e021607",
+  "checkpoint": "checkpoints\\main-r2",
+  "trained_at": "00fac02",
+  "code": "00fac02",
+  "labels": [
+    "transfer",
+    "transactions",
+    "balance",
+    "freeze_account",
+    "pay_bill",
+    "bill_balance",
+    "bill_due",
+    "interest_rate",
+    "routing",
+    "min_payment",
+    "order_checks",
+    "pin_change",
+    "report_fraud",
+    "account_blocked",
+    "spending_history",
+    "out_of_scope"
+  ],
+  "model": "finetuned_temp",
+  "temperature": 1.922630856696969,
+  "metrics": {
+    "n": 1449,
+    "accuracy": 0.94824016563147,
+    "accuracy_ci95": [
+      0.9356013723712812,
+      0.9585084879190627
+    ],
+    "macro_f1": 0.9057797617059673,
+    "ece": 0.010842301567380912,
+    "brier": 0.08211624572257875,
+    "mean_confidence": 0.9578222691035263,
+    "per_class": {
+      "transfer": {
+        "support": 30,
+        "precision": 0.9666666666666667,
+        "recall": 0.9666666666666667
+      },
+      "transactions": {
+        "support": 30,
+        "precision": 0.8571428571428571,
+        "recall": 0.8
+      },
+      "balance": {
+        "support": 30,
+        "precision": 0.7105263157894737,
+        "recall": 0.9
+      },
+      "freeze_account": {
+        "support": 29,
+        "precision": 0.8787878787878788,
+        "recall": 1.0
+      },
+      "pay_bill": {
+        "support": 30,
+        "precision": 0.9090909090909091,
+        "recall": 1.0
+      },
+      "bill_balance": {
+        "support": 30,
+        "precision": 0.84375,
+        "recall": 0.9
+      },
+      "bill_due": {
+        "support": 30,
+        "precision": 0.875,
+        "recall": 0.9333333333333333
+      },
+      "interest_rate": {
+        "support": 30,
+        "precision": 0.8333333333333334,
+        "recall": 1.0
+      },
+      "routing": {
+        "support": 30,
+        "precision": 1.0,
+        "recall": 1.0
+      },
+      "min_payment": {
+        "support": 30,
+        "precision": 0.9666666666666667,
+        "recall": 0.9666666666666667
+      },
+      "order_checks": {
+        "support": 30,
+        "precision": 0.8823529411764706,
+        "recall": 1.0
+      },
+      "pin_change": {
+        "support": 30,
+        "precision": 1.0,
+        "recall": 0.8
+      },
+      "report_fraud": {
+        "support": 30,
+        "precision": 0.9259259259259259,
+        "recall": 0.8333333333333334
+      },
+      "account_blocked": {
+        "support": 30,
+        "precision": 0.9642857142857143,
+        "recall": 0.9
+      },
+      "spending_history": {
+        "support": 30,
+        "precision": 0.6585365853658537,
+        "recall": 0.9
+      },
+      "out_of_scope": {
+        "support": 1000,
+        "precision": 0.9845837615621789,
+        "recall": 0.958
+      }
+    },
+    "confusion": [
+      [
+        29,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1
+      ],
+      [
+        0,
+        24,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        5,
+        0
+      ],
+      [
+        0,
+        0,
+        27,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        3
+      ],
+      [
+        0,
+        0,
+        0,
+        29,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        30,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        1,
+        27,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        2,
+        0,
+        28,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        30,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        30,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        29,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        30,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        24,
+        0,
+        0,
+        0,
+        6
+      ],
+      [
+        0,
+        4,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        25,
+        1,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        27,
+        0,
+        1
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        27,
+        3
+      ],
+      [
+        1,
+        0,
+        11,
+        3,
+        0,
+        3,
+        3,
+        6,
+        0,
+        1,
+        4,
+        0,
+        1,
+        0,
+        9,
+        958
+      ]
+    ],
+    "hard_n": 0,
+    "hard_accuracy": null,
+    "ci95": {
+      "accuracy": [
+        0.9365079365079365,
+        0.9592822636300897
+      ],
+      "macro_f1": [
+        0.8812070062128039,
+        0.9256083119975482
+      ],
+      "ece": [
+        0.00804757310687595,
+        0.023229074578986153
+      ],
+      "brier": [
+        0.06500985129475365,
+        0.10021891794290805
+      ]
+    },
+    "bootstrap": {
+      "samples": 10000,
+      "seed": 20260927,
+      "method": "percentile interval; rows resampled with replacement"
+    }
+  }
+}

@@ -631,3 +631,44 @@ Everything else is unchanged: learning rates, epochs, quotas, D4's class balanci
 `checkpoints/main-r2`. Before launch, the new path was smoke-tested end to end on the real model:
 2 epochs of 64 rows per task, through dev scoring, per-epoch saves, the best-epoch copy and
 calibration.
+
+**D-035 outcome · 2026-09-29** — **r2 trained cleanly; D4's calib threshold is 0.505 for both the
+fine-tuned model and stock Laya. The fine-tuned model was evaluated once on test v2.**
+*Training (r2).* `checkpoints/main-r2`, code `00fac02`, with the policy-gradient term off.
+- Dev cross-entropy, averaged over the four tasks, by epoch: 0.218, **0.204**, 0.250, 0.313.
+  Epoch 2 is kept.
+- From epoch 3, D4 overfits its llm_v3 rows: train cross-entropy fell 0.425 → 0.168 → 0.046 →
+  0.012, while dev cross-entropy went 0.312 → 0.281 → 0.485 → 0.707.
+- Temperatures fitted on calib: D1 1.081, D2 1.197, D3 1.923, D4 **4.86**. D4's calib NLL went
+  from 1.169 to 0.571; the llm_v3-trained model was very overconfident against Yash's calib v2
+  labels. No temperature is at a bound.
+*The escalate thresholds, chosen on calib v2* (grid 0.005, median of ties):
+- the fine-tuned model with its temperature: **θ = 0.505**, calib macro-F1 0.755, 3 grid points
+  tied;
+- stock Laya at its shipped temperature: **θ = 0.505**, calib macro-F1 0.591, 2 tied.
+*D4 on test v2*, n = 200, with bootstrap 95% intervals:
+
+| Row | θ | Accuracy | Macro-F1 | ECE | Brier | Escalate P / R |
+|---|---|---|---|---|---|---|
+| majority (calib prior) | – | 0.555 [0.485, 0.625] | 0.357 [0.327, 0.385] | 0.025 [0.000, 0.095] | 0.495 [0.487, 0.504] | – / 0.000 |
+| stock Laya, default | argmax | 0.665 [0.600, 0.730] | 0.625 [0.554, 0.693] | 0.092 [0.057, 0.159] | 0.422 [0.396, 0.447] | 0.739 / 0.382 |
+| stock Laya, calib θ | 0.505 | 0.645 [0.580, 0.710] | 0.579 [0.506, 0.649] | 0.092 [0.057, 0.159] | 0.422 [0.396, 0.447] | 0.781 / 0.281 |
+| fine-tuned llm_v3 + T, calib θ | 0.505 | 0.705 [0.640, 0.765] | 0.681 [0.612, 0.747] | 0.064 [0.040, 0.135] | 0.418 [0.363, 0.475] | 0.768 / 0.483 |
+
+- **Thresholding adds almost nothing.** Both thresholds landed next to 0.5: the change is +0.009
+  macro-F1 for the fine-tuned model and −0.046 for stock Laya.
+- **The gain is from fine-tuning:** +0.056 macro-F1 over stock Laya at its default, and +0.102
+  over stock Laya at its own calib threshold.
+- **With n = 200 the unpaired intervals overlap,** so these rows alone do not establish the
+  difference. A paired bootstrap over the same resamples would.
+- **Recall is 0.483 against Yash's labels,** as expected from training labels that under-escalate
+  (v3 recall 0.426 on calib).
+*D1–D3 from the same single pass* (fine-tuned + temperature, on their v1 test sets):
+
+| Decision | Accuracy | Macro-F1 | ECE | Stock Laya accuracy / macro-F1 |
+|---|---|---|---|---|
+| D1 | 0.820 [0.813, 0.826] | 0.813 [0.807, 0.820] | 0.010 | 0.488 / 0.485 |
+| D2 | 0.969 [0.966, 0.972] | 0.937 [0.931, 0.943] | 0.003 | 0.368 / 0.238 |
+| D3 | 0.948 [0.937, 0.959] | 0.906 [0.881, 0.926] | 0.011 | 0.934 / 0.866 |
+
+Hard subsets: D1 0.725 [0.693, 0.755] and D2 0.977 [0.972, 0.981].
