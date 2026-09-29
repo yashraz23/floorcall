@@ -23,15 +23,19 @@ from typing import Any
 from floorcall.config import Settings
 from floorcall.data import clinc, swda
 from floorcall.data.download import SOURCES, fetch
-from floorcall.data.freeze import freeze, write_jsonl_gz
+from floorcall.data.freeze import freeze, sha256_file, write_jsonl_gz
 from floorcall.data.splits import SPLITS, assert_disjoint
 from floorcall.provenance import git_head
 
-TEST_VERSION = "v1"
+# The frozen test set each decision is evaluated on. D4 moved to v2 with its guideline v2
+# (DECISIONS.md D-033); its v1 file stays frozen beside it, never edited, and is no longer evaluated.
+TEST_VERSIONS = {"turn_complete": "v1", "barge_in": "v1", "route": "v1", "escalate": "v2"}
+# D4's hand-label file per guideline version. For D4 the test set version is the guideline version.
+D4_LABEL_FILES = {"v1": "escalate.labels.jsonl", "v2": "escalate.labels.v2.jsonl"}
 
 
-def test_file(decision: str, version: str = TEST_VERSION) -> str:
-    return f"{decision}.test.{version}.jsonl.gz"
+def test_file(decision: str, version: str | None = None) -> str:
+    return f"{decision}.test.{version or TEST_VERSIONS[decision]}.jsonl.gz"
 
 
 def processed_file(decision: str, split: str) -> str:
@@ -158,43 +162,66 @@ def build_clinc(settings: Settings) -> list[dict[str, Any]]:
     ]
 
 
-def freeze_escalate(settings: Settings) -> dict[str, Any]:
-    """D4: Yash's labels to a frozen test set and a calib file. Refuses below the minimum."""
+def escalate_eval_rows(
+    settings: Settings, guidelines: str
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """D4's (test, calib) rows under one guideline version, from the committed label files."""
     from floorcall.data import labelling
 
     labels_dir = settings.paths.labels
     cands = labelling.load_candidates(labels_dir / "escalate.candidates.v1.jsonl")
-    labels = labelling.load_labels(labels_dir / "escalate.labels.jsonl")
-    test = labelling.to_rows(cands, labels, "test")
-    calib = labelling.to_rows(cands, labels, "calib")
+    labels = labelling.load_labels(labels_dir / D4_LABEL_FILES[guidelines])
+    return (
+        labelling.to_rows(cands, labels, "test", guidelines=guidelines),
+        labelling.to_rows(cands, labels, "calib", guidelines=guidelines),
+    )
+
+
+def freeze_escalate(settings: Settings, guidelines: str | None = None) -> dict[str, Any]:
+    """D4: Yash's labels to a frozen test set and a calib file. Refuses below the minimum.
+
+    Builds the current version (TEST_VERSIONS) by default. An older version can be rebuilt to
+    check it still matches its frozen bytes; only the current version writes the calib file and
+    the card.
+    """
+    from floorcall.data import labelling
+
+    current = TEST_VERSIONS["escalate"]
+    version = guidelines or current
+    test, calib = escalate_eval_rows(settings, version)
     need = settings.data.d4_min_test_labels
     if len(test) < need:
         raise ValueError(f"D4 test has {len(test)} true/false labels; at least {need} are required")
     rows = sorted(test + calib, key=lambda r: r["id"])
     assert_disjoint(rows, group_key="group")
-    processed = settings.paths.data_processed
-    write_jsonl_gz(processed / processed_file("escalate", "calib"), calib)
     src = SOURCES["twcs"]
+    meta: dict[str, Any] = {
+        "decision": "escalate",
+        "source_url": src.url,
+        "source_sha256": src.sha256,
+        "licence": src.licence,
+        "built_at": git_head(),
+        "labels": balance(rows)["test"]["labels"],
+        "labeller": "yash",
+        "guidelines": f"docs/labelling-escalate.md {version}",
+    }
+    if version == "v2":
+        sample = json.loads(
+            (settings.paths.labels / labelling.RELABEL_SAMPLE_FILE).read_text(encoding="utf-8")
+        )
+        meta["sample"] = f"data/labels/{labelling.RELABEL_SAMPLE_FILE}, seed {sample['seed']}"
     digest, new = freeze(
         settings.paths.test_frozen,
-        test_file("escalate"),
+        test_file("escalate", version),
         sorted(test, key=lambda r: r["id"]),
-        {
-            "decision": "escalate",
-            "source_url": src.url,
-            "source_sha256": src.sha256,
-            "licence": src.licence,
-            "built_at": git_head(),
-            "labels": balance(rows)["test"]["labels"],
-            "labeller": "yash",
-            "guidelines": "docs/labelling-escalate.md v1",
-        },
+        meta,
     )
     card: dict[str, Any] = {
         "decision": "escalate",
         "source": "twcs",
         "licence": src.licence,
-        "test_file": test_file("escalate"),
+        "guidelines": version,
+        "test_file": test_file("escalate", version),
         "test_sha256": digest,
         "balance": balance(rows),
         "sampling": (
@@ -202,11 +229,22 @@ def freeze_escalate(settings: Settings) -> dict[str, Any]:
             "the positive rate is not the natural rate"
         ),
     }
-    cards = processed / "cards"
-    cards.mkdir(parents=True, exist_ok=True)
-    with (cards / "escalate.json").open("w", encoding="utf-8", newline="\n") as f:
-        json.dump(card, f, indent=2, ensure_ascii=False)
-        f.write("\n")
+    if version == current:
+        processed = settings.paths.data_processed
+        calib_path = processed / processed_file("escalate", "calib")
+        write_jsonl_gz(calib_path, calib)
+        card["calib_file"] = calib_path.name
+        card["calib_sha256"] = sha256_file(calib_path)
+        if "sample" in meta:
+            card["sampling"] += (
+                f"; v2 is a seeded sample of the v1 eval sets, stratified by the same strata "
+                f"({meta['sample']}), relabelled blind under guideline v2"
+            )
+        cards = processed / "cards"
+        cards.mkdir(parents=True, exist_ok=True)
+        with (cards / "escalate.json").open("w", encoding="utf-8", newline="\n") as f:
+            json.dump(card, f, indent=2, ensure_ascii=False)
+            f.write("\n")
     card["test_newly_frozen"] = new
     return card
 

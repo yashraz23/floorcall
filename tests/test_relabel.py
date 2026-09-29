@@ -180,3 +180,41 @@ def test_relabel_shows_the_guideline_and_hides_everything_else(labels_dir: Path)
 def test_relabel_finishes_when_every_message_is_labelled(labels_dir: Path) -> None:
     assert "All 6 messages are relabelled" in relabel("nnnnnn")
     assert len(v2(labels_dir)) == 6
+
+
+# -- the v2 eval sets ------------------------------------------------------------------------
+
+
+def test_d4_is_evaluated_on_v2_and_the_rest_on_v1() -> None:
+    from floorcall.data.build import test_file
+
+    assert test_file("escalate") == "escalate.test.v2.jsonl.gz"
+    assert test_file("turn_complete") == "turn_complete.test.v1.jsonl.gz"
+    assert test_file("escalate", "v1") == "escalate.test.v1.jsonl.gz"
+
+
+def test_d4_v2_sets_rebuild_from_the_committed_labels() -> None:
+    import hashlib
+
+    from floorcall.data.build import cards_dir, escalate_eval_rows, test_file
+    from floorcall.data.freeze import jsonl_gz_bytes
+
+    s = get_settings()
+    test, calib = escalate_eval_rows(s, "v2")
+    frozen = (s.paths.test_frozen / test_file("escalate")).read_bytes()
+    assert jsonl_gz_bytes(sorted(test, key=lambda r: r["id"])) == frozen
+    card = json.loads((cards_dir(s) / "escalate.json").read_text(encoding="utf-8"))
+    assert card["guidelines"] == "v2"
+    assert hashlib.sha256(jsonl_gz_bytes(calib)).hexdigest() == card["calib_sha256"]
+    sample = json.loads((s.paths.labels / labelling.RELABEL_SAMPLE_FILE).read_text("utf-8"))
+    assert sorted(r["id"] for r in test) == sample["ids"]["test"]
+    assert sorted(r["id"] for r in calib) == sample["ids"]["calib"]
+    assert {r["guidelines"] for r in test + calib} == {"v2"}
+
+
+def test_guideline_versions_never_mix_in_one_set() -> None:
+    c = cand(1, "test", cue=True, reply=False)
+    with pytest.raises(ValueError, match="guidelines v1"):
+        labelling.to_rows(
+            [c], {c.id: {"label": "true", "guidelines": "v1"}}, "test", guidelines="v2"
+        )

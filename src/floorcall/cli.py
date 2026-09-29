@@ -271,11 +271,18 @@ def label_escalate_relabel(
 
 
 @data_app.command("freeze-escalate")
-def data_freeze_escalate() -> None:
-    """Freeze the hand-labelled D4 test set and write the D4 calib set."""
+def data_freeze_escalate(
+    guidelines: Annotated[
+        str | None, typer.Option(help="v1 | v2; default: the version D4 is evaluated on")
+    ] = None,
+) -> None:
+    """Freeze the hand-labelled D4 test set and write the D4 calib set.
+
+    An older version only rebuilds its test set, which must match its frozen bytes.
+    """
     from floorcall.data import build
 
-    card = build.freeze_escalate(get_settings())
+    card = build.freeze_escalate(get_settings(), guidelines)
     console.print(build.summarize([card]))
 
 

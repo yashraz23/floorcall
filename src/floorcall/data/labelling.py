@@ -98,15 +98,22 @@ def label_record(
 
 
 def to_rows(
-    candidates: Sequence[Candidate], labels: Mapping[str, Mapping[str, Any]], split: str
+    candidates: Sequence[Candidate],
+    labels: Mapping[str, Mapping[str, Any]],
+    split: str,
+    *,
+    guidelines: str = GUIDELINES,
 ) -> list[dict[str, Any]]:
-    """Labelled (true/false) candidates of one split, in the dataset row format. Skips drop out."""
+    """Labelled (true/false) candidates of one split, in the dataset row format. Skips drop out.
+
+    Every label must have been made under `guidelines`: versions are never mixed in one set.
+    """
     out = []
     for c in candidates:
         rec = labels.get(c.id)
         if c.split != split or rec is None or rec["label"] == "skip":
             continue
-        if rec["guidelines"] != GUIDELINES:
+        if rec["guidelines"] != guidelines:
             raise ValueError(f"{c.id} was labelled under guidelines {rec['guidelines']}")
         out.append(
             {
