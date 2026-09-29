@@ -29,41 +29,16 @@ def cand(
 # -- prompts ---------------------------------------------------------------------------------
 
 
-# Each decision rule of guideline v1 (git show 808f0ef:docs/labelling-escalate.md), word for word.
-# Guideline v2 replaced it in the doc (D-033); labeller prompts v1 and v2 quote v1.
-RULES = [
-    "The customer asks for a person: a human, a representative, a supervisor or manager, a phone "
-    'call, "someone who can actually help".',
-    'The customer is frustrated in a way support is not resolving: repeated contact ("I already '
-    'DMed you", "third time"), "nobody is helping", hostility toward the support itself, or a '
-    "threat to close the account, leave, or go to a regulator or the press.",
-    'It is a routine question or request, even about a problem ("my card was declined, why?").',
-    'The customer is supplying requested information, thanking, confirming ("ok, done"), or '
-    "praising.",
-    "There is annoyance at a product or situation, but no sign that support has failed them "
-    '("ugh, the app is down").',
-    "sarcasm you cannot read, context too thin to judge, not English, spam, or unreadable",
-    "if you were the team lead watching this conversation live, would you want a person to take "
-    "over now?",
-]
+def test_prompt_v3_is_guideline_v2_verbatim_with_no_unsure() -> None:
+    from floorcall.data.labelling import GUIDELINE_V2
 
-
-def _flat(text: str) -> str:
-    return " ".join(text.replace("**", "").replace("*", "").split())
-
-
-@pytest.mark.parametrize("rule", RULES)
-def test_the_labeller_gets_yashs_rules_verbatim(rule: str) -> None:
-    assert rule.lower() in _flat(prompts.LABELLER_SYSTEM).lower(), "the rule is not in the prompt"
-
-
-def test_v2_adds_exactly_the_two_clarifying_sentences() -> None:
-    added = (
-        "Threats to leave or close the account are escalations even with no agent reply. Delay or "
-        "inconvenience alone is not, unless the customer says support has failed them."
-    )
-    assert prompts.LABELLER_VERSION == "llm-labeller-v2"
-    assert added in _flat(prompts.LABELLER_SYSTEM)
+    assert prompts.LABELLER_VERSION == "llm-labeller-v3"
+    assert GUIDELINE_V2 in prompts.LABELLER_SYSTEM
+    assert (
+        '"unsure"' not in prompts.LABELLER_SYSTEM
+    )  # not an answer; the guideline's "If unsure" is
+    assert prompts.LABELLER_SCHEMA["properties"]["label"]["enum"] == ["y", "n"]
+    assert {d4_llm.LABEL_TO_BOOL[x] for x in ("y", "n")} == {"true", "false"}
 
 
 def test_labeller_messages_show_what_the_tool_showed() -> None:
@@ -161,6 +136,7 @@ GATE: dict[str, Any] = {
     "model": "m",
     "prompt_version": "v2",
     "endpoint": "crusoe/bf16",
+    "hand_labels": "guideline v2",
     "min_kappa": 0.60,
     "min_escalate_precision": 0.70,
 }
@@ -171,6 +147,7 @@ def calib_summary(kappa: float | None, precision: float, **over: Any) -> dict[st
         "model": "m",
         "prompt": "v2",
         "provider_pin": "crusoe/bf16",
+        "hand_labels": "guideline v2",
         "agreement": {"cohen_kappa": kappa, "escalate_precision": precision},
         **over,
     }
@@ -187,6 +164,7 @@ def calib_summary(kappa: float | None, precision: float, **over: Any) -> dict[st
         (None, 1),  # calib not labelled with this prompt
         (calib_summary(0.9, 0.9, prompt="v1"), 1),  # another prompt's calib
         (calib_summary(0.9, 0.9, provider_pin=None), 1),  # labelled unpinned
+        (calib_summary(0.9, 0.9, hand_labels="guideline v1"), 1),  # judged on v1 labels
     ],
 )
 def test_the_calib_gate(calib: dict[str, Any] | None, failures: int) -> None:

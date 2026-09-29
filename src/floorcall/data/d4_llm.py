@@ -1,15 +1,16 @@
 """D4 training rows: real customer messages from train-split threads, labelled by an LLM.
 
-Yash's decision (DECISIONS.md D-030): real messages from the Twitter support corpus, labelled by a
-LLM (via OpenRouter, D-031), never synthetic ones, every row tagged `source=llm_labelled`. The test and calib
-sets stay his hand labels.
+Yash's decision (DECISIONS.md D-030): real messages from the Twitter support corpus, labelled by an
+LLM (via OpenRouter, D-031), never synthetic ones, every row tagged `source=llm_labelled`. The test
+and calib sets stay his hand labels: since D-033, the v2 eval sets (his blind relabel under
+guideline v2), which are what every agreement is measured against.
 
 - **Pool.** Banking threads in the *train* split (thread-level hash, as for test and calib), one
   message per thread, sampled with a fixed seed. A message whose normalized text equals any test
   or calib message is also dropped: the same complaint can be pasted into more than one thread,
   and the thread split alone would miss it.
-- **Labels.** One LLM call per message with Yash's guidelines (floorcall.llm.prompts). "unsure"
-  drops the message, as his skip did. Every label is written to one file per prompt version,
+- **Labels.** One LLM call per message with Yash's guideline (floorcall.llm.prompts). Prompt v3
+  answers y or n, as guideline v2 does; v1 and v2 could say "unsure", which dropped the message. Every label is written to one file per prompt version,
   `data/labels/escalate.llm_labels.v<N>.jsonl`, with its model, prompt version and the provider
   that served it, and those files are committed, so the train set can be rebuilt without calling
   the API again and an earlier version's labels are never overwritten.
@@ -33,7 +34,8 @@ from typing import Any
 from floorcall.data.escalate import Candidate, stratum
 from floorcall.normalize import normalize
 
-LABEL_TO_BOOL = {"escalate": "true", "no": "false"}
+# "escalate"/"no" are prompts v1 and v2; "y"/"n" are v3, in guideline v2's own terms.
+LABEL_TO_BOOL = {"escalate": "true", "no": "false", "y": "true", "n": "false"}
 
 
 def llm_labels_file(prompt_version: str) -> str:
@@ -186,18 +188,21 @@ def gate_failures(
     model: str,
     prompt_version: str,
     endpoint: str | None,
+    hand_labels: str,
     min_kappa: float,
     min_escalate_precision: float,
 ) -> list[str]:
     """Why this labeller may not label test or train yet; empty once calib has accepted it.
 
     `calib` is the calib summary `run` wrote for this prompt version, or None if there is none.
+    `hand_labels` names the hand labels it must have been judged against ("guideline v2").
     """
     if calib is None:
         return [f"calib has not been labelled with {prompt_version}"]
-    served = (calib.get("model"), calib.get("prompt"), calib.get("provider_pin"))
-    if served != (model, prompt_version, endpoint):
-        return [f"calib was labelled as {served}, not {(model, prompt_version, endpoint)}"]
+    want = (model, prompt_version, endpoint, hand_labels)
+    served = tuple(calib.get(k) for k in ("model", "prompt", "provider_pin", "hand_labels"))
+    if served != want:
+        return [f"calib was labelled and judged as {served}, not {want}"]
     a = calib["agreement"]
     out = []
     if a["cohen_kappa"] is None or a["cohen_kappa"] < min_kappa:
@@ -264,11 +269,11 @@ def train_rows(
 def run(settings: Any, split: str) -> dict[str, Any]:
     """Label one split with the LLM: "calib" or "test" (agreement with Yash), or "train"."""
     from floorcall.config import REPO_ROOT, Settings
-    from floorcall.data.build import balance, processed_file
+    from floorcall.data.build import TEST_VERSIONS, balance, escalate_eval_rows, processed_file
     from floorcall.data.download import fetch
     from floorcall.data.escalate import build_candidates
     from floorcall.data.freeze import write_jsonl_gz
-    from floorcall.data.labelling import load_candidates, load_labels
+    from floorcall.data.labelling import load_candidates
     from floorcall.llm.client import Ledger, LLMClient
     from floorcall.llm.prompts import LABELLER_SCHEMA, LABELLER_VERSION, labeller_messages
 
@@ -277,10 +282,12 @@ def run(settings: Any, split: str) -> dict[str, Any]:
         raise ValueError(f"split must be calib, test or train, not {split!r}")
     model = s.llm.labeller_model
     pin = s.llm.provider_pins.get(model)
+    guidelines = TEST_VERSIONS["escalate"]  # the hand labels of the eval sets D4 is scored on
     gate_kw: dict[str, Any] = {
         "model": model,
         "prompt_version": LABELLER_VERSION,
         "endpoint": pin.endpoint if pin else None,
+        "hand_labels": f"guideline {guidelines}",
         "min_kappa": s.llm.labeller_min_kappa,
         "min_escalate_precision": s.llm.labeller_min_escalate_precision,
     }
@@ -307,7 +314,11 @@ def run(settings: Any, split: str) -> dict[str, Any]:
         )
         cands, pool_report = train_pool(pool, held_out, n=s.llm.d4_train_rows, seed=s.splits.seed)
     else:
-        cands = [c for c in held_out if c.split == split]
+        test_rows, calib_rows = escalate_eval_rows(s, guidelines)
+        eval_rows = test_rows if split == "test" else calib_rows
+        by_id = {c.id: c for c in held_out}
+        cands = [by_id[r["id"]] for r in eval_rows]
+        hand = {r["id"]: r["label"] for r in eval_rows}
 
     ledger = Ledger(REPO_ROOT / "runs" / "llm" / "ledger.sqlite", s.llm)
     client = LLMClient(s.llm, s.openrouter_api_key.get_secret_value(), ledger)
@@ -338,6 +349,7 @@ def run(settings: Any, split: str) -> dict[str, Any]:
         "model": model,
         "prompt": LABELLER_VERSION,
         "provider_pin": gate_kw["endpoint"],
+        "hand_labels": gate_kw["hand_labels"],
         "served_by": dict(Counter(str(labels[c.id].get("provider")) for c in cands)),
         "labels": dict(Counter(labels[c.id]["label"] for c in cands)),
         "spent_usd_total": ledger.spent(),
@@ -349,11 +361,7 @@ def run(settings: Any, split: str) -> dict[str, Any]:
         summary["train_rows"] = len(rows)
         summary["train_balance"] = balance(rows)["train"]["labels"]
     else:
-        hand = {
-            k: v["label"]
-            for k, v in load_labels(labels_dir / "escalate.labels.jsonl").items()
-            if v["label"] in ("true", "false") and k in {c.id for c in cands}
-        }
+        summary["eval_set"] = f"{split} {guidelines}, {len(cands)} messages"
         llm = {c.id: LABEL_TO_BOOL.get(labels[c.id]["label"], "unsure") for c in cands}
         summary["agreement"] = agreement(hand, llm, {c.id: stratum(c) for c in cands})
         if split == "calib":

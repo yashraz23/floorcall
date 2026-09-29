@@ -1,12 +1,12 @@
 """Prompts for the two LLM uses: the D4 training labeller and the prompted-LLM baseline.
 
-The labeller is given Yash's labelling guidelines (docs/labelling-escalate.md, v1), with the
-decision rules quoted verbatim, and the same view of a conversation the labelling tool showed him:
-up to two earlier turns, the agent's last reply, the customer's message. Its agreement with his
-labels then measures the labeller on his task, not on a different definition. It may answer
-"unsure", which plays the role of his skip. The prompt is versioned; changing a word is a new
-version. v2 (D-032) adds two clarifying sentences after the rules, one for each error direction
-v1 showed on calib; the rules themselves are unchanged.
+The labeller is given Yash's labelling guideline verbatim and the same view of a conversation the
+labelling tool showed him: up to two earlier turns, the agent's last reply, the customer's
+message. Its agreement with his labels then measures the labeller on his task, not on a different
+definition. The prompt is versioned; changing a word is a new version, and each version's labels
+are kept apart. v1 and v2 quoted guideline v1 (v2 added two clarifying sentences, D-032; both are
+in git at 27c1c8c). v3 (D-033) is guideline v2, word for word, and like it has no "unsure": the
+guideline says what to do when unsure. v3 is the last labeller prompt revision.
 
 The baseline is given exactly what Laya is given: the packed, normalized state and the question's
 instructions and option descriptions from floorcall.questions. It is asked for a probability per
@@ -20,40 +20,23 @@ import json
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-LABELLER_VERSION = "llm-labeller-v2"
+from floorcall.data.labelling import GUIDELINE_V2
 
-LABELLER_SYSTEM = """You label customer messages sent to a bank's support account on Twitter, for a \
-dataset that trains an escalation detector. The question for every message is: "Should this \
-conversation be handed to a human?" The customer plays the user; the company's support account \
-plays the agent.
+LABELLER_VERSION = "llm-labeller-v3"
 
-Label "escalate" when either holds:
-1. The customer asks for a person: a human, a representative, a supervisor or manager, a phone \
-call, "someone who can actually help".
-2. The customer is frustrated in a way support is not resolving: repeated contact ("I already \
-DMed you", "third time"), "nobody is helping", hostility toward the support itself, or a threat \
-to close the account, leave, or go to a regulator or the press.
-
-Label "no" when:
-- It is a routine question or request, even about a problem ("my card was declined, why?").
-- The customer is supplying requested information, thanking, confirming ("ok, done"), or praising.
-- There is annoyance at a product or situation, but no sign that support has failed them ("ugh, \
-the app is down").
-
-Threats to leave or close the account are escalations even with no agent reply. Delay or \
-inconvenience alone is not, unless the customer says support has failed them.
-
-Label "unsure" when you cannot tell: sarcasm you cannot read, context too thin to judge, not \
-English, spam, or unreadable. A wrong label is worse than "unsure".
-
-Tie-breaker: if you were the team lead watching this conversation live, would you want a person \
-to take over now?
-
-Answer with the label only."""
+# The framing is v1's, unchanged; the guideline is v2, verbatim.
+LABELLER_SYSTEM = (
+    "You label customer messages sent to a bank's support account on Twitter, for a dataset that "
+    'trains an escalation detector. The question for every message is: "Should this conversation '
+    "be handed to a human?\" The customer plays the user; the company's support account plays the "
+    "agent.\n\n"
+    f"{GUIDELINE_V2}\n\n"
+    'Answer "y" or "n".'
+)
 
 LABELLER_SCHEMA: dict[str, Any] = {
     "type": "object",
-    "properties": {"label": {"type": "string", "enum": ["escalate", "no", "unsure"]}},
+    "properties": {"label": {"type": "string", "enum": ["y", "n"]}},
     "required": ["label"],
     "additionalProperties": False,
 }
