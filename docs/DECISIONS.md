@@ -556,3 +556,78 @@ properties of the probabilities, so a threshold does not change them.
 The same single pass also gives Table A's standard fine-tuned rows at argmax (T = 1 and with
 temperature), and the multi-task checkpoint's D1–D3 rows. Every training setting other than D4's
 data and its class balancing is `TrainSettings` as committed, including the seed.
+
+**D-035 amendment 1 · 2026-09-29 · amends D-035's "TrainSettings as committed"** — **The first
+full training run broke in epoch 2 and was stopped. The policy-gradient term is switched off
+(`rl_weight = 0`), and the kept checkpoint is the epoch with the lowest dev loss.** (Yash's
+decision, after the diagnosis below.)
+*What happened.* Run r1 (`checkpoints/main`, code `832029c`) is kept locally as evidence, and its
+log is committed at `results/training/r1_stopped/train_log.jsonl`. It was stopped at update 3,110
+of 3,144.
+- Training cross-entropy fell through epoch 1, from 0.56 to 0.35.
+- It stayed normal for the first ~60 updates of epoch 2, then rose from 0.33 to 1.19 between
+  updates 840 and 900, and never recovered.
+- Mean cross-entropy by epoch (1, 2, 3):
+
+  | Task | Epoch 1 | Epoch 2 | Epoch 3 |
+  |---|---|---|---|
+  | D1 turn_complete | 0.602 | 1.831 | 1.976 |
+  | D2 barge_in | 0.281 | 0.313 | 0.315 |
+  | D3 route | 0.103 | 0.063 | 0.036 |
+  | D4 escalate | 0.502 | 0.828 | 0.595 |
+*Ruled out.*
+- **The LR schedule.** It is cosine with no warmup: LR peaks at update 0 and was a smooth
+  2.1e-5 at the break.
+- **Sampling.** The sampler, the task mixture and D4's class balance are redrawn only at an epoch
+  boundary (update 786), and the break came more than 60 updates later.
+- **The epoch-end checkpoint save.** It writes a half-precision copy of the weights and leaves
+  the model untouched.
+*What it was.* `uv run python scripts/diagnose_r1.py` writes
+`results/training/r1_stopped/diagnosis.json`, from train rows only.
+- **Pre-clip gradient norms on the stock weights** (median of six micro-batches of eight rows).
+  The policy-gradient term against the cross-entropy term:
+
+  | Task | at σ 0.4 | at σ 0.1 |
+  |---|---|---|
+  | D1 | 2.0× | 10.7× |
+  | D2 | 3.9× | 11.4× |
+  | D3 | 14.5× | 45× |
+  | D4 | 2.0× | 10.7× |
+
+  The term's gradient scales as 1/σ, so annealing σ from 0.4 to 0.1 made it louder every epoch.
+- **After epoch 3,** the cross-entropy gradient was 5e-7 to 9e-4, while the policy-gradient
+  term's reached 517 on D1.
+- **D1 on 400 train rows.** At epoch 3 the model was 85.5% accurate at mean confidence 0.995,
+  with p(true) essentially 0 or 1; stock Laya is 45.5% at 0.52. The break is saturated
+  overconfidence, not lost discrimination: D1's wrong answers, made at near-certainty, dominate
+  its cross-entropy.
+- **The mechanism.** RLCD normalises advantages to unit size, so the policy-gradient term stays
+  full-size however small the reward differences get. For a right answer, more certainty always
+  scores slightly higher under a proper scoring rule, so the term keeps pushing logits apart
+  after the cross-entropy gradient has faded. Clipping at 1.0 cannot stop it, because Adam's step
+  size does not depend on the gradient's scale.
+*The fix.* `TrainSettings.rl_weight = 0.0`: the loss is soft cross-entropy only. The
+policy-gradient term is left out of the graph, and its reward is still logged. Calibration stays
+the per-decision temperature fitted on calib. This departs from Laya's notebook, which weights the
+term at 1; `rl_weight = 1.0` reproduces it. Not chosen:
+- **A lower LR:** there is no LR event to fix, and it would only slow the drift.
+- **Tighter clipping:** it does not bound Adam's step.
+- **A down-weighted term:** there is no principled coefficient, and Adam amplifies any remaining
+  term once cross-entropy saturates.
+- **Delaying the term:** it is strongest in the late, low-σ epochs, so this runs the wrong way.
+*Safeguards for every run from now on.*
+- **A checkpoint every epoch** (`checkpoint_epoch{N}`).
+- **A dev split carved from train.** It is 5% of each task's train conversations
+  (`TrainSettings.dev_fraction`), drawn with a seed and conversation-disjoint from the rows
+  trained on, and never calib or test. Those conversations leave training.
+- **Best-epoch selection.** After every epoch, dev cross-entropy at T = 1 is scored per task and
+  averaged equally over the four tasks. The lowest wins (the earliest on a tie), and that
+  checkpoint is copied to the run root, where calibration (temperatures and D4's threshold) and
+  evaluation read it.
+- **More logging.** Every 10 updates, the log records the pre-clip gradient norm (mean and max)
+  and cross-entropy per task.
+Everything else is unchanged: learning rates, epochs, quotas, D4's class balancing and the seed.
+*Runs.* r1 stays in `checkpoints/main` and is not evaluated. The rerun, r2, goes to
+`checkpoints/main-r2`. Before launch, the new path was smoke-tested end to end on the real model:
+2 epochs of 64 rows per task, through dev scoring, per-epoch saves, the best-epoch copy and
+calibration.

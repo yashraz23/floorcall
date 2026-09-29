@@ -17,6 +17,7 @@ Order of operations, and why:
 from __future__ import annotations
 
 import json
+import shutil
 import time
 from collections.abc import Sequence
 from functools import partial
@@ -121,8 +122,10 @@ def _train(
     before calibration reloads the checkpoint from disk."""
     import torch
 
+    from floorcall.evaluate.dataset import _make
     from floorcall.model.laya_adapter import LayaDecider
-    from floorcall.train.loop import train_model
+    from floorcall.train.data import carve_dev
+    from floorcall.train.loop import best_epoch, train_model
 
     cfg = settings.train
     decider = LayaDecider(LayaSettings(**{**settings.laya.model_dump(), "device": "cuda"}))
@@ -137,6 +140,8 @@ def _train(
         print(json.dumps(rec, default=str), flush=True)
 
     items_by_task = {}
+    dev_items_by_task = {}
+    dev_rows: dict[str, int] = {}
     data_sha256 = {}
     for task in tasks:
         path = settings.paths.data_processed / processed_file(task, "train")
@@ -147,10 +152,15 @@ def _train(
             )
         data_sha256[task] = sha256_file(path)
         data = load_processed(settings, task, "train")
-        log({"building_items": task, "rows": len(data.rows)})
+        train_rows, dev = carve_dev(data.rows, fraction=cfg.dev_fraction, seed=cfg.seed, task=task)
+        dev_rows[task] = len(dev)
+        log({"building_items": task, "rows": len(train_rows), "dev_rows": len(dev)})
         items_by_task[task] = build_items(
-            decider, data, settings.state, label_smoothing=cfg.label_smoothing
-        )
+            decider, _make(task, "train", train_rows), settings.state,
+            label_smoothing=cfg.label_smoothing,
+        )  # fmt: skip
+        # dev targets stay one-hot: its cross-entropy is what chooses the checkpoint
+        dev_items_by_task[task] = build_items(decider, _make(task, "dev", dev), settings.state)
 
     meta = {
         "code": code,
@@ -159,10 +169,22 @@ def _train(
         "tasks": tasks,
         "train_sha256": data_sha256,
         "test_manifest": manifest,
+        "dev": {
+            "fraction": cfg.dev_fraction,
+            "rows": dev_rows,
+            "rule": (
+                "conversations held out of each task's train rows, seeded; the kept checkpoint "
+                "is the epoch with the lowest dev cross-entropy at T = 1, averaged over tasks"
+            ),
+        },
     }
 
-    def save_latest(epoch: int) -> None:
-        decider.save_checkpoint(out_dir / "checkpoint_latest", {**meta, "epoch": epoch})
+    def save_epoch(ep: dict[str, Any]) -> None:
+        n = ep["epoch"]
+        decider.save_checkpoint(
+            out_dir / f"checkpoint_epoch{n}",
+            {**meta, "epoch": n, "dev_ce_by_task": ep.get("dev_ce_by_task")},
+        )
 
     decider.enable_gradient_checkpointing()
     t0 = time.time()
@@ -174,12 +196,18 @@ def _train(
         reward_fn=partial(decider.proper_reward, w_sph=cfg.w_sph, w_rps=cfg.w_rps),
         device=torch.device("cuda"),
         rows_per_epoch={t: cfg.rows_per_epoch[t] for t in tasks},
+        dev_items_by_task=dev_items_by_task,
         log=log,
-        on_epoch_end=save_latest,
+        on_epoch_end=save_epoch,
     )
-    decider.save_checkpoint(out_dir, {**meta, "epoch": cfg.epochs})
+    # The run's checkpoint is the best epoch's, copied to the run root, where calibration and
+    # evaluation read it; every epoch's stays beside it.
+    best = best_epoch(history.epochs)
+    shutil.copytree(out_dir / f"checkpoint_epoch{best}", out_dir, dirs_exist_ok=True)
+    log({"best_epoch": best, "dev_ce_macro": [e["dev_ce_macro"] for e in history.epochs]})
     return {
         **meta,
+        "best_epoch": best,
         "gpu": torch.cuda.get_device_name(0),
         "torch": torch.__version__,
         "seconds": time.time() - t0,

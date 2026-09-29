@@ -16,6 +16,13 @@ than confident ones. Per row:
 5. Add soft cross-entropy against the gold distribution, weight 1.0, as the notebook does. On
    its own the RL term is a noisy gradient estimate; the CE term is the stable signal it refines.
 
+floorcall trains with the RL term's weight at 0 (`TrainSettings.rl_weight`, DECISIONS.md D-035
+amendment 1). Normalising advantages to unit size keeps the term's gradient full-size however
+small the reward differences get, and that gradient grows as 1/sigma. Measured before clipping on
+the stock weights, it was 2-15x the cross-entropy gradient at sigma 0.4 and 11-45x at 0.1
+(results/training/r1_stopped). Once cross-entropy had saturated, it kept driving logits apart, and
+the first full run ended near-certain on D1 (mean confidence 0.995) with its wrong answers.
+
 Everything here is plain torch. The reward function is Laya's own, reached through the adapter.
 """
 
@@ -55,6 +62,7 @@ def rlcd_loss(
     group_size: int,
     reward_fn: RewardFn,
     ce_weight: float,
+    rl_weight: float = 1.0,
     generator: torch.Generator | None = None,
 ) -> StepLoss:
     """The notebook's per-micro-batch loss, before division by gradient accumulation.
@@ -84,8 +92,11 @@ def rlcd_loss(
     logp = -(((z - logits.unsqueeze(0)) ** 2) * mask).sum(-1) / (2 * sigma**2)
     loss_rl = -(adv * logp).mean()
     loss_ce = -(target * torch.log_softmax(logits.masked_fill(~mask, -1e4), -1)).sum(-1).mean()
+    # rl_weight 0 leaves the policy-gradient term out of the graph entirely (D-035 amendment 1);
+    # its value and the reward are still reported.
+    loss = ce_weight * loss_ce + (rl_weight * loss_rl if rl_weight else 0.0)
     return StepLoss(
-        loss=loss_rl + ce_weight * loss_ce,
+        loss=loss,
         rl=float(loss_rl.detach()),
         ce=float(loss_ce.detach()),
         reward=float(r.mean()),

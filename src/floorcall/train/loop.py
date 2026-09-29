@@ -7,7 +7,12 @@ orchestration (floorcall.train.run) supplies the real ones; tests supply a tiny 
 Per update: `micro_batch` rows per forward, `grad_accum` forwards per optimizer step (64 rows, the
 notebook's effective batch). AdamW with separate learning rates for the encoder and the head, cosine
 decay to `lr_min` over the whole run, gradient clipping at 1.0, bf16 autocast. The exploration
-noise sigma anneals linearly from `sigma_start` in the first epoch to `sigma_end` in the last.
+noise sigma anneals linearly from `sigma_start` in the first epoch to `sigma_end` in the last; with
+`rl_weight` 0 (D-035 amendment 1) it only shapes the reported reward.
+
+Every logged update carries the pre-clip gradient norm (mean and max over the window) and the
+cross-entropy per task. After every epoch, cross-entropy at T = 1 is scored on the dev items when
+they are given, and the epoch's record goes to `on_epoch_end`.
 """
 
 from __future__ import annotations
@@ -42,6 +47,42 @@ def _param_groups(model: torch.nn.Module, cfg: TrainSettings) -> list[dict[str, 
     return [{"params": enc, "lr": cfg.lr_encoder}, {"params": head, "lr": cfg.lr_head}]
 
 
+def _forward(model: torch.nn.Module, b: Mapping[str, torch.Tensor]) -> Any:
+    return model(b["input_ids"], b["attention_mask"], b["marker_pos"], b["marker_mask"], b["qtype"])
+
+
+def _row_ce(logits: torch.Tensor, b: Mapping[str, torch.Tensor]) -> torch.Tensor:
+    logp = torch.log_softmax(logits.float().masked_fill(~b["marker_mask"], -1e4), -1)
+    return -(b["target"] * logp).sum(-1)
+
+
+def dev_ce_by_task(
+    model: torch.nn.Module,
+    items_by_task: Mapping[str, Sequence[Item]],
+    *,
+    collate: Collate,
+    device: torch.device,
+    batch_size: int,
+    amp: torch.dtype,
+) -> dict[str, float]:
+    """Mean cross-entropy at T = 1 per task, in eval mode, without gradients."""
+    was_training = model.training
+    model.eval()
+    out = {}
+    with torch.no_grad():
+        for task in sorted(items_by_task):
+            items = items_by_task[task]
+            total = 0.0
+            for lo in range(0, len(items), batch_size):
+                b = {k: v.to(device) for k, v in collate(items[lo : lo + batch_size]).items()}
+                with torch.autocast(device.type, dtype=amp, enabled=device.type == "cuda"):
+                    logits, _ = _forward(model, b)
+                total += float(_row_ce(logits, b).sum())
+            out[task] = total / len(items)
+    model.train(was_training)
+    return out
+
+
 def train_model(
     model: torch.nn.Module,
     items_by_task: Mapping[str, Sequence[Item]],
@@ -51,8 +92,9 @@ def train_model(
     reward_fn: RewardFn,
     device: torch.device,
     rows_per_epoch: Mapping[str, int] | None = None,
+    dev_items_by_task: Mapping[str, Sequence[Item]] | None = None,
     log: Callable[[dict[str, Any]], None] = lambda _: None,
-    on_epoch_end: Callable[[int], None] = lambda _: None,
+    on_epoch_end: Callable[[dict[str, Any]], None] = lambda _: None,
 ) -> History:
     quotas = dict(rows_per_epoch if rows_per_epoch is not None else cfg.rows_per_epoch)
     rng = random.Random(cfg.seed)
@@ -71,11 +113,15 @@ def train_model(
     history = History()
     update = 0
     t_start = time.perf_counter()
+
+    def fresh() -> dict[str, Any]:
+        return {"loss": 0.0, "ce": 0.0, "rl": 0.0, "reward": 0.0, "n": 0, "norms": [], "task": {}}
+
     for epoch in range(cfg.epochs):
         sigma = sigma_for_epoch(epoch, cfg.epochs, cfg.sigma_start, cfg.sigma_end)
         rows, mix = epoch_mixture(items_by_task, quotas, rng, balance=cfg.balance_classes)
         opt.zero_grad(set_to_none=True)
-        acc = {"loss": 0.0, "ce": 0.0, "rl": 0.0, "reward": 0.0, "n": 0}
+        acc = fresh()
         task_ce: dict[str, list[float]] = {}
         micro_in_update = 0
         t_epoch = time.perf_counter()
@@ -83,13 +129,7 @@ def train_model(
             chunk = rows[lo : lo + cfg.micro_batch]
             b = {k: v.to(device) for k, v in collate(chunk).items()}
             with torch.autocast(device_type=device.type, dtype=amp, enabled=device.type == "cuda"):
-                logits, act = model(
-                    b["input_ids"],
-                    b["attention_mask"],
-                    b["marker_pos"],
-                    b["marker_mask"],
-                    b["qtype"],
-                )
+                logits, act = _forward(model, b)
             step = rlcd_loss(
                 logits,
                 b["target"],
@@ -99,6 +139,7 @@ def train_model(
                 group_size=cfg.group_size,
                 reward_fn=reward_fn,
                 ce_weight=cfg.ce_weight,
+                rl_weight=cfg.rl_weight,
                 generator=gen,
             )
             # act.sum() * 0 keeps the unused action head in the graph, as the notebook does.
@@ -111,13 +152,14 @@ def train_model(
             with (
                 torch.no_grad()
             ):  # per-row CE, so mixed-task batches are credited to the right task
-                logp = torch.log_softmax(logits.float().masked_fill(~b["marker_mask"], -1e4), -1)
-                row_ce = (-(b["target"] * logp).sum(-1)).tolist()
+                row_ce = _row_ce(logits, b).tolist()
             for it, ce in zip(chunk, row_ce, strict=True):
                 task_ce.setdefault(it["decision"], []).append(ce)
+                acc["task"].setdefault(it["decision"], []).append(ce)
             last = lo + cfg.micro_batch >= len(rows)
             if micro_in_update == cfg.grad_accum or last:
-                torch.nn.utils.clip_grad_norm_(model.parameters(), cfg.clip_grad_norm)
+                norm = torch.nn.utils.clip_grad_norm_(model.parameters(), cfg.clip_grad_norm)
+                acc["norms"].append(float(norm))
                 opt.step()
                 sched.step()
                 opt.zero_grad(set_to_none=True)
@@ -132,14 +174,17 @@ def train_model(
                         "ce": acc["ce"] / n,
                         "rl": acc["rl"] / n,
                         "reward": acc["reward"] / n,
+                        "ce_by_task": {t: sum(v) / len(v) for t, v in sorted(acc["task"].items())},
+                        "grad_norm": sum(acc["norms"]) / len(acc["norms"]),  # before clipping
+                        "grad_norm_max": max(acc["norms"]),
                         "lr_encoder": sched.get_last_lr()[0],
                         "sigma": sigma,
                         "rows_per_s": (lo + len(chunk)) / (time.perf_counter() - t_epoch),
                     }
                     history.updates.append(rec)
                     log(rec)
-                    acc = {"loss": 0.0, "ce": 0.0, "rl": 0.0, "reward": 0.0, "n": 0}
-        ep = {
+                    acc = fresh()
+        ep: dict[str, Any] = {
             "epoch": epoch + 1,
             "rows": mix.rows,
             "repeats": mix.repeats,
@@ -148,8 +193,27 @@ def train_model(
             "seconds": time.perf_counter() - t_epoch,
             "mean_ce_by_task": {t: sum(v) / len(v) for t, v in task_ce.items()},
         }
+        if dev_items_by_task:
+            dev = dev_ce_by_task(
+                model,
+                dev_items_by_task,
+                collate=collate,
+                device=device,
+                batch_size=cfg.micro_batch * 4,
+                amp=amp,
+            )
+            ep["dev_ce_by_task"] = dev
+            ep["dev_ce_macro"] = sum(dev.values()) / len(dev)
         history.epochs.append(ep)
         log({"epoch_end": ep, "elapsed_s": time.perf_counter() - t_start})
-        on_epoch_end(epoch + 1)
+        on_epoch_end(ep)
     model.eval()
     return history
+
+
+def best_epoch(epochs: Sequence[Mapping[str, Any]]) -> int:
+    """The epoch with the lowest macro dev cross-entropy; the earliest on a tie."""
+    scored = [e for e in epochs if "dev_ce_macro" in e]
+    if not scored:
+        raise ValueError("no epoch was scored on a dev split")
+    return int(min(scored, key=lambda e: (e["dev_ce_macro"], e["epoch"]))["epoch"])

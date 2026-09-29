@@ -170,6 +170,11 @@ class TrainSettings(BaseModel):
     w_sph: float = 0.75  # spherical-score weight in the reward
     w_rps: float = 1.0  # ranked-probability weight (score questions only)
     ce_weight: float = 1.0  # soft cross-entropy guidance next to the policy-gradient term
+    # Weight of RLCD's policy-gradient term. 1.0 is Laya's notebook. 0.0 since D-035 amendment 1:
+    # with advantages normalised to unit size, the term kept pushing logits apart after the
+    # cross-entropy gradient had faded, and the first run became near-certain on D1 (0.995 mean
+    # confidence) with its wrong answers. Calibration is the per-decision temperature on calib.
+    rl_weight: float = 0.0
     clip_grad_norm: float = 1.0
     # bf16 on Blackwell (CLAUDE.md §11). The notebook used fp16 + GradScaler because T4s have no
     # bf16; bf16's range makes the scaler unnecessary.
@@ -193,6 +198,10 @@ class TrainSettings(BaseModel):
     # (15% escalate) but is calibrated and tested on sets drawn in equal strata (~45%); temperature
     # scaling cannot move a prior, so the balance is set in sampling.
     balance_classes: tuple[str, ...] = ("escalate",)
+    # D-035 amendment 1: this share of each task's train conversations is held out as a dev split
+    # (never calib or test). Cross-entropy on it at T = 1, averaged equally over the tasks, is
+    # scored after every epoch; the epoch with the lowest is the checkpoint that is kept.
+    dev_fraction: float = 0.05
     log_every_updates: int = 10
 
 

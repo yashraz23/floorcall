@@ -122,3 +122,22 @@ def epoch_mixture(
         rows[task] = len(chosen)
     rng.shuffle(out)
     return out, MixtureReport(rows=rows, repeats=repeats, by_class=by_class)
+
+
+def carve_dev(
+    rows: Sequence[dict[str, Any]], *, fraction: float, seed: int, task: str
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """(train, dev): `fraction` of the rows' conversations, drawn with a seed, held out as dev.
+
+    Whole conversations move (the `group` key, as in the split rules), so dev never shares a
+    conversation with the rows the model trains on. Dev comes from train only, never calib or test
+    (D-035 amendment 1).
+    """
+    groups = sorted({str(r["group"]) for r in rows})
+    if not 0 < fraction < 1 or len(groups) < 2:
+        raise ValueError(f"{task}: cannot hold out {fraction} of {len(groups)} conversations")
+    k = max(1, round(fraction * len(groups)))
+    dev_groups = set(random.Random(f"{seed}:dev:{task}").sample(groups, k))
+    train = [r for r in rows if str(r["group"]) not in dev_groups]
+    dev = [r for r in rows if str(r["group"]) in dev_groups]
+    return train, dev
