@@ -32,3 +32,19 @@ def test_score_row() -> None:
 def test_score_without_a_hard_subset() -> None:
     row = score(np.array([[0.9, 0.1]]), np.array([0]), np.array([False]), ("a", "b"), n_bins=15)
     assert row["hard_accuracy"] is None
+
+
+def test_score_with_bootstrap_gives_every_metric_an_interval() -> None:
+    rng = np.random.default_rng(0)
+    y = rng.integers(0, 2, 200)
+    p1 = np.clip(0.3 + 0.4 * y + rng.normal(0, 0.15, 200), 0.01, 0.99)
+    probs = np.stack([1 - p1, p1], axis=1)
+    hard = np.arange(200) % 2 == 0
+    row = score(probs, y, hard, ("false", "true"), n_bins=15, bootstrap=(500, 7))
+    assert set(row["ci95"]) == {"accuracy", "macro_f1", "ece", "brier", "hard_accuracy"}
+    for name in ("accuracy", "macro_f1", "brier", "hard_accuracy"):
+        lo, hi = row["ci95"][name]
+        assert lo <= row[name] <= hi
+    assert row["bootstrap"]["samples"] == 500 and row["bootstrap"]["seed"] == 7
+    assert score(probs, y, hard, ("false", "true"), n_bins=15, bootstrap=(500, 7)) == row
+    assert "ci95" not in score(probs, y, hard, ("false", "true"), n_bins=15)

@@ -10,6 +10,7 @@ from sklearn.metrics import f1_score
 
 from floorcall.evaluate.metrics import (
     accuracy,
+    bootstrap_interval,
     brier,
     ece,
     macro_f1,
@@ -131,3 +132,28 @@ def test_wilson_interval_stays_in_range_at_the_extremes() -> None:
     assert lo == 0.0 and 0 < hi < 0.2
     lo, hi = wilson_interval(20, 20)
     assert hi == pytest.approx(1.0) and 0.8 < lo < 1
+
+
+def test_bootstrap_of_a_constant_has_no_width() -> None:
+    lo, hi = bootstrap_interval(lambda i: 0.25, 10, samples=200, seed=0)
+    assert lo == hi == 0.25
+
+
+def test_bootstrap_of_a_proportion_matches_wilson_at_large_n() -> None:
+    y = np.array([1] * 300 + [0] * 300)
+    lo, hi = bootstrap_interval(lambda i: float(y[i].mean()), len(y), samples=4000, seed=1)
+    wlo, whi = wilson_interval(300, 600)
+    assert lo == pytest.approx(wlo, abs=0.006) and hi == pytest.approx(whi, abs=0.006)
+
+
+def test_bootstrap_is_seeded_and_checks_its_arguments() -> None:
+    y = np.arange(50) % 3 == 0
+
+    def run(seed: int) -> tuple[float, float]:
+        return bootstrap_interval(lambda i: float(y[i].mean()), 50, samples=500, seed=seed)
+
+    assert run(3) == run(3) and run(3) != run(4)
+    with pytest.raises(ValueError):
+        bootstrap_interval(lambda i: 0.0, 0, samples=10, seed=0)
+    with pytest.raises(ValueError):
+        bootstrap_interval(lambda i: 0.0, 5, samples=10, seed=0, level=1.0)

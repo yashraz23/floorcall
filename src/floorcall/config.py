@@ -133,6 +133,10 @@ class EvalSettings(BaseModel):
     # Reliability figures leave off bins with fewer rows than this: a two-row bin swings between
     # accuracy 0 and 1 and says nothing. ECE itself always uses every row.
     reliability_min_bin_count: int = 20
+    # Percentile-bootstrap 95% intervals on every Table A metric (D-033): rows resampled with
+    # replacement this many times, by a generator with this seed.
+    bootstrap_samples: int = 10_000
+    bootstrap_seed: int = 20260927
     latency_warmup: int = 50
     latency_iters: int = 1000
     gpu_p99_budget_ms: float = 50.0

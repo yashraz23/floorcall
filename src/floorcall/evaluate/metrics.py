@@ -15,12 +15,15 @@ Definitions, so that every number in the README means exactly one thing:
   form, so the numbers compare.
 - **Wilson interval**: the score interval for a proportion. It stays inside [0, 1] and behaves at
   small n, which matters for the hand-labelled D4 test set.
+- **Bootstrap interval**: the percentile interval of any statistic over resamples of the rows,
+  drawn with replacement by a seeded generator. It gives macro-F1, ECE and Brier an interval too,
+  not only accuracy.
 """
 
 from __future__ import annotations
 
 import math
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from itertools import pairwise
 
@@ -124,3 +127,23 @@ def wilson_interval(successes: int, n: int, *, z: float = 1.96) -> tuple[float, 
     centre = (phat + z**2 / (2 * n)) / denom
     half = z * math.sqrt(phat * (1 - phat) / n + z**2 / (4 * n**2)) / denom
     return max(0.0, centre - half), min(1.0, centre + half)
+
+
+def bootstrap_interval(
+    stat: Callable[[npt.NDArray[np.int64]], float],
+    n: int,
+    *,
+    samples: int,
+    seed: int,
+    level: float = 0.95,
+) -> tuple[float, float]:
+    """Percentile bootstrap interval of `stat`, a function of resampled row indices."""
+    if n <= 0 or samples <= 0 or not 0 < level < 1:
+        raise ValueError(f"need n > 0, samples > 0 and 0 < level < 1, got {n}, {samples}, {level}")
+    rng = np.random.default_rng(seed)
+    values = np.fromiter(
+        (stat(rng.integers(0, n, size=n)) for _ in range(samples)), dtype=np.float64, count=samples
+    )
+    tail = (1 - level) / 2
+    lo, hi = np.quantile(values, [tail, 1 - tail])
+    return float(lo), float(hi)

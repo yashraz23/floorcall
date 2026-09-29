@@ -54,6 +54,18 @@ def _f(x: float | None) -> str:
     return "n/a" if x is None else f"{x:.3f}"
 
 
+def _ci(m: dict[str, Any], name: str) -> str:
+    """A metric with its bootstrap 95% interval when the row has one (accuracy falls back to
+    Wilson's)."""
+    x = m[name]
+    if x is None:
+        return "n/a"
+    ci = (m.get("ci95") or {}).get(name)
+    if ci is None and name == "accuracy":
+        ci = m["accuracy_ci95"]
+    return f"{x:.3f}" if ci is None else f"{x:.3f} [{ci[0]:.3f}, {ci[1]:.3f}]"
+
+
 def table_a(root: Path = RESULTS) -> str:
     lines = [
         "| Decision | Model | Accuracy [95% CI] | Macro-F1 | ECE | Brier | Hard-subset acc. (n) |",
@@ -65,14 +77,17 @@ def table_a(root: Path = RESULTS) -> str:
             if r is None:
                 lines.append(f"| {name} | {label} | TODO | TODO | TODO | TODO | TODO |")
                 continue
+            if "prior_split" in r:
+                label = f"majority class ({r['prior_split']} prior)"
             m = r["metrics"]
-            lo, hi = m["accuracy_ci95"]
             hard = (
-                "n/a" if m["hard_accuracy"] is None else f"{m['hard_accuracy']:.3f} ({m['hard_n']})"
+                "n/a"
+                if m["hard_accuracy"] is None
+                else f"{_ci(m, 'hard_accuracy')} ({m['hard_n']})"
             )
             lines.append(
-                f"| {name} | {label} | {m['accuracy']:.3f} [{lo:.3f}, {hi:.3f}] | "
-                f"{_f(m['macro_f1'])} | {_f(m['ece'])} | {_f(m['brier'])} | {hard} |"
+                f"| {name} | {label} | {_ci(m, 'accuracy')} | {_ci(m, 'macro_f1')} | "
+                f"{_ci(m, 'ece')} | {_ci(m, 'brier')} | {hard} |"
             )
     return "\n".join(lines)
 
