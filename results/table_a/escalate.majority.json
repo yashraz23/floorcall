@@ -1,0 +1,79 @@
+{
+  "decision": "escalate",
+  "test_file": "escalate.test.v2.jsonl.gz",
+  "test_sha256": "91994160a288950ef3a820df09359149c65bcb636b146dedc41a9d5a6c1ece97",
+  "code": "0d30e3d",
+  "labels": [
+    "false",
+    "true"
+  ],
+  "model": "majority",
+  "prior_split": "calib",
+  "prior": {
+    "false": 0.53,
+    "true": 0.47
+  },
+  "metrics": {
+    "n": 200,
+    "accuracy": 0.555,
+    "accuracy_ci95": [
+      0.4857317563236392,
+      0.6221951830253456
+    ],
+    "macro_f1": 0.35691318327974275,
+    "ece": 0.02499999999999991,
+    "brier": 0.49519999999999986,
+    "mean_confidence": 0.5300000000000001,
+    "per_class": {
+      "false": {
+        "support": 111,
+        "precision": 0.555,
+        "recall": 1.0
+      },
+      "true": {
+        "support": 89,
+        "precision": null,
+        "recall": 0.0
+      }
+    },
+    "confusion": [
+      [
+        111,
+        0
+      ],
+      [
+        89,
+        0
+      ]
+    ],
+    "hard_n": 100,
+    "hard_accuracy": 0.71,
+    "ci95": {
+      "accuracy": [
+        0.485,
+        0.625
+      ],
+      "macro_f1": [
+        0.3265993265993266,
+        0.38461538461538464
+      ],
+      "ece": [
+        1.1102230246251565e-16,
+        0.09499999999999986
+      ],
+      "brier": [
+        0.4867999999999999,
+        0.5035999999999998
+      ],
+      "hard_accuracy": [
+        0.62,
+        0.8
+      ]
+    },
+    "bootstrap": {
+      "samples": 10000,
+      "seed": 20260927,
+      "method": "percentile interval; rows resampled with replacement"
+    }
+  }
+}

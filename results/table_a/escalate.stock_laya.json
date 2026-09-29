@@ -1,8 +1,8 @@
 {
   "decision": "escalate",
-  "test_file": "escalate.test.v1.jsonl.gz",
-  "test_sha256": "e69e48237ad70244c17eb336e0114a38166ad16c0c2bfd5e9dc172276b458d48",
-  "code": "c7cb645",
+  "test_file": "escalate.test.v2.jsonl.gz",
+  "test_sha256": "91994160a288950ef3a820df09359149c65bcb636b146dedc41a9d5a6c1ece97",
+  "code": "0d30e3d",
   "labels": [
     "false",
     "true"
@@ -15,41 +15,68 @@
   "event": "user_pause",
   "state_budget_tokens": 331,
   "temperature": 1.983399510383606,
-  "seconds": 4.4004133000271395,
+  "seconds": 3.1501333999913186,
   "metrics": {
-    "n": 396,
-    "accuracy": 0.6388888888888888,
+    "n": 200,
+    "accuracy": 0.665,
     "accuracy_ci95": [
-      0.5904546190910172,
-      0.6846543240504668
+      0.5970206277343806,
+      0.7267601903125736
     ],
-    "macro_f1": 0.5793336552390149,
-    "ece": 0.061653032893574725,
-    "brier": 0.4539811185119196,
-    "mean_confidence": 0.5804985593622201,
+    "macro_f1": 0.6254367575122292,
+    "ece": 0.09230592930319187,
+    "brier": 0.42174839982864865,
+    "mean_confidence": 0.5764126564660033,
     "per_class": {
       "false": {
-        "support": 260,
-        "precision": 0.7052631578947368,
-        "recall": 0.7730769230769231
+        "support": 111,
+        "precision": 0.6428571428571429,
+        "recall": 0.8918918918918919
       },
       "true": {
-        "support": 136,
-        "precision": 0.46846846846846846,
-        "recall": 0.38235294117647056
+        "support": 89,
+        "precision": 0.7391304347826086,
+        "recall": 0.38202247191011235
       }
     },
     "confusion": [
       [
-        201,
-        59
+        99,
+        12
       ],
       [
-        84,
-        52
+        55,
+        34
       ]
     ],
-    "hard_n": 198,
-    "hard_accuracy": 0.6616161616161617
+    "hard_n": 100,
+    "hard_accuracy": 0.73,
+    "ci95": {
+      "accuracy": [
+        0.6,
+        0.73
+      ],
+      "macro_f1": [
+        0.554367201426025,
+        0.6925227113906359
+      ],
+      "ece": [
+        0.05708082629420402,
+        0.15868842722699525
+      ],
+      "brier": [
+        0.39611108580138654,
+        0.4468877572365954
+      ],
+      "hard_accuracy": [
+        0.64,
+        0.81
+      ]
+    },
+    "bootstrap": {
+      "samples": 10000,
+      "seed": 20260927,
+      "method": "percentile interval; rows resampled with replacement"
+    }
   }
 }
