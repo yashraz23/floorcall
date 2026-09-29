@@ -479,3 +479,31 @@ escalate, 164 not.
   n→n 52. All 100 calls were served by Crusoe bf16. v1 and v2 over-escalated; v3, reading the
   literal guideline, under-escalates. This was the last prompt revision. Test and train were not
   labelled with it, and the code refuses to until a prompt passes the gate.
+
+**D-034 · 2026-09-29 · §4 D4, §11 · declared before any fine-tuned result exists** — **The
+primary D4 model is trained on Yash's hand labels only. An LLM-labelled arm runs as an ablation.**
+(Yash's decisions, options A and C after D-033.)
+*The gate was likely unreachable.* D-032's bar, kappa ≥ 0.60 against Yash's labels, sat above his
+own cross-guideline self-agreement: kappa 0.551, his v1 labels against his v2 labels on the same
+300 messages (D-033). No more prompt revisions are made; `llm-labeller-v3` is final. Calib v2 is no
+longer used for prompt selection. From here it serves only what calib is for: fitting D4's
+temperature and choosing θ_escalate.
+*The primary D4 model* is trained on Yash's hand labels only. This checkpoint is behind Table A's
+"fine-tuned" and "fine-tuned + temperature" D4 rows, and it is the one released. Its D4 data is a
+seeded random sample of 1,000 train-pool messages, labelled blind under guideline v2 with the
+same tool and context as the test and calib relabel (`floorcall label escalate-train`). This is
+declared on 2026-09-29, before any training run; no fine-tuned model exists yet. The results do
+not choose the primary; this entry does.
+*The ablation arm* is the whole train pool (the 6,000 messages of D-030), labelled by
+`llm-labeller-v3` on the pinned endpoint (`crusoe/bf16`), with rows tagged `source=llm_v3`, under
+the same $4.75 stop. The gate did not accept v3, so it is reported only as a clearly labelled
+ablation, never as the primary. It differs from the primary in two ways: label source and size
+(6,000 messages against 1,000). The comparison is therefore between the two ways the D4 training
+data could be made, not a controlled test of label source alone. The 1,000 hand-labelled messages
+are a subset of the pool, so the LLM's agreement with Yash on them is also reported, as a
+measurement only.
+*The same protocol for both arms.* Each arm trains one multi-task checkpoint, with the same D1–D3
+data, the same hyperparameters (`TrainSettings`) and the same seeds; only the D4 training rows
+differ. Each is temperature-calibrated on calib (calib v2 for D4) and evaluated once on the frozen
+test sets (test v2 for D4) with bootstrap 95% intervals. Both are reported next to the majority
+and stock-Laya rows.
