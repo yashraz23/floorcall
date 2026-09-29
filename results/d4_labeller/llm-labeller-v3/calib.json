@@ -1,0 +1,226 @@
+{
+  "split": "calib",
+  "model": "openai/gpt-oss-120b",
+  "prompt": "llm-labeller-v3",
+  "provider_pin": "crusoe/bf16",
+  "hand_labels": "guideline v2",
+  "served_by": {
+    "Crusoe": 100
+  },
+  "labels": {
+    "n": 79,
+    "y": 21
+  },
+  "spent_usd_total": 0.016235356,
+  "eval_set": "calib v2, 100 messages",
+  "agreement": {
+    "n": 100,
+    "llm_unsure": 0,
+    "accuracy": 0.72,
+    "cohen_kappa": 0.41980936593452134,
+    "escalate_precision": 0.9523809523809523,
+    "escalate_recall": 0.425531914893617,
+    "confusion": {
+      "hand_true_llm_true": 20,
+      "hand_true_llm_false": 27,
+      "hand_false_llm_true": 1,
+      "hand_false_llm_false": 52
+    },
+    "by_stratum": {
+      "cue/opener": {
+        "n": 25,
+        "accuracy": 0.64
+      },
+      "cue/reply": {
+        "n": 26,
+        "accuracy": 0.6923076923076923
+      },
+      "plain/opener": {
+        "n": 24,
+        "accuracy": 0.6666666666666666
+      },
+      "plain/reply": {
+        "n": 25,
+        "accuracy": 0.88
+      }
+    }
+  },
+  "gate": {
+    "min_kappa": 0.6,
+    "min_escalate_precision": 0.7,
+    "accepted": false,
+    "failures": [
+      "kappa 0.41980936593452134 is below 0.6"
+    ]
+  },
+  "disagreements": [
+    {
+      "id": "twcs-2797402",
+      "stratum": "plain/opener",
+      "hand": "true",
+      "llm": "false"
+    },
+    {
+      "id": "twcs-46505",
+      "stratum": "cue/opener",
+      "hand": "true",
+      "llm": "false"
+    },
+    {
+      "id": "twcs-2808257",
+      "stratum": "plain/opener",
+      "hand": "true",
+      "llm": "false"
+    },
+    {
+      "id": "twcs-2813437",
+      "stratum": "plain/reply",
+      "hand": "false",
+      "llm": "true"
+    },
+    {
+      "id": "twcs-2326054",
+      "stratum": "cue/reply",
+      "hand": "true",
+      "llm": "false"
+    },
+    {
+      "id": "twcs-1304929",
+      "stratum": "cue/reply",
+      "hand": "true",
+      "llm": "false"
+    },
+    {
+      "id": "twcs-276272",
+      "stratum": "cue/opener",
+      "hand": "true",
+      "llm": "false"
+    },
+    {
+      "id": "twcs-1276738",
+      "stratum": "cue/opener",
+      "hand": "true",
+      "llm": "false"
+    },
+    {
+      "id": "twcs-2864532",
+      "stratum": "cue/reply",
+      "hand": "true",
+      "llm": "false"
+    },
+    {
+      "id": "twcs-1140271",
+      "stratum": "cue/reply",
+      "hand": "true",
+      "llm": "false"
+    },
+    {
+      "id": "twcs-2972424",
+      "stratum": "plain/reply",
+      "hand": "true",
+      "llm": "false"
+    },
+    {
+      "id": "twcs-1092967",
+      "stratum": "cue/reply",
+      "hand": "true",
+      "llm": "false"
+    },
+    {
+      "id": "twcs-2641281",
+      "stratum": "cue/opener",
+      "hand": "true",
+      "llm": "false"
+    },
+    {
+      "id": "twcs-1290725",
+      "stratum": "cue/opener",
+      "hand": "true",
+      "llm": "false"
+    },
+    {
+      "id": "twcs-261633",
+      "stratum": "plain/reply",
+      "hand": "true",
+      "llm": "false"
+    },
+    {
+      "id": "twcs-2562742",
+      "stratum": "cue/reply",
+      "hand": "true",
+      "llm": "false"
+    },
+    {
+      "id": "twcs-2955887",
+      "stratum": "cue/opener",
+      "hand": "true",
+      "llm": "false"
+    },
+    {
+      "id": "twcs-143910",
+      "stratum": "plain/opener",
+      "hand": "true",
+      "llm": "false"
+    },
+    {
+      "id": "twcs-257514",
+      "stratum": "cue/reply",
+      "hand": "true",
+      "llm": "false"
+    },
+    {
+      "id": "twcs-1931622",
+      "stratum": "cue/opener",
+      "hand": "true",
+      "llm": "false"
+    },
+    {
+      "id": "twcs-2222447",
+      "stratum": "plain/opener",
+      "hand": "true",
+      "llm": "false"
+    },
+    {
+      "id": "twcs-1803221",
+      "stratum": "plain/opener",
+      "hand": "true",
+      "llm": "false"
+    },
+    {
+      "id": "twcs-956152",
+      "stratum": "plain/opener",
+      "hand": "true",
+      "llm": "false"
+    },
+    {
+      "id": "twcs-2785128",
+      "stratum": "plain/opener",
+      "hand": "true",
+      "llm": "false"
+    },
+    {
+      "id": "twcs-2351420",
+      "stratum": "plain/opener",
+      "hand": "true",
+      "llm": "false"
+    },
+    {
+      "id": "twcs-1823121",
+      "stratum": "cue/opener",
+      "hand": "true",
+      "llm": "false"
+    },
+    {
+      "id": "twcs-211970",
+      "stratum": "cue/reply",
+      "hand": "true",
+      "llm": "false"
+    },
+    {
+      "id": "twcs-1040309",
+      "stratum": "cue/opener",
+      "hand": "true",
+      "llm": "false"
+    }
+  ]
+}

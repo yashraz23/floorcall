@@ -455,3 +455,27 @@ has happened, and D4 training data does not exist yet.
 judged on calib v2 against the same bars (kappa ≥ 0.60 and escalate precision ≥ 0.70). It is the
 last prompt revision (D-032 allowed two: v2 and v3). Yash sees the result before test or train is
 labelled.
+*Outcome (2026-09-29).* Yash relabelled the 300 in one blind session, 01:14–01:55 UTC: 136
+escalate, 164 not.
+- **Self-agreement, v1 labels against v2 labels on the same 300 messages:** accuracy 0.783,
+  **kappa 0.551**. By split: test 0.780 (kappa 0.541), calib 0.790 (kappa 0.570). Confusion (v1 →
+  v2): y→y 82, y→n 11, n→y 54, n→n 153. Guideline v2 moves labels mostly one way, toward
+  escalate (93 → 136).
+- **Frozen.** Test v2, `escalate.test.v2.jsonl.gz`, sha256 `91994160…` (200 rows: 89 escalate,
+  111 not). Calib v2, `escalate.calib.jsonl.gz`, sha256 `e9dbf51d…` (100 rows: 47/53). Both
+  rebuild byte-identically from committed files (`tests/test_relabel.py`). The frozen test v1 is
+  unchanged and still rebuilds to `e69e4823…`. D4 is evaluated on v2 (`build.TEST_VERSIONS`), and
+  D1–D3 stay on v1.
+- **Baselines on test v2**, with percentile-bootstrap 95% intervals (10,000 resamples of the rows,
+  seed 20260927, `EvalSettings.bootstrap_*`):
+  - majority (calib v2 prior): accuracy 0.555 [0.485, 0.625], macro-F1 0.357 [0.327, 0.385],
+    ECE 0.025 [0.000, 0.095], Brier 0.495 [0.487, 0.504];
+  - stock Laya: accuracy 0.665 [0.600, 0.730], macro-F1 0.625 [0.554, 0.693], ECE 0.092
+    [0.057, 0.159], Brier 0.422 [0.396, 0.447].
+  The D4 majority prior always comes from calib: D4's train rows will be LLM-labelled, so calib is
+  its only hand-labelled split besides test.
+- **Prompt v3 on calib v2: not accepted.** Accuracy 0.720, **kappa 0.420** (bar 0.60), escalate
+  precision 0.952 (bar 0.70, met), recall 0.426. Confusion (Yash → LLM): y→y 20, y→n 27, n→y 1,
+  n→n 52. All 100 calls were served by Crusoe bf16. v1 and v2 over-escalated; v3, reading the
+  literal guideline, under-escalates. This was the last prompt revision. Test and train were not
+  labelled with it, and the code refuses to until a prompt passes the gate.
