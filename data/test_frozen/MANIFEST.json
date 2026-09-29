@@ -67,5 +67,21 @@
     },
     "labeller": "yash",
     "guidelines": "docs/labelling-escalate.md v1"
+  },
+  "escalate.test.v2.jsonl.gz": {
+    "sha256": "91994160a288950ef3a820df09359149c65bcb636b146dedc41a9d5a6c1ece97",
+    "rows": 200,
+    "decision": "escalate",
+    "source_url": "https://huggingface.co/datasets/SunidhiSriram/twcs/resolve/main/twcs.csv",
+    "source_sha256": "cd297fcfa1bf6f99938be242e8e578980bc6d1b96adc8691abec9a39175b03c0",
+    "licence": "CC BY-NC-SA 4.0",
+    "built_at": "bce6195",
+    "labels": {
+      "false": 111,
+      "true": 89
+    },
+    "labeller": "yash",
+    "guidelines": "docs/labelling-escalate.md v2",
+    "sample": "data/labels/escalate.relabel_v2.sample.json, seed 20260928"
   }
 }

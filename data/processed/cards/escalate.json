@@ -2,8 +2,9 @@
   "decision": "escalate",
   "source": "twcs",
   "licence": "CC BY-NC-SA 4.0",
-  "test_file": "escalate.test.v1.jsonl.gz",
-  "test_sha256": "e69e48237ad70244c17eb336e0114a38166ad16c0c2bfd5e9dc172276b458d48",
+  "guidelines": "v2",
+  "test_file": "escalate.test.v2.jsonl.gz",
+  "test_sha256": "91994160a288950ef3a820df09359149c65bcb636b146dedc41a9d5a6c1ece97",
   "balance": {
     "train": {
       "rows": 0,
@@ -12,33 +13,35 @@
       "kinds": {}
     },
     "calib": {
-      "rows": 195,
+      "rows": 100,
       "labels": {
-        "false": 141,
-        "true": 54
+        "false": 53,
+        "true": 47
       },
-      "hard": 96,
+      "hard": 49,
       "kinds": {
-        "cue/reply": 50,
-        "plain/reply": 49,
-        "cue/opener": 49,
-        "plain/opener": 47
+        "cue/reply": 26,
+        "plain/reply": 25,
+        "cue/opener": 25,
+        "plain/opener": 24
       }
     },
     "test": {
-      "rows": 396,
+      "rows": 200,
       "labels": {
-        "false": 260,
-        "true": 136
+        "false": 111,
+        "true": 89
       },
-      "hard": 198,
+      "hard": 100,
       "kinds": {
-        "plain/reply": 100,
-        "cue/reply": 100,
-        "cue/opener": 98,
-        "plain/opener": 98
+        "plain/reply": 51,
+        "cue/reply": 51,
+        "cue/opener": 49,
+        "plain/opener": 49
       }
     }
   },
-  "sampling": "four equal strata (escalation-word cue x agent context); the positive rate is not the natural rate"
+  "sampling": "four equal strata (escalation-word cue x agent context); the positive rate is not the natural rate; v2 is a seeded sample of the v1 eval sets, stratified by the same strata (data/labels/escalate.relabel_v2.sample.json, seed 20260928), relabelled blind under guideline v2",
+  "calib_file": "escalate.calib.jsonl.gz",
+  "calib_sha256": "e9dbf51d0f093daafa88b84b3a8f1b58f0dedd83405fe0e3d1669f3daa4c428f"
 }
