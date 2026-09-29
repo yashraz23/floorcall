@@ -507,3 +507,13 @@ data, the same hyperparameters (`TrainSettings`) and the same seeds; only the D4
 differ. Each is temperature-calibrated on calib (calib v2 for D4) and evaluated once on the frozen
 test sets (test v2 for D4) with bootstrap 95% intervals. Both are reported next to the majority
 and stock-Laya rows.
+*The training sample* (drawn 2026-09-29, before labelling). Seed **20260929**
+(`DataSettings.d4_train_hand_seed`); **1,000** messages (`d4_train_hand_rows`), drawn uniformly
+from the 6,000-message D-030 pool with `random.Random(f"{seed}:train-hand-v2")`, and shown in that
+draw's order. Every message is train-split, from 1,000 distinct threads. None of those threads,
+and none of their normalized texts, appear in test v2, calib v2 or any of the 600 D4 eval
+candidates; the pool drops text matches, and `draw_train_sample` refuses shared threads. By stratum:
+plain/opener 620, cue/opener 241, plain/reply 108, cue/reply 31. That is the pool's natural mix,
+unlike the equal strata of test and calib, so its escalation rate will be lower. The sample is
+committed in `data/labels/escalate.train_sample.v2.jsonl`; labels go to
+`escalate.train_labels.v2.jsonl`.
