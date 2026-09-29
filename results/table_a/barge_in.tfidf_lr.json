@@ -1,0 +1,107 @@
+{
+  "decision": "barge_in",
+  "test_file": "barge_in.test.v1.jsonl.gz",
+  "test_sha256": "c3b1461f0b625ad7cdf33732746786011a7f3e39a8d1798975875a2235716f14",
+  "code": "8dba6ae",
+  "labels": [
+    "backchannel",
+    "interruption",
+    "noise"
+  ],
+  "model": "tfidf_lr",
+  "added": "after the main test pass, as a sanity baseline; nothing tuned on test (D-036)",
+  "train_rows": 41494,
+  "dev_rows": 2693,
+  "c_grid": [
+    0.01,
+    0.1,
+    1.0,
+    10.0,
+    100.0
+  ],
+  "dev_cross_entropy": {
+    "0.01": 0.7039698234773377,
+    "0.1": 0.45465332740438924,
+    "1.0": 0.2671608473106036,
+    "10.0": 0.1822437131620692,
+    "100.0": 0.19027117230836219
+  },
+  "chosen_c": 10.0,
+  "class_weight": null,
+  "temperature": 1.0,
+  "metrics": {
+    "n": 13360,
+    "accuracy": 0.930688622754491,
+    "accuracy_ci95": [
+      0.9262568298719323,
+      0.9348728021943444
+    ],
+    "macro_f1": 0.8499020825517688,
+    "ece": 0.014850014881484007,
+    "brier": 0.10166225574382115,
+    "mean_confidence": 0.9176467654065977,
+    "per_class": {
+      "backchannel": {
+        "support": 5659,
+        "precision": 0.9136988570482028,
+        "recall": 0.9747305177593214
+      },
+      "interruption": {
+        "support": 6700,
+        "precision": 0.9738300492610837,
+        "recall": 0.9441791044776119
+      },
+      "noise": {
+        "support": 1001,
+        "precision": 0.7158403869407497,
+        "recall": 0.5914085914085914
+      }
+    },
+    "confusion": [
+      [
+        5516,
+        62,
+        81
+      ],
+      [
+        220,
+        6326,
+        154
+      ],
+      [
+        301,
+        108,
+        592
+      ]
+    ],
+    "hard_n": 5012,
+    "hard_accuracy": 0.963487629688747,
+    "ci95": {
+      "accuracy": [
+        0.9262724550898204,
+        0.9350299401197605
+      ],
+      "macro_f1": [
+        0.8400029530248942,
+        0.8593928250956596
+      ],
+      "ece": [
+        0.012484310704542942,
+        0.019085357667809253
+      ],
+      "brier": [
+        0.09662137234851007,
+        0.10683656919791393
+      ],
+      "hard_accuracy": [
+        0.9581005586592178,
+        0.9684756584197926
+      ]
+    },
+    "bootstrap": {
+      "samples": 10000,
+      "seed": 20260927,
+      "method": "percentile interval; rows resampled with replacement"
+    }
+  }
+}

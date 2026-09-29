@@ -1,0 +1,137 @@
+{
+  "decision": "barge_in",
+  "test_file": "barge_in.test.v1.jsonl.gz",
+  "test_sha256": "c3b1461f0b625ad7cdf33732746786011a7f3e39a8d1798975875a2235716f14",
+  "code": "8dba6ae",
+  "labels": [
+    "backchannel",
+    "interruption",
+    "noise"
+  ],
+  "model": "lexical_rule",
+  "added": "after the main test pass, as a sanity baseline; nothing tuned on test (D-036)",
+  "rule": {
+    "fillers": [
+      "ah",
+      "er",
+      "uh",
+      "um"
+    ],
+    "backchannel_words": [
+      "exactly",
+      "hm",
+      "hmm",
+      "huh",
+      "i",
+      "mhm",
+      "mm",
+      "oh",
+      "ok",
+      "okay",
+      "really",
+      "right",
+      "see",
+      "sure",
+      "true",
+      "uh",
+      "wow",
+      "yeah",
+      "yep",
+      "yes"
+    ],
+    "max_backchannel_words": 3
+  },
+  "branch_probabilities": {
+    "other": {
+      "backchannel": 0.036124643809173636,
+      "interruption": 0.9293593161136133,
+      "noise": 0.03451604007721298
+    },
+    "backchannel_words": {
+      "backchannel": 0.9889215855980613,
+      "interruption": 0.0037505048756563382,
+      "noise": 0.0073279095262823845
+    },
+    "empty_or_filler": {
+      "backchannel": 0.09652029826014913,
+      "interruption": 0.005385252692626346,
+      "noise": 0.8980944490472246
+    }
+  },
+  "temperature": 1.0,
+  "metrics": {
+    "n": 13360,
+    "accuracy": 0.9514221556886228,
+    "accuracy_ci95": [
+      0.9476450911575137,
+      0.9549396865608933
+    ],
+    "macro_f1": 0.9083649934096751,
+    "ece": 0.0006713532562992717,
+    "brier": 0.0916131798862005,
+    "mean_confidence": 0.951289356620468,
+    "per_class": {
+      "backchannel": {
+        "support": 5659,
+        "precision": 0.9882506527415144,
+        "recall": 0.9363845202332568
+      },
+      "interruption": {
+        "support": 6700,
+        "precision": 0.9329046687168018,
+        "recall": 0.9961194029850746
+      },
+      "noise": {
+        "support": 1001,
+        "precision": 0.8744075829383886,
+        "recall": 0.7372627372627373
+      }
+    },
+    "confusion": [
+      [
+        5299,
+        258,
+        102
+      ],
+      [
+        22,
+        6674,
+        4
+      ],
+      [
+        41,
+        222,
+        738
+      ]
+    ],
+    "hard_n": 5012,
+    "hard_accuracy": 0.9846368715083799,
+    "ci95": {
+      "accuracy": [
+        0.9477526197604791,
+        0.9550149700598802
+      ],
+      "macro_f1": [
+        0.9005403810241579,
+        0.915959805704805
+      ],
+      "ece": [
+        0.0003079728003908742,
+        0.00461098071616053
+      ],
+      "brier": [
+        0.08525293290226178,
+        0.09822639812386831
+      ],
+      "hard_accuracy": [
+        0.981245011971269,
+        0.987829209896249
+      ]
+    },
+    "bootstrap": {
+      "samples": 10000,
+      "seed": 20260927,
+      "method": "percentile interval; rows resampled with replacement"
+    }
+  }
+}

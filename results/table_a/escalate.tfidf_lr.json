@@ -1,0 +1,102 @@
+{
+  "decision": "escalate",
+  "test_file": "escalate.test.v2.jsonl.gz",
+  "test_sha256": "91994160a288950ef3a820df09359149c65bcb636b146dedc41a9d5a6c1ece97",
+  "code": "8dba6ae",
+  "labels": [
+    "false",
+    "true"
+  ],
+  "model": "tfidf_lr",
+  "added": "after the main test pass, as a sanity baseline; nothing tuned on test (D-036)",
+  "train_rows": 5700,
+  "dev_rows": 300,
+  "c_grid": [
+    0.01,
+    0.1,
+    1.0,
+    10.0,
+    100.0
+  ],
+  "dev_cross_entropy": {
+    "0.01": 0.6771440347009451,
+    "0.1": 0.5908398446359812,
+    "1.0": 0.4007438775819841,
+    "10.0": 0.28883010537493076,
+    "100.0": 0.3179547437794259
+  },
+  "chosen_c": 10.0,
+  "class_weight": "balanced",
+  "temperature": 1.0,
+  "threshold_choice": {
+    "theta": 0.24,
+    "macro_f1": 0.7596153846153846,
+    "n": 100,
+    "tied": 1,
+    "rule": "max macro-F1 on calib over thresholds 0.000-1.000 step 0.005; median of ties"
+  },
+  "metrics": {
+    "n": 200,
+    "accuracy": 0.685,
+    "accuracy_ci95": [
+      0.617649158589664,
+      0.7453778192205573
+    ],
+    "macro_f1": 0.6807782929239188,
+    "ece": 0.16668963194929226,
+    "brier": 0.4725553054270708,
+    "mean_confidence": 0.8264441992533859,
+    "per_class": {
+      "false": {
+        "support": 111,
+        "precision": 0.7142857142857143,
+        "recall": 0.7207207207207207
+      },
+      "true": {
+        "support": 89,
+        "precision": 0.6477272727272727,
+        "recall": 0.6404494382022472
+      }
+    },
+    "confusion": [
+      [
+        80,
+        31
+      ],
+      [
+        32,
+        57
+      ]
+    ],
+    "hard_n": 100,
+    "hard_accuracy": 0.74,
+    "threshold": 0.24,
+    "ci95": {
+      "accuracy": [
+        0.62,
+        0.75
+      ],
+      "macro_f1": [
+        0.6134676024819449,
+        0.742677665935064
+      ],
+      "ece": [
+        0.12497659267996428,
+        0.2387738796049529
+      ],
+      "brier": [
+        0.38640635739142337,
+        0.5612623884343014
+      ],
+      "hard_accuracy": [
+        0.65,
+        0.82
+      ]
+    },
+    "bootstrap": {
+      "samples": 10000,
+      "seed": 20260927,
+      "method": "percentile interval; rows resampled with replacement"
+    }
+  }
+}

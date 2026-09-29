@@ -1,0 +1,94 @@
+{
+  "decision": "turn_complete",
+  "test_file": "turn_complete.test.v1.jsonl.gz",
+  "test_sha256": "61535c7876b307c20001be578eb692dfb9d43d7e7c5e59c1a7f2cc6108ff7f3c",
+  "code": "8dba6ae",
+  "labels": [
+    "false",
+    "true"
+  ],
+  "model": "tfidf_lr",
+  "added": "after the main test pass, as a sanity baseline; nothing tuned on test (D-036)",
+  "train_rows": 46664,
+  "dev_rows": 2717,
+  "c_grid": [
+    0.01,
+    0.1,
+    1.0,
+    10.0,
+    100.0
+  ],
+  "dev_cross_entropy": {
+    "0.01": 0.676183288543093,
+    "0.1": 0.6650312478846293,
+    "1.0": 0.6474507966788023,
+    "10.0": 0.6718200208281592,
+    "100.0": 1.114605462489841
+  },
+  "chosen_c": 1.0,
+  "class_weight": null,
+  "temperature": 1.0,
+  "metrics": {
+    "n": 14998,
+    "accuracy": 0.6236831577543672,
+    "accuracy_ci95": [
+      0.6158989057858701,
+      0.6314040653373552
+    ],
+    "macro_f1": 0.5444155671818094,
+    "ece": 0.008184556133183836,
+    "brier": 0.45638543419792493,
+    "mean_confidence": 0.6157148714773765,
+    "per_class": {
+      "false": {
+        "support": 8843,
+        "precision": 0.6288776085730401,
+        "recall": 0.8826190206943345
+      },
+      "true": {
+        "support": 6155,
+        "precision": 0.5987630459992269,
+        "recall": 0.25166531275385867
+      }
+    },
+    "confusion": [
+      [
+        7805,
+        1038
+      ],
+      [
+        4606,
+        1549
+      ]
+    ],
+    "hard_n": 775,
+    "hard_accuracy": 0.8425806451612903,
+    "ci95": {
+      "accuracy": [
+        0.615948793172423,
+        0.6316175490065342
+      ],
+      "macro_f1": [
+        0.536224880930049,
+        0.5528227721715135
+      ],
+      "ece": [
+        0.00626313192552301,
+        0.01750900378264141
+      ],
+      "brier": [
+        0.4523104708967014,
+        0.46040587598544774
+      ],
+      "hard_accuracy": [
+        0.8167741935483871,
+        0.8683870967741936
+      ]
+    },
+    "bootstrap": {
+      "samples": 10000,
+      "seed": 20260927,
+      "method": "percentile interval; rows resampled with replacement"
+    }
+  }
+}
