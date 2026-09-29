@@ -198,47 +198,36 @@ def data_escalate_relabel_sample() -> None:
     console.print(f"{'wrote' if wrote else 'unchanged:'} {path}")
 
 
-@label_app.command("escalate-relabel")
-def label_escalate_relabel(
-    labeller: str = typer.Option("yash", help="recorded on every label"),
-) -> None:
-    """Blind relabel under guideline v2: y escalate, n not escalate, u undo, q quit.
+def _blind_label(order: list[Any], labels_path: Path, labeller: str) -> None:
+    """The blind labelling screen under guideline v2 (D-033, D-034): y, n, u undo, q quit.
 
-    Shows the sample in its shuffled order with the same context as the first pass, and guideline
-    v2 above every message. Earlier labels (Yash's v1 or any LLM's) are never read, and nothing
-    shows a message's split or stratum. Every keypress is saved to escalate.labels.v2.jsonl.
+    Shows `order` (candidates) one at a time with guideline v2 above each and the same context as
+    the first pass. It reads no other label, and shows no split or stratum. Every keypress is saved
+    to `labels_path`, and a rerun resumes at the first unlabelled message.
     """
-    import json
-
     from rich.markup import escape
     from rich.panel import Panel
     from rich.text import Text
 
     from floorcall.data import labelling
 
-    s = get_settings()
-    sample_path = s.paths.labels / labelling.RELABEL_SAMPLE_FILE
-    if not sample_path.exists():
-        raise typer.BadParameter(f"{sample_path} is missing: run data escalate-relabel-sample")
-    order: list[str] = json.loads(sample_path.read_text(encoding="utf-8"))["order"]
-    by_id = {c.id: c for c in labelling.load_candidates(s.paths.labels / ESCALATE_CANDIDATES)}
-    labels_path = s.paths.labels / labelling.LABELS_V2_FILE
+    ids = [c.id for c in order]
     labels = labelling.load_labels(labels_path)
     history: list[str] = []
     keys = {"y": "true", "n": "false"}
 
     while True:
-        pending = [cid for cid in order if cid not in labels]
+        pending = [c for c in order if c.id not in labels]
         if not pending:
-            console.print(f"[green]All {len(order)} messages are relabelled.[/green]")
+            console.print(f"[green]All {len(order)} messages are labelled.[/green]")
             break
-        c = by_id[pending[0]]
+        c = pending[0]
         console.clear()
         console.print(
             Panel(Text(labelling.GUIDELINE_V2), title="guideline v2", border_style="green")
         )
         console.print(
-            f"[bold]relabel[/bold]  {len(order) - len(pending)}/{len(order)} done   "
+            f"[bold]label[/bold]  {len(order) - len(pending)}/{len(order)} done   "
             f"company: {escape(c.company)}"
         )
         for t in c.recent_turns[-2:]:
@@ -260,14 +249,99 @@ def label_escalate_relabel(
         if key == "u":
             if history:
                 labels.pop(history.pop(), None)
-                labelling.save_labels(labels_path, labels, order)
+                labelling.save_labels(labels_path, labels, ids)
             continue
         if key not in keys:
             continue
         labels[c.id] = labelling.label_record(c.id, keys[key], labeller, guidelines="v2")
-        labelling.save_labels(labels_path, labels, order)
+        labelling.save_labels(labels_path, labels, ids)
         history.append(c.id)
     console.print(f"labels saved to {labels_path}")
+
+
+@label_app.command("escalate-relabel")
+def label_escalate_relabel(
+    labeller: str = typer.Option("yash", help="recorded on every label"),
+) -> None:
+    """Blind relabel of the D4 eval sample under guideline v2: y, n, u undo, q quit (D-033).
+
+    The sample in its shuffled order, test and calib together. Earlier labels (Yash's v1 or any
+    LLM's) are never read. Every keypress is saved to escalate.labels.v2.jsonl.
+    """
+    import json
+
+    from floorcall.data import labelling
+
+    s = get_settings()
+    sample_path = s.paths.labels / labelling.RELABEL_SAMPLE_FILE
+    if not sample_path.exists():
+        raise typer.BadParameter(f"{sample_path} is missing: run data escalate-relabel-sample")
+    order_ids: list[str] = json.loads(sample_path.read_text(encoding="utf-8"))["order"]
+    by_id = {c.id: c for c in labelling.load_candidates(s.paths.labels / ESCALATE_CANDIDATES)}
+    _blind_label([by_id[i] for i in order_ids], s.paths.labels / labelling.LABELS_V2_FILE, labeller)
+
+
+@data_app.command("escalate-train-sample")
+def data_escalate_train_sample() -> None:
+    """Draw the train-pool messages Yash labels for the primary D4 model (seeded; D-034)."""
+    from collections import Counter
+
+    from floorcall.data import labelling
+    from floorcall.data.build import TEST_VERSIONS, escalate_eval_rows
+    from floorcall.data.d4_llm import train_pool
+    from floorcall.data.download import fetch
+    from floorcall.data.escalate import build_candidates, stratum
+
+    s = get_settings()
+    held_out = labelling.load_candidates(s.paths.labels / ESCALATE_CANDIDATES)
+    candidates = build_candidates(
+        fetch("twcs", s.paths.data_raw),
+        seed=s.splits.seed,
+        fractions=s.splits.model_dump(include={"train", "calib", "test"}),
+        max_history=s.data.max_history_turns,
+    )
+    # the D-030 pool: train threads only, one message each, none sharing text with a held-out one
+    pool, _ = train_pool(candidates, held_out, n=s.llm.d4_train_rows, seed=s.splits.seed)
+    test, calib = escalate_eval_rows(s, TEST_VERSIONS["escalate"])
+    eval_groups = {r["group"] for r in test + calib} | {c.group for c in held_out}
+    sample = labelling.draw_train_sample(
+        pool, eval_groups, n=s.data.d4_train_hand_rows, seed=s.data.d4_train_hand_seed
+    )
+    path = s.paths.labels / labelling.TRAIN_SAMPLE_FILE
+    if path.exists():
+        if [c.id for c in labelling.load_candidates(path)] != [c.id for c in sample]:
+            raise typer.BadParameter(f"{path} holds a different sample; it is never redrawn")
+        console.print(f"unchanged: {path}")
+    else:
+        labelling.save_candidates(path, sample)
+        console.print(f"wrote {path}")
+    console.print(
+        f"seed {s.data.d4_train_hand_seed}: {len(sample)} of {len(pool)} pool messages, "
+        f"{len({c.group for c in sample})} threads, none in test or calib; "
+        f"strata {dict(Counter(stratum(c) for c in sample).most_common())}"
+    )
+
+
+@label_app.command("escalate-train")
+def label_escalate_train(
+    labeller: str = typer.Option("yash", help="recorded on every label"),
+) -> None:
+    """Label the primary D4 model's training messages under guideline v2: y, n, u, q (D-034).
+
+    Same blind screen as the relabel. Every keypress is saved to escalate.train_labels.v2.jsonl;
+    stop with q at any time and rerun to resume.
+    """
+    from floorcall.data import labelling
+
+    s = get_settings()
+    sample_path = s.paths.labels / labelling.TRAIN_SAMPLE_FILE
+    if not sample_path.exists():
+        raise typer.BadParameter(f"{sample_path} is missing: run data escalate-train-sample")
+    _blind_label(
+        labelling.load_candidates(sample_path),
+        s.paths.labels / labelling.TRAIN_LABELS_FILE,
+        labeller,
+    )
 
 
 @data_app.command("freeze-escalate")
@@ -429,13 +503,16 @@ def eval_figures() -> None:
 @data_app.command("escalate-llm-label")
 def data_escalate_llm_label(
     split: Annotated[str, typer.Option(help="calib | test | train")],
+    ablation: Annotated[
+        bool, typer.Option(help="train only: the D-034 ablation arm, source=llm_v3")
+    ] = False,
 ) -> None:
     """Label D4 messages with the LLM labeller. calib: agreement with Yash, and the gate the
-    prompt must pass. test (measurement only) and train (the D4 training rows,
-    source=llm_labelled) run only with a prompt calib accepted."""
+    prompt must pass. test (measurement only) runs only with a prompt calib accepted. train runs
+    only as the D-034 ablation arm (--ablation), never as the primary D4 training data."""
     from floorcall.data.d4_llm import run
 
-    out = run(get_settings(), split)
+    out = run(get_settings(), split, ablation=ablation)
     console.print_json(
         data={k: v for k, v in out.items() if k not in ("agreement", "disagreements")}
     )

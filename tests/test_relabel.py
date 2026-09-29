@@ -178,7 +178,7 @@ def test_relabel_shows_the_guideline_and_hides_everything_else(labels_dir: Path)
 
 
 def test_relabel_finishes_when_every_message_is_labelled(labels_dir: Path) -> None:
-    assert "All 6 messages are relabelled" in relabel("nnnnnn")
+    assert "All 6 messages are labelled" in relabel("nnnnnn")
     assert len(v2(labels_dir)) == 6
 
 
@@ -218,3 +218,43 @@ def test_guideline_versions_never_mix_in_one_set() -> None:
         labelling.to_rows(
             [c], {c.id: {"label": "true", "guidelines": "v1"}}, "test", guidelines="v2"
         )
+
+
+# -- the primary D4 model's training sample (D-034) ------------------------------------------
+
+
+def test_the_train_sample_is_seeded_and_train_only() -> None:
+    train = [c for c in pool() if c.split == "test"]  # reuse the fixture pool, relabelled train
+    train = [Candidate(**{**c.to_json(), "split": "train"}) for c in train]
+    a = labelling.draw_train_sample(train, set(), n=50, seed=1)
+    assert len(a) == len({c.id for c in a}) == 50
+    assert labelling.draw_train_sample(train, set(), n=50, seed=1) == a
+    assert labelling.draw_train_sample(train, set(), n=50, seed=2) != a
+    assert [c.id for c in a] != sorted(c.id for c in a)  # shown shuffled
+
+
+def test_the_train_sample_refuses_eval_threads_and_other_splits() -> None:
+    cands = pool()
+    train = [Candidate(**{**c.to_json(), "split": "train"}) for c in cands[:20]]
+    with pytest.raises(ValueError, match="eval set"):
+        labelling.draw_train_sample(train, {train[3].group}, n=5, seed=1)
+    with pytest.raises(ValueError, match="not train-split"):
+        labelling.draw_train_sample(cands[:20], set(), n=5, seed=1)
+
+
+def test_train_labelling_saves_every_key_and_resumes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("FLOORCALL_PATHS__LABELS", str(tmp_path))
+    get_settings.cache_clear()
+    try:
+        sample = [Candidate(**{**c.to_json(), "split": "train"}) for c in pool(per_cell=1)]
+        labelling.save_candidates(tmp_path / labelling.TRAIN_SAMPLE_FILE, sample)
+        for keys in ("yq", "nyq"):  # stop after one, then resume at the second
+            result = CliRunner().invoke(cli.app, ["label", "escalate-train"], input=keys)
+            assert result.exit_code == 0, result.output
+        got = labelling.load_labels(tmp_path / labelling.TRAIN_LABELS_FILE)
+        assert [got[c.id]["label"] for c in sample[:3]] == ["true", "false", "true"]
+        assert {r["guidelines"] for r in got.values()} == {"v2"}
+    finally:
+        get_settings.cache_clear()

@@ -118,6 +118,10 @@ class DataSettings(BaseModel):
     # sampling strata, relabelled blind. Only these messages stay in the D4 eval sets, as v2.
     d4_relabel_seed: int = 20260928
     d4_relabel_sizes: dict[str, int] = Field(default_factory=lambda: {"test": 200, "calib": 100})
+    # The primary D4 model's training data (D-034): a seeded random sample of the D-030 train
+    # pool, labelled blind by Yash under guideline v2.
+    d4_train_hand_rows: int = 1000
+    d4_train_hand_seed: int = 20260929
 
 
 class EvalSettings(BaseModel):

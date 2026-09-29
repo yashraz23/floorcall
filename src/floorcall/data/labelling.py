@@ -42,6 +42,9 @@ GUIDELINE_V2 = (
 )
 RELABEL_SAMPLE_FILE = "escalate.relabel_v2.sample.json"
 LABELS_V2_FILE = "escalate.labels.v2.jsonl"
+# The primary D4 model's training messages (D-034), in display order, and Yash's labels for them.
+TRAIN_SAMPLE_FILE = "escalate.train_sample.v2.jsonl"
+TRAIN_LABELS_FILE = "escalate.train_labels.v2.jsonl"
 
 
 def load_candidates(path: Path) -> list[Candidate]:
@@ -201,6 +204,22 @@ def draw_relabel_sample(
         "ids": ids,
         "order": order,
     }
+
+
+def draw_train_sample(
+    pool: Sequence[Candidate], eval_groups: set[str], *, n: int, seed: int
+) -> list[Candidate]:
+    """The primary D4 model's training messages (D-034): `n` of the train pool, uniformly at random.
+
+    They come back in the order the labelling tool shows them (random.sample's own order, which
+    is random). Refuses a pool message that is not train-split, or whose thread is in an eval set:
+    the training data must be conversation-disjoint from test and calib.
+    """
+    if not_train := [c.id for c in pool if c.split != "train"]:
+        raise ValueError(f"{len(not_train)} pool messages are not train-split, e.g. {not_train[0]}")
+    if shared := {c.group for c in pool} & eval_groups:
+        raise ValueError(f"{len(shared)} pool threads are also in an eval set")
+    return random.Random(f"{seed}:train-hand-v2").sample(sorted(pool, key=lambda c: c.id), n)
 
 
 def save_relabel_sample(path: Path, sample: Mapping[str, Any]) -> bool:
