@@ -146,6 +146,22 @@ class EvalSettings(BaseModel):
     threshold_decisions: tuple[str, ...] = ("escalate",)
     latency_warmup: int = 50
     latency_iters: int = 1000
+    # Thermal rules for latency runs (D-037: the laptop crashed from heat, at 95 C). A row starts
+    # only once the GPU is at or below `latency_start_max_temp_c` (polled every
+    # `latency_cooldown_poll_s`, for at most `latency_cooldown_max_s`), is sampled by nvidia-smi
+    # every `latency_telemetry_ms` throughout, and stops at once at `latency_abort_temp_c`. A GPU
+    # row that throttled while timed is discarded and retried, up to `latency_max_attempts` times.
+    latency_start_max_temp_c: float = 55.0
+    latency_abort_temp_c: float = 85.0
+    latency_cooldown_poll_s: float = 15.0
+    latency_cooldown_max_s: float = 1800.0
+    latency_telemetry_ms: int = 500
+    latency_max_attempts: int = 3
+    # CPU rows run in chunks of at most this long (warmup included), each after a cooldown of
+    # `latency_cpu_cooldown_s` and the temperature gate, each with its own short warmup.
+    latency_cpu_chunk_s: float = 1200.0
+    latency_cpu_chunk_warmup: int = 5
+    latency_cpu_cooldown_s: float = 600.0
     gpu_p99_budget_ms: float = 50.0
     cpu_p99_budget_ms: float = 100.0
 

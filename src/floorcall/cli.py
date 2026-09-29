@@ -408,17 +408,26 @@ def eval_baselines(
 
 @eval_app.command("latency")
 def eval_latency(
-    rows: str = typer.Option("all", help="all | gpu | cpu | a row name prefix"),
+    rows: str = typer.Option("gpu", help="gpu | cpu | all | a row name prefix"),
+    compare_stock: bool = typer.Option(
+        False, help="also measure the stock checkpoint, row by row (results/table_b/stock/)"
+    ),
 ) -> None:
-    """Table B: batch-1 decision latency -> results/table_b/."""
+    """Table B: batch-1 decision latency under the thermal rules (D-037) -> results/table_b/.
+
+    Each row waits for the GPU to cool, is sampled by nvidia-smi throughout, and is discarded and
+    retried if the GPU throttled while it was timed. CPU rows run in chunks with cooldowns.
+    """
     from floorcall.evaluate import latency
 
-    for r in latency.run(get_settings(), rows):
-        t = r["total_ms"]
+    for r in latency.run(get_settings(), rows, compare_stock=compare_stock, log=console.print):
+        t, tel = r["total_ms"], r["telemetry"]["timed"]
+        temp, sm = tel["temperature_c"] or {}, tel["sm_clock_mhz"] or {}
         console.print(
-            f"{r['row']:22s} p50 {t['p50']:7.1f}  p95 {t['p95']:7.1f}  p99 {t['p99']:7.1f} ms  "
-            f"(forward p50 {r['forward_ms']['p50']:.1f}, pack p50 {r['pack_ms']['p50']:.1f})  "
-            f"fits {r['budget_p99_ms']:.0f} ms: {'yes' if r['fits_budget'] else 'no'}"
+            f"{r['model']:10s} {r['row']:22s} p50 {t['p50']:7.1f}  p95 {t['p95']:7.1f}  "
+            f"p99 {t['p99']:7.1f} ms  fits {r['budget_p99_ms']:.0f} ms: "
+            f"{'yes' if r['fits_budget'] else 'no'}  (GPU max {temp.get('max', float('nan')):.0f} C, "
+            f"SM median {sm.get('median', float('nan')):.0f} MHz)"
         )
 
 
