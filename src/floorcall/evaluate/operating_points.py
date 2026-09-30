@@ -92,6 +92,7 @@ def run_curves(
     pol = settings.policy
     out: dict[str, Any] = {
         "model": model,
+        "precision": decider.precision,
         "checkpoint": str(checkpoint) if checkpoint else decider.checkpoint,
         "code": code,
     }

@@ -52,6 +52,7 @@ BF16_TIE = 0.02
 def decider() -> Iterator[LayaDecider]:
     s = get_settings()
     d = LayaDecider(LayaSettings(**{**s.laya.model_dump(), "device": "cuda"}))
+    assert d.precision == s.laya.precision == "fp16"  # D-040: applied at load, on CUDA
     yield d
     d.disable_cuda_graphs()
 
@@ -106,7 +107,7 @@ def test_graphed_matches_eager(decider: LayaDecider, precision: str) -> None:
     assert not real_flips, f"decisions with a real margin flipped: {real_flips}"
     assert max_dz <= 0.3, f"max |dlogit| {max_dz:.4f}"
     assert max_dp <= 0.06, f"max |dp| {max_dp:.4f}"
-    decider.set_precision("bf16")  # the checkpoint's default, for the tests that follow
+    decider.set_precision(get_settings().laya.precision)  # the default, for later tests
 
 
 @pytest.mark.model

@@ -7,6 +7,7 @@ Values are experiment variables. Change them here, never inline, and say so in t
 
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
 from pydantic import BaseModel, Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -27,6 +28,10 @@ class LayaSettings(BaseModel):
     # multiple of this many tokens, so one graph serves every state in its bucket.
     cuda_graphs: bool = False
     graph_bucket_tokens: int = 32
+    # Inference precision on CUDA (D-040): fp16 autocast over the fp32 weights. It agreed with the
+    # fp32 forward on every calib and dev row (D-039); Laya's own default here, bf16, did not
+    # quite. The CPU forward is fp32. Training precision is TrainSettings.amp_dtype, separate.
+    precision: Literal["fp32", "bf16", "fp16"] = "fp16"
 
 
 class StateSettings(BaseModel):

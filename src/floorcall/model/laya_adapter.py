@@ -247,6 +247,8 @@ class LayaDecider:
         self._tok = self._agent.tok
         self._room_cache: dict[str, int] = {}
         self._graphs: _CudaGraphs | None = None
+        if self.device == "cuda":  # D-040: the configured precision, not the checkpoint's own
+            self.set_precision(settings.precision)
         if settings.cuda_graphs:
             self.enable_cuda_graphs(settings.graph_bucket_tokens)
 

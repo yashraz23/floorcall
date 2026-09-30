@@ -118,6 +118,7 @@ def run_stock_laya(
         "revision": decider.revision,
         "device": decider.device,
         "autocast": decider.autocast_dtype,
+        "precision": decider.precision,
         "event": event.value,
         "state_budget_tokens": budget,
         "temperature": temperature,
@@ -180,6 +181,7 @@ def run_stock_laya_threshold(
     payload = {
         **_provenance(settings, test),
         "model": "stock_laya_threshold",
+        "precision": decider.precision,
         "checkpoint": decider.checkpoint,
         "revision": decider.revision,
         "device": decider.device,

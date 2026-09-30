@@ -853,8 +853,7 @@ at 49–54 °C, peaked at 70–71 °C, and never throttled):
 - Both pass, and both are timed, back to back with fp32.
 *Power, restated from telemetry.* Every GPU latency row so far ran against the GPU's power limit.
 The enforced limit was 95 W, each row's median draw was 69–93 W, and the driver's power cap was
-active in 68% of the timed samples. The README's power note is generated from those files; it
-does not say "~85 W", because the telemetry does not.
+active in 68% of the timed samples.
 *D-039 outcome: latency by precision (2026-09-30 UTC; code `00edac0`).* All 18 rows (6 GPU paths ×
 fp32, bf16, fp16, interleaved) were kept on their first attempt, with no throttling and a peak of
 70 °C. Each row's autocast setting matches its precision.
@@ -871,3 +870,23 @@ fp32, bf16, fp16, interleaved) were kept on their first attempt, with no throttl
 - **fp16 agreed with fp32 on every calib and dev row, where bf16 did not quite.** It is no slower,
   so it would be a reasonable serving default. Changing Laya's default is left to Yash; nothing
   has been changed.
+
+**D-040 · 2026-09-30 · §8, §12 · fp16 is the default inference precision** — (Yash's decision.)
+`LayaSettings.precision = "fp16"`: on CUDA, every `LayaDecider` runs fp16 autocast over the fp32
+weights from load. That covers serving, latency and every evaluation from now on, and replaces
+Laya's own default here, bf16 autocast taken from the checkpoint's `amp_dtype`. The CPU forward
+stays fp32. Training precision is unaffected (`TrainSettings.amp_dtype`).
+*Why:* D-039's parity check on calib and dev (21,906 rows, never test, served probabilities)
+against the fp32 forward.
+- **fp16: 100.00% argmax agreement** on every decision's calib and dev set. The largest
+  probability difference was 0.021 (D1 calib), and D4's thresholded decision agreed on every row.
+- **bf16: worst 99.85%.** 4 of 2,717 D1 dev rows flipped, and 6 of 8,201 on D1 calib. On D2, 4 of
+  7,407 calib rows and 1 of 2,693 dev rows flipped. The largest probability difference was 0.068,
+  and D4's thresholded decision flipped on 1 of 300 dev rows.
+- fp16 was no slower than bf16 (within about ±10% per row, D-039).
+*What it does not change.* Table A's rows were scored under bf16, the default at the time. They are
+not re-scored: a second pass over the test sets is not taken to switch precision, and the parity
+numbers bound the difference. Every new result file records its `precision`. Curves and Table C
+will be scored under fp16. Where one of them should equal a Table A row by construction (Table C at
+noise 0.00, D-024), a difference within the bf16-to-fp32 parity bound is expected and will be
+shown, not hidden.

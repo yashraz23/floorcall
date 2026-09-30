@@ -50,6 +50,12 @@ from floorcall.evaluate.dataset import load_test, snapshot_of
 from floorcall.provenance import git_head
 from floorcall.state import Snapshot
 
+# Windows 11 power mode overlays (the Settings > Power "Power mode" slider), on AC.
+POWER_MODES = {
+    "961cc777-2547-4f9d-8174-7d86181b8a7a": "Best power efficiency",
+    "00000000-0000-0000-0000-000000000000": "Balanced",
+    "ded574b5-45a0-4f42-8737-46345c09c238": "Best performance",
+}
 RESULTS = REPO_ROOT / "results" / "table_b"
 DISCARDED = REPO_ROOT / "runs" / "latency" / "discarded"
 N_INPUTS = 50
@@ -186,6 +192,29 @@ def environment() -> dict[str, Any]:
             == "2"
         )
         env["power_plan"] = _run(["powercfg", "/getactivescheme"])
+        overlay = _run(
+            [
+                "powershell",
+                "-NoProfile",
+                "-Command",
+                "(Get-ItemProperty 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\User"
+                "\\PowerSchemes').ActiveOverlayAcPowerScheme",
+            ]
+        )
+        env["windows_power_mode_ac"] = {
+            "guid": overlay,
+            "name": POWER_MODES.get(overlay, "unknown"),
+        }
+    limits = _run(
+        [
+            "nvidia-smi",
+            "--query-gpu=enforced.power.limit,power.default_limit,power.min_limit,power.max_limit,"
+            "clocks.max.sm,clocks.max.mem",
+            "--format=csv,noheader,nounits",
+        ]
+    ).split(",")
+    keys = ("enforced_w", "default_w", "min_w", "max_w", "max_sm_clock_mhz", "max_mem_clock_mhz")
+    env["gpu_power"] = dict(zip(keys, (x.strip() for x in limits), strict=False))
     return env
 
 

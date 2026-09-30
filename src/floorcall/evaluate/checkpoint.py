@@ -171,6 +171,7 @@ def evaluate_table_a(
             payload = {
                 **_base(settings, checkpoint, test, code),
                 "model": model,
+                "precision": decider.precision,
                 "temperature": t,
                 "metrics": score_row(settings, z, test, t, choice),
             }
@@ -248,6 +249,7 @@ def evaluate_table_c(
             payload = {
                 **_base(settings, checkpoint, test, code),
                 "model": "finetuned_temp",
+                "precision": decider.precision,
                 "noise_level": level,
                 "temperature": t,
                 "metrics": score(
@@ -288,6 +290,7 @@ def evaluate_table_d(
             payload = {
                 **_base(settings, checkpoint, test, code),
                 "model": "finetuned_temp",
+                "precision": decider.precision,
                 "ablation": variant,
                 "state": state.model_dump(),
                 "temperature": t,
