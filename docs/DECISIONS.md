@@ -1071,3 +1071,25 @@ run in the local environment. Every difference is recorded with the run.
   the record.
 Table D's four arms share this environment, so they stay comparable with each other (D-038); they
 are not compared with r2.
+
+**D-044 · 2026-10-01 · §7, §13, §14 · scope** — (Yash's decision.) **The live-voice UI moves to
+v2 and is out of scope for now.** That covers live mode (a browser mic talking to the banking
+agent), the React UI and its WebSocket event stream, and the per-turn latency waterfall. The
+remaining deliverables, in this order:
+1. **Milestone 3:** the decision processor, the naive baseline agent, and replay mode.
+   `floorcall replay demo/scripts/*.json --compare naive` prints the divergence report and needs
+   no API key.
+2. **Hugging Face release:** the fine-tuned checkpoint, with a model card that has Tables A–C,
+   intended use, known failure modes and license notes.
+3. **Hugging Face Space demo:** Replay, Try it and Results tabs. It runs on CPU, needs no keys,
+   and contains no real Twitter text.
+4. **Table D:** the Kaggle arms, added as Yash provides their result zips (D-038, D-043).
+5. **Project report PDF:** `docs/report/floorcall_report.pdf`, built by one command from a clean
+   commit once Table D is in. Every number in it comes from committed results files; a missing
+   one shows as TODO.
+
+Why: the core results (Tables A–C, the curves, calibration) and replay mode never depended on
+audio (§16). The live pipeline is the part most likely to take up the schedule.
+
+**Open, for Yash to decide:** the §13 hero video is on the never-cut list, but it was a recording
+of live mode.
