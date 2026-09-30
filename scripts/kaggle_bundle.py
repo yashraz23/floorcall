@@ -12,13 +12,19 @@ Writes dist/kaggle/floorcall-table-d/, ready for `kaggle datasets create -p <dir
 - dataset-metadata.json : for the Kaggle CLI. Set its id to your Kaggle username first.
 
 Refuses on a dirty tree: the bundle's commit is what every Kaggle result will cite as its code.
+Refuses, and deletes the bundle, if any file in it looks like a secret (D-038): a secret-looking
+file name, a known key pattern, or any value from the local .env, searched in raw bytes and inside
+the gzipped data. Secret values are never printed. The dataset must be created private: never pass
+--public (docs/runbook-kaggle.md).
 """
 
 from __future__ import annotations
 
+import gzip
 import hashlib
 import io
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -48,6 +54,55 @@ PINNED = (
     "httpx",
     "matplotlib",
 )
+
+
+SECRET_FILE_NAMES = re.compile(
+    r"(^\.env|^kaggle\.json$|^id_(rsa|ed25519)|credentials|\.(pem|key|p12|pfx)$)", re.IGNORECASE
+)
+SECRET_PATTERNS = tuple(
+    re.compile(p)
+    for p in (
+        rb"sk-or-v1-[0-9a-f]{20,}",  # OpenRouter
+        rb"sk-ant-[A-Za-z0-9_-]{20,}",  # Anthropic
+        rb"gsk_[A-Za-z0-9]{40,}",  # Groq
+        rb"hf_[A-Za-z0-9]{30,}",  # Hugging Face
+        rb"AKIA[0-9A-Z]{16}",  # AWS
+        rb"-----BEGIN [A-Z ]*PRIVATE KEY-----",
+        rb"(?m)^[A-Z][A-Z0-9_]*(KEY|TOKEN|SECRET)[A-Z0-9_]*\s*=\s*\S{8,}",  # a .env-style line
+    )
+)
+
+
+def local_secret_values(env_file: Path) -> list[bytes]:
+    """The values in the local .env (never printed), to prove none of them reached the bundle."""
+    if not env_file.exists():
+        return []
+    values = []
+    for line in env_file.read_text(encoding="utf-8").splitlines():
+        if "=" in line and not line.lstrip().startswith("#"):
+            value = line.split("=", 1)[1].strip().strip("\"'")
+            if len(value) >= 8:
+                values.append(value.encode())
+    return values
+
+
+def find_secrets(root: Path, secret_values: list[bytes]) -> list[str]:
+    """What in `root` looks like a secret: file names, key patterns, local .env values."""
+    problems = []
+    for p in sorted(root.rglob("*")):
+        if not p.is_file():
+            continue
+        rel = p.relative_to(root).as_posix()
+        if SECRET_FILE_NAMES.search(p.name):
+            problems.append(f"{rel}: a secret-looking file name")
+            continue
+        data = p.read_bytes()
+        if p.suffix == ".gz":
+            data = gzip.decompress(data)
+        problems += [f"{rel}: matches a key pattern" for pat in SECRET_PATTERNS if pat.search(data)]
+        if any(v in data for v in secret_values):
+            problems.append(f"{rel}: contains a value from the local .env")
+    return problems
 
 
 def git(*args: str) -> str:
@@ -112,8 +167,19 @@ def main() -> None:
         "licenses": [{"name": "CC-BY-NC-SA-4.0"}],
     }
     (OUT / "dataset-metadata.json").write_text(json.dumps(meta, indent=2) + "\n", encoding="utf-8")
+    problems = find_secrets(OUT, local_secret_values(REPO / ".env"))
+    if problems:
+        shutil.rmtree(OUT)
+        listing = "\n  ".join(problems)
+        sys.exit(f"refusing the bundle, it may hold a secret (deleted):\n  {listing}")
     size = sum(p.stat().st_size for p in OUT.rglob("*") if p.is_file())
-    print(f"wrote {OUT} ({size / 1e6:.1f} MB) from commit {commit}")
+    n = sum(1 for p in OUT.rglob("*") if p.is_file())
+    print(f"wrote {OUT} ({size / 1e6:.1f} MB, {n} files) from commit {commit}")
+    print("secret scan: clean (file names, key patterns, local .env values; gz data included)")
+    print(
+        "upload it PRIVATE: kaggle datasets create -p dist/kaggle/floorcall-table-d --dir-mode zip"
+    )
+    print("(never --public; then check the dataset page shows Private)")
 
 
 if __name__ == "__main__":

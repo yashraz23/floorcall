@@ -5,22 +5,20 @@ no ASR-style normalization, no `recent_turns`, no `agent_last_utterance`. The la
 more multi-hour training runs (DECISIONS.md D-037: it crashed from heat), so these run on Kaggle,
 started by Yash. Nothing here runs locally except building the bundle.
 
-## Decide before spending quota
+## Decided (DECISIONS.md D-038)
 
-**1. Train a `full` arm on Kaggle too (recommended).** Each ablation row is read against a
+**1. A `full` arm on Kaggle is Table D's reference.** Each ablation row is read against a
 reference row from the same recipe. Kaggle's GPUs (T4, P100) have no fast bf16, so arms there
 train in fp16 with loss scaling on different hardware. The local r2 trained in bf16 on the RTX 5070
 Ti. Comparing Kaggle ablations with r2 would mix the ablation's effect with precision and hardware.
 With a Kaggle `full` arm, all four Table D rows share the same conditions. Table D then compares
 Kaggle arms with each other only; Table A's fine-tuned row stays r2.
 
-**2. Epochs.** The committed recipe is 4 epochs of about 50,000 rows, which took about 50 min an
-epoch on the (then overclocked) RTX 5070 Ti. A T4 is several times slower, and Kaggle stops a
-session at 12 hours, with about 30 GPU hours a week. The notebook's smoke run prints this arm's
-estimated training time. If 4 epochs cannot finish in one session, use `EPOCHS = 2` for **every**
-arm. r2's dev loss picked epoch 2 of 4, so 2 epochs is not a starved recipe. Log the choice in
-DECISIONS.md before starting the first full arm. Four arms at the same setting are comparable;
-arms at different settings are not.
+**2. 2 epochs for every arm**, full and ablations alike, because r2's dev loss picked epoch 2 of
+4. The best checkpoint is still the epoch with the lowest dev loss. The notebook's `EPOCHS` is 2;
+leave it. The learning-rate schedule spans the run's own 2 epochs. A T4 is several times slower
+than the laptop, and Kaggle stops a session at 12 hours, with about 30 GPU hours a week. The smoke
+run's time estimate is for information only.
 
 ## 1. Build the dataset (local, CPU only)
 
@@ -46,10 +44,19 @@ pip install kaggle                  # once; API token in ~/.kaggle/kaggle.json (
 kaggle datasets create -p dist/kaggle/floorcall-table-d --dir-mode zip
 ```
 
-A new dataset is private unless `--public` is given. Keep it private: it is derived from SwDA
-(CC BY-NC-SA 3.0), CLINC150 (CC BY 3.0) and Customer Support on Twitter (CC BY-NC-SA 4.0). After
-a later commit, rebuild and push a new version with
-`kaggle datasets version -p dist/kaggle/floorcall-table-d -m "<commit>" --dir-mode zip`.
+**The dataset must be private. Never pass `--public`.** A new dataset is private unless it is
+given. It holds the frozen test sets and is derived from Customer Support on Twitter
+(CC BY-NC-SA 4.0), SwDA (CC BY-NC-SA 3.0) and CLINC150 (CC BY 3.0). After uploading:
+
+1. Open the URL the CLI prints. The dataset page must show **Private**, and it must not appear in a
+   logged-out browser.
+2. **Settings → Sharing** must list no one but you.
+
+The bundle script has already scanned every file (D-038): names like `.env` or `kaggle.json`, key
+patterns, and every value from the local `.env`, inside the gzipped data too. It refuses the bundle
+on any hit. After a later commit, rebuild and push a new version with
+`kaggle datasets version -p dist/kaggle/floorcall-table-d -m "<commit>" --dir-mode zip`. A new
+version keeps the dataset private.
 
 ## 3. The notebook
 
@@ -59,7 +66,7 @@ a later commit, rebuild and push a new version with
    `/kaggle/input/floorcall-table-d/`; if the path differs, set `BUNDLE` in the first cell.
 3. Session options: **Accelerator: GPU T4 x2** (one GPU is used) or P100, and **Internet: on**,
    for pip and the pinned Laya checkpoint.
-4. In the first cell set `ARM` (and `EPOCHS`, as decided above). Optionally set `SMOKE_ONLY = True`
+4. In the first cell set `ARM`. `EPOCHS` stays 2 (D-038). Optionally set `SMOKE_ONLY = True`
    and run it interactively once: it installs, verifies the bundle, runs the smoke test and prints
    the time estimate in minutes.
 5. For the real run: **Save Version → Save & Run All (Commit)**. It runs headless for up to 12 hours

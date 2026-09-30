@@ -781,3 +781,21 @@ Kaggle session is measured by the notebook's smoke run. Whatever epoch count is 
 every arm and is logged before the first full arm starts. Kaggle results cite the bundle's commit
 as their code (`FLOORCALL_CODE`, `<commit>-kaggle`). A `max_train_rows_per_task` cap exists for
 the smoke run only; its default, None, leaves every run unchanged.
+
+**D-038 · 2026-09-29 · §12 Table D · decided before any Kaggle run** — **Table D is four Kaggle
+arms, `full` among them, each trained for 2 epochs.** (Yash's decisions.)
+- **A `full` arm on Kaggle is Table D's reference row.** The three ablations (no normalization, no
+  `recent_turns`, no `agent_last_utterance`) are read against it, never against r2. All four then
+  share precision (fp16 with loss scaling on T4/P100), hardware and recipe. Table A's fine-tuned
+  row stays r2.
+- **2 epochs for every Kaggle arm, full and ablations alike**, decided now because r2's dev loss
+  chose epoch 2 of 4. The best checkpoint is still the epoch with the lowest dev cross-entropy,
+  chosen as in D-035 amendment 1, from the two. The cosine learning-rate schedule spans each run's
+  own 2 epochs, so a Kaggle arm is not r2 stopped halfway; it is the same recipe at 2 epochs. The
+  notebook's `EPOCHS` default is now 2, and its smoke-run time estimate is for information only.
+- **The Kaggle dataset is private.** It is derived from Customer Support on Twitter
+  (CC BY-NC-SA 4.0), SwDA (CC BY-NC-SA 3.0) and CLINC150 (CC BY 3.0), and holds the frozen test
+  sets. `kaggle datasets create` is run without `--public`, which leaves a dataset private, and the
+  runbook has a check after upload. The bundle script refuses to finish if any file in the bundle
+  looks like a secret: a `.env` or key file by name, a known key pattern, or any value from the
+  local `.env`, whether in the files' raw bytes or inside the gzipped data.
