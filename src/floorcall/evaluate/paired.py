@@ -54,8 +54,13 @@ def load_scored(settings: Settings, decision: str, npz: str, model: str) -> Scor
     theta = row["metrics"].get("threshold")
     probs = softmax(np.asarray(z["logits"], dtype=np.float64), row["temperature"])
     m = score(probs, z["y"], z["hard"], labels, n_bins=settings.eval.ece_bins, threshold=theta)
-    for key in ("accuracy", "macro_f1", "ece", "brier", "confusion"):
-        if m[key] != row["metrics"][key]:
+    # The confusion must be identical. Metrics may differ by floating-point round-off only: the cheap
+    # baselines saved log-probabilities, and exp(log p) is not bit-identical to p (up to 4e-15 in
+    # ECE, measured).
+    if m["confusion"] != row["metrics"]["confusion"]:
+        raise ValueError(f"{decision}.{model}: saved predictions do not reproduce its confusion")
+    for key in ("accuracy", "macro_f1", "ece", "brier"):
+        if abs(m[key] - row["metrics"][key]) > 1e-12:
             raise ValueError(f"{decision}.{model}: saved predictions do not reproduce its {key}")
     pred = (
         probs.argmax(1) if theta is None else (probs[:, labels.index("true")] >= theta).astype(int)
