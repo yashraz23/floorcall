@@ -270,7 +270,11 @@ class LLMSettings(BaseModel):
         default_factory=lambda: {
             "openai/gpt-oss-120b": ProviderPin(
                 endpoint="crusoe/bf16", name="Crusoe", quantization="bf16"
-            )
+            ),
+            # the prompted-LLM baseline (D-041): full precision, one endpoint, no fallback
+            "openai/gpt-oss-20b": ProviderPin(
+                endpoint="deepinfra/bf16", name="DeepInfra", quantization="bf16"
+            ),
         }
     )
     # A labeller prompt is accepted only if, on calib, it agrees with Yash's hand labels at least

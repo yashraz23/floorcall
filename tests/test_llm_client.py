@@ -82,7 +82,7 @@ def test_a_missing_cost_is_charged_at_its_upper_bound(tmp_path: Path) -> None:
 
 def test_every_request_caps_price_and_requires_compliant_providers(tmp_path: Path) -> None:
     server = Server(httpx.Response(200, json=reply()))
-    c, _, _ = client(tmp_path, server)
+    c, _, _ = client(tmp_path, server, provider_pins={})  # the unpinned request shape
     c.chat_json(model=MODEL, messages=MSGS, schema=SCHEMA, purpose="t")
     body = server.requests[0]
     assert body["model"] == "openai/gpt-oss-20b"  # never a ":batch" variant

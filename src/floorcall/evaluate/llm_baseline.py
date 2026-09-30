@@ -78,6 +78,67 @@ def subsample(data: EvalSet, n: int | None) -> EvalSet:
     )
 
 
+def estimate_spend(settings: Settings, per_decision: int = 20) -> dict[str, Any]:
+    """What the Table A and Table B runs would cost (D-041), from a pilot on **calib** rows only.
+
+    `per_decision` evenly spaced calib rows per decision, plus as many user_pause prompts with all
+    three questions (the latency prompt), are answered through the pinned endpoint. OpenRouter's
+    reported cost per call, averaged, is multiplied by the test rows and by the latency calls. The
+    pilot is itself spent, and counted.
+    """
+    from floorcall.evaluate.dataset import load_processed, snapshot_of
+
+    client, ledger = _client(settings)
+    packer = _packer(settings)
+    model = settings.llm.baseline_model
+    before = ledger.spent()
+    per_call: dict[str, float] = {}
+    plan: dict[str, int] = {}
+    for decision in DECISIONS:
+        calib = subsample(load_processed(settings, decision, "calib"), per_decision)
+        qs = questions.questions_by_id(decision)
+        costs = []
+        for r in calib.rows:
+            res = client.chat_json(
+                model=model,
+                messages=baseline_messages(packer.pack(calib.event, snapshot_of(r)).state, qs),
+                schema=baseline_schema(qs),
+                purpose="baseline-estimate",
+            )
+            costs.append(res.cost_usd)
+        per_call[decision] = float(np.mean(costs))
+        plan[decision] = len(load_test(settings, decision).rows)
+    event = questions.Event.USER_PAUSE
+    qs = questions.questions_for(event)
+    calib = subsample(load_processed(settings, "turn_complete", "calib"), per_decision)
+    costs = []
+    for r in calib.rows:
+        res = client.chat_json(
+            model=model,
+            messages=baseline_messages(packer.pack(event, snapshot_of(r)).state, qs),
+            schema=baseline_schema(qs),
+            purpose="baseline-estimate",
+            use_cache=False,
+        )
+        costs.append(res.cost_usd)
+    per_call["latency"] = float(np.mean(costs))
+    plan["latency"] = settings.eval.latency_warmup + settings.eval.latency_iters
+    client.close()
+    projected = {k: per_call[k] * n for k, n in plan.items()}
+    return {
+        "model": model,
+        "pin": settings.llm.provider_pins[model].endpoint,
+        "pilot_calls_per_part": per_decision,
+        "pilot_cost_usd": ledger.spent() - before,
+        "cost_per_call_usd": per_call,
+        "calls": plan,
+        "projected_usd": projected,
+        "projected_total_usd": sum(projected.values()),
+        "spent_so_far_usd": ledger.spent(),
+        "stop_usd": ledger.stop_usd,
+    }
+
+
 def run_table_a(settings: Settings) -> list[dict[str, Any]]:
     from floorcall.evaluate.dataset import snapshot_of
 

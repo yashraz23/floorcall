@@ -634,6 +634,14 @@ def data_escalate_llm_label(
         )
 
 
+@eval_app.command("llm-estimate")
+def eval_llm_estimate() -> None:
+    """D-041: project the prompted-LLM baseline's spend from a pilot on calib rows (not test)."""
+    from floorcall.evaluate.llm_baseline import estimate_spend
+
+    console.print_json(data=estimate_spend(get_settings()))
+
+
 @eval_app.command("llm-baseline")
 def eval_llm_baseline() -> None:
     """Table A: the prompted-LLM baseline on every decision (D1/D2 subsampled)."""
