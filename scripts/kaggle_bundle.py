@@ -2,14 +2,14 @@
 
     uv run python scripts/kaggle_bundle.py
 
-Writes dist/kaggle/floorcall-table-d/, ready for `kaggle datasets create -p <dir>`:
+Writes dist/kaggle/<DATASET_SLUG>/, ready for `kaggle datasets create -p <dir>`:
 
 - floorcall/ : the committed source tree at HEAD (`git archive`, so nothing uncommitted), plus the
   processed train and calib files for all four decisions and the frozen test sets. Nothing else:
   no raw corpora, no hand-label files, no LLM labels, no checkpoints, no keys.
 - floorcall/BUNDLE.json : the commit, when it was built, the pinned versions the notebook installs,
   and the sha256 of every data file, which the notebook re-checks before training.
-- dataset-metadata.json : for the Kaggle CLI. Set its id to your Kaggle username first.
+- dataset-metadata.json : for the Kaggle CLI, id `<KAGGLE_OWNER>/<DATASET_SLUG>`.
 
 Refuses on a dirty tree: the bundle's commit is what every Kaggle result will cite as its code.
 Refuses, and deletes the bundle, if any file in it looks like a secret (D-038): a secret-looking
@@ -34,7 +34,10 @@ from importlib.metadata import version
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
-OUT = REPO / "dist" / "kaggle" / "floorcall-table-d"
+# The Kaggle dataset: the owner is Yash's Kaggle username; the id is "<owner>/<slug>".
+KAGGLE_OWNER = "yashraz"
+DATASET_SLUG = "floorcall-table-d"
+OUT = REPO / "dist" / "kaggle" / DATASET_SLUG
 DECISIONS = ("turn_complete", "barge_in", "route", "escalate")
 # Installed on Kaggle next to its own CUDA torch (never replaced: its build matches its GPUs).
 PINNED = (
@@ -161,7 +164,7 @@ def main() -> None:
     (tree / "BUNDLE.json").write_text(json.dumps(bundle, indent=2) + "\n", encoding="utf-8")
     meta = {
         "title": "floorcall Table D bundle",
-        "id": "YOUR-KAGGLE-USERNAME/floorcall-table-d",
+        "id": f"{KAGGLE_OWNER}/{DATASET_SLUG}",
         # derived from SwDA (CC BY-NC-SA 3.0), CLINC150 (CC BY 3.0) and Customer Support on
         # Twitter (CC BY-NC-SA 4.0): keep the dataset private
         "licenses": [{"name": "CC-BY-NC-SA-4.0"}],
@@ -176,9 +179,7 @@ def main() -> None:
     n = sum(1 for p in OUT.rglob("*") if p.is_file())
     print(f"wrote {OUT} ({size / 1e6:.1f} MB, {n} files) from commit {commit}")
     print("secret scan: clean (file names, key patterns, local .env values; gz data included)")
-    print(
-        "upload it PRIVATE: kaggle datasets create -p dist/kaggle/floorcall-table-d --dir-mode zip"
-    )
+    print(f"upload it PRIVATE: kaggle datasets create -p dist/kaggle/{DATASET_SLUG} --dir-mode zip")
     print("(never --public; then check the dataset page shows Private)")
 
 

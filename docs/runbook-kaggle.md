@@ -34,8 +34,9 @@ train and calib files of all four decisions, and the frozen test sets. It also w
 There are no raw corpora, no label files and no keys. The script refuses a dirty tree, because
 every Kaggle result cites the bundle's commit as its code.
 
-Edit `dist/kaggle/floorcall-table-d/dataset-metadata.json`: set `id` to
-`<your-kaggle-username>/floorcall-table-d`.
+The dataset id in `dataset-metadata.json` is `yashraz/floorcall-table-d`, built from two constants
+in `scripts/kaggle_bundle.py` (`KAGGLE_OWNER`, `DATASET_SLUG`). An "Invalid Owner Id" from the CLI
+means `KAGGLE_OWNER` is not the Kaggle username of the API token in use.
 
 ## 2. Upload it (private)
 
