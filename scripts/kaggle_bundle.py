@@ -100,7 +100,7 @@ def find_secrets(root: Path, secret_values: list[bytes]) -> list[str]:
             problems.append(f"{rel}: a secret-looking file name")
             continue
         data = p.read_bytes()
-        if p.suffix == ".gz":
+        if data[:2] == b"\x1f\x8b":  # gzip by content, whatever the name (.gz, .gz.bin)
             data = gzip.decompress(data)
         problems += [f"{rel}: matches a key pattern" for pat in SECRET_PATTERNS if pat.search(data)]
         if any(v in data for v in secret_values):
@@ -159,6 +159,12 @@ def main() -> None:
     shutil.copytree(s.paths.test_frozen, frozen)
     for p in sorted(frozen.iterdir()):
         files[f"data/test_frozen/{p.name}"] = file_entry(p)
+    # Kaggle unpacks every .gz on upload. Shipped as .gz.bin, the original bytes arrive untouched and
+    # are verified as they are; scripts/kaggle_restore.py renames them back (D-042).
+    for rel in files:
+        if rel.endswith(".gz"):
+            (tree / rel).rename(tree / f"{rel}.bin")
+            files[rel]["shipped_as"] = f"{rel}.bin"
 
     bundle = {
         "commit": commit,

@@ -3,19 +3,20 @@
     python kaggle_restore.py --input /kaggle/input/datasets/yashraz/floorcall-table-d \
         --work /kaggle/working/floorcall
 
-Kaggle unpacks uploads: it decompresses every `.jsonl.gz` into a plain `.jsonl`, and the bundle may
-land at the input root or one folder down. This finds BUNDLE.json under `--input`, copies the tree
-to `--work`, then checks every data file listed there:
+Kaggle unpacks uploads: it decompresses `.gz` files, and the bundle may land at the input root or
+one folder down. So the bundle ships every `.jsonl.gz` as `.jsonl.gz.bin` (D-042). This finds
+BUNDLE.json under `--input`, copies the tree to `--work`, and restores every data file listed
+there to its `.gz` name, verified:
 
-1. Its **content** (the decompressed bytes) must match `content_sha256`, whether Kaggle left the
-   file gzipped or unpacked it.
-2. The `.gz` is rebuilt in `--work` with floorcall's deterministic gzip (mtime 0, no filename,
-   level 9) and must match the original file's `sha256` **byte for byte**. Then the frozen-test
-   manifest and every result's `test_sha256` hold on Kaggle exactly as they do locally.
+1. **Original bytes** (the `.gz.bin` as shipped, or a `.gz`) must match the recorded `sha256`
+   exactly. No recompression is involved, so no zlib version matters.
+2. Only if Kaggle unpacked a file anyway does its **decompressed content** have to match
+   `content_sha256`. It is then re-gzipped with floorcall's deterministic gzip and must still
+   match `sha256` byte for byte. A different zlib can rebuild different bytes (CPython 3.14's
+   zlib-ng does, measured); that is a stop, never a pass.
 
-Any mismatch or missing file stops with a non-zero exit. That includes content that is right but
-recompresses to different bytes, which a different zlib could cause; the bundle is never used on
-bytes it could not verify.
+Either way, the frozen-test manifest and every result's `test_sha256` hold on Kaggle exactly as
+they do locally. Any mismatch or missing file stops with a non-zero exit.
 """
 
 from __future__ import annotations
@@ -28,6 +29,8 @@ import json
 import shutil
 import sys
 from pathlib import Path
+
+GZIP_MAGIC = b"\x1f\x8b"
 
 
 def gzip_bytes(raw: bytes) -> bytes:
@@ -51,9 +54,40 @@ def find_bundle(root: Path) -> Path:
     return hits[0].parent
 
 
+def _restore_gz(work: Path, rel: str, entry: dict[str, str]) -> tuple[str | None, str]:
+    """(problem or None, how) for one gzipped data file, written to `work/rel` when verified."""
+    target = work / rel
+    candidates = [work / f"{rel}.bin", target, work / rel.removesuffix(".gz")]
+    present = [p for p in candidates if p.exists()]
+    if not present:
+        return f"{rel}: missing (no .gz.bin, .gz or unpacked copy)", ""
+    data = present[0].read_bytes()
+    if data[:2] == GZIP_MAGIC:  # the original gzip bytes, however Kaggle named them
+        if sha256(data) != entry["sha256"]:
+            return f"{rel}: sha256 differs", ""
+        gz, how = data, f"original bytes ({present[0].name})"
+    else:  # Kaggle decompressed it
+        if sha256(data) != entry["content_sha256"]:
+            return f"{rel}: content sha256 differs", ""
+        gz = gzip_bytes(data)
+        if sha256(gz) != entry["sha256"]:
+            return (
+                f"{rel}: content verified, but this Python's gzip rebuilds different bytes (a "
+                "different zlib), so the manifest and test hashes cannot be checked",
+                "",
+            )
+        how = f"rebuilt byte for byte from Kaggle's unpacked {present[0].name}"
+    for p in present:
+        p.unlink()  # leave nothing ambiguous beside the .gz the loaders read
+    target.write_bytes(gz)
+    return None, how
+
+
 def restore(bundle_root: Path, work: Path) -> tuple[list[str], list[str]]:
-    """Copy `bundle_root` to `work` and restore every listed data file there. Returns the problems
-    (empty when everything verified), and one report line per file."""
+    """Copy `bundle_root` to `work` and restore every listed data file there.
+
+    Returns the problems (empty when everything verified) and one report line per file.
+    """
     if work.exists():
         shutil.rmtree(work)
     shutil.copytree(bundle_root, work)
@@ -61,42 +95,25 @@ def restore(bundle_root: Path, work: Path) -> tuple[list[str], list[str]]:
     problems: list[str] = []
     report: list[str] = []
     for rel, entry in sorted(bundle["files"].items()):
-        target = work / rel
-        if not rel.endswith(".gz"):
-            if not target.exists():
-                problems.append(f"{rel}: missing")
-            elif sha256(target.read_bytes()) != entry["sha256"]:
-                problems.append(f"{rel}: sha256 differs")
-            else:
-                report.append(f"{rel}: verified")
-            continue
-        unpacked = work / rel.removesuffix(".gz")
-        if target.exists():
-            raw, how = gzip.decompress(target.read_bytes()), "uploaded gzipped"
-        elif unpacked.exists():
-            raw, how = unpacked.read_bytes(), "rebuilt from Kaggle's unpacked copy"
+        if rel.endswith(".gz"):
+            problem, how = _restore_gz(work, rel, entry)
         else:
-            problems.append(f"{rel}: missing, gzipped or not")
-            continue
-        if sha256(raw) != entry["content_sha256"]:
-            problems.append(f"{rel}: content sha256 differs")
-            continue
-        gz = gzip_bytes(raw) if how.startswith("rebuilt") else target.read_bytes()
-        if sha256(gz) != entry["sha256"]:
-            problems.append(
-                f"{rel}: content verified, but this Python's gzip rebuilds different bytes "
-                "(a different zlib); the manifest and test hashes cannot be checked"
-            )
-            continue
-        target.write_bytes(gz)
-        if unpacked.exists():
-            unpacked.unlink()  # the loaders read the .gz; leave nothing ambiguous beside it
-        report.append(f"{rel}: verified, {how}")
+            target = work / rel
+            if not target.exists():
+                problem, how = f"{rel}: missing", ""
+            elif sha256(target.read_bytes()) != entry["sha256"]:
+                problem, how = f"{rel}: sha256 differs", ""
+            else:
+                problem, how = None, "original bytes"
+        if problem:
+            problems.append(problem)
+        else:
+            report.append(f"{rel}: verified, {how}")
     return problems, report
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    ap = argparse.ArgumentParser(description="Restore and verify the floorcall bundle on Kaggle.")
     ap.add_argument("--input", required=True, type=Path)
     ap.add_argument("--work", required=True, type=Path)
     args = ap.parse_args()
