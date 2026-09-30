@@ -501,11 +501,16 @@ def eval_recover_predictions(
 
 
 @eval_app.command("paired")
-def eval_paired() -> None:
-    """Paired bootstrap of fine-tuned vs stock on the same test rows, from saved predictions."""
+def eval_paired(
+    against: str = typer.Option(
+        "stock", help="stock | baselines (the best cheap one per decision)"
+    ),
+) -> None:
+    """Paired bootstrap of the fine-tuned model against stock Laya or the best cheap baseline, on
+    the same test rows, from saved predictions (no re-scoring)."""
     from floorcall.evaluate.paired import run_paired
 
-    for r in run_paired(get_settings()):
+    for r in run_paired(get_settings(), against):
         d = r["differences"]
         console.print(
             f"{r['decision']:14s} {r['a']} - {r['b']}: "

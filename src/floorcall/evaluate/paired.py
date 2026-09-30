@@ -115,12 +115,23 @@ COMPARISONS = (
 )  # fmt: skip
 
 
-def run_paired(settings: Settings) -> list[dict[str, Any]]:
+# Fine-tuned against the best cheap baseline of each decision (D-036): the lexical rule for D2, where
+# it beats TF-IDF + LR; TF-IDF + LR elsewhere, D4's at its own calib threshold.
+BASELINE_COMPARISONS = (
+    ("escalate", ("escalate.finetuned", "finetuned_temp_threshold"), ("escalate.tfidf_lr", "tfidf_lr")),
+    ("turn_complete", ("turn_complete.finetuned", "finetuned_temp"), ("turn_complete.tfidf_lr", "tfidf_lr")),
+    ("barge_in", ("barge_in.finetuned", "finetuned_temp"), ("barge_in.lexical_rule", "lexical_rule")),
+    ("route", ("route.finetuned", "finetuned_temp"), ("route.tfidf_lr", "tfidf_lr")),
+)  # fmt: skip
+SETS = {"stock": COMPARISONS, "baselines": BASELINE_COMPARISONS}
+
+
+def run_paired(settings: Settings, against: str = "stock") -> list[dict[str, Any]]:
     from floorcall.provenance import git_head
 
     code = git_head()
     out = []
-    for decision, (npz_a, model_a), (npz_b, model_b) in COMPARISONS:
+    for decision, (npz_a, model_a), (npz_b, model_b) in SETS[against]:
         a = load_scored(settings, decision, npz_a, model_a)
         b = load_scored(settings, decision, npz_b, model_b)
         payload = {
