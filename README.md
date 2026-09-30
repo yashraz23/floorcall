@@ -134,6 +134,26 @@ cooldowns between them.
 | GPU, eager: user_speech_during_agent, 2 questions in 1 call | 55.5 / 76.8 | 57.0 / 72.8 | +2.8% | 69 / 69 | 2257 / 2287 | 88 / 89 of 95 | no |
 <!-- table-b-gpu:end -->
 
+<!-- table-b-power:start -->
+All 12 GPU latency rows ran power-limited: the enforced power limit was 95 W, each row's median draw while timed was 69 to 93 W, and the driver's power cap was active in 68% of the 1497 timed samples (nvidia-smi, every 500 ms).
+<!-- table-b-power:end -->
+
+**Inference precision.** Every row above runs Laya's default on this GPU: bf16 autocast over fp32
+weights. The table below times the fine-tuned checkpoint at three precisions, back to back under the
+same thermal rules: fp32 (no autocast), bf16 and fp16 autocast. A precision is timed only if its
+answers agree with fp32's on at least 99.5% of every calib and dev set (docs/DECISIONS.md D-039).
+
+<!-- table-b-precision:start -->
+| Path | fp32 p50 / p99 ms | bf16 p50 / p99 ms | fp16 p50 / p99 ms | GPU max °C (fp32 / bf16 / fp16) | Throttled while timed |
+|---|---|---|---|---|---|
+| GPU, CUDA graphs: user_pause, 3 questions in 1 call | TODO | TODO | TODO | - / - / - | TODO |
+| GPU, CUDA graphs: user_pause, 3 questions in 3 calls | TODO | TODO | TODO | - / - / - | TODO |
+| GPU, CUDA graphs: user_speech_during_agent, 2 questions in 1 call | TODO | TODO | TODO | - / - / - | TODO |
+| GPU, eager: user_pause, 3 questions in 1 call | TODO | TODO | TODO | - / - / - | TODO |
+| GPU, eager: user_pause, 3 questions in 3 calls | TODO | TODO | TODO | - / - / - | TODO |
+| GPU, eager: user_speech_during_agent, 2 questions in 1 call | TODO | TODO | TODO | - / - / - | TODO |
+<!-- table-b-precision:end -->
+
 Both checkpoints load their weights as fp32, and they time within a few percent of each other, in
 both directions, so the latency here does not depend on the fine-tuning. The laptop GPU ran
 against its power limit for most of every row; that is its normal state under load, and it is

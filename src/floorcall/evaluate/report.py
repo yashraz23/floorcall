@@ -179,6 +179,75 @@ def table_b_gpu(root: Path = RESULTS_B) -> str:
     return "\n".join(lines)
 
 
+PRECISIONS = ("fp32", "bf16", "fp16")
+PARITY = REPO_ROOT / "results" / "precision" / "parity.json"
+
+
+def table_b_precision(root: Path = RESULTS_B, parity_path: Path = PARITY) -> str:
+    """The fine-tuned checkpoint at each inference precision, measured back to back (D-039), with
+    each precision's parity against fp32 on calib and dev."""
+    head = " | ".join(f"{p} p50 / p99 ms" for p in PRECISIONS)
+    lines = [
+        f"| Path | {head} | GPU max °C ({' / '.join(PRECISIONS)}) | Throttled while timed |",
+        "|---|" + "---|" * (len(PRECISIONS) + 2),
+    ]
+    for stem, label in LATENCY_ROWS:
+        if not stem.startswith("gpu_"):
+            continue
+        paths = [root / "precision" / p / f"{stem}.json" for p in PRECISIONS]
+        rows = [json.loads(p.read_text(encoding="utf-8")) if p.exists() else None for p in paths]
+        cells = [
+            f"{r['total_ms']['p50']:.1f} / {r['total_ms']['p99']:.1f}" if r else "TODO"
+            for r in rows
+        ]
+        temps = " / ".join(
+            f"{r['telemetry']['timed']['temperature_c']['max']:.0f}" if r else "-" for r in rows
+        )
+        seen = sorted(
+            {x for r in rows if r for x in r["telemetry"]["throttle_reasons_while_timed"]}
+        )
+        throttled = ", ".join(seen) or ("no" if any(rows) else "TODO")
+        lines.append(f"| {label} | {' | '.join(cells)} | {temps} | {throttled} |")
+    if parity_path.exists():
+        report = json.loads(parity_path.read_text(encoding="utf-8"))
+        parts = []
+        for p, entry in report["precisions"].items():
+            v = entry["verdict"]
+            parts.append(
+                f"{p}: worst argmax agreement {v['worst_argmax_agreement']:.2%} "
+                f"({v['worst_set']}), largest probability difference "
+                f"{v['max_abs_prob_diff']:.3f}, {'passed' if v['passes'] else 'FAILED'}"
+            )
+        lines.append("")
+        lines.append(
+            f"Parity against fp32 on calib and dev ({sum(report['sets'].values())} rows, never "
+            f"test; bar {next(iter(report['precisions'].values()))['verdict']['min_agreement_required']:.1%}): "
+            + "; ".join(parts)
+            + "."
+        )
+    return "\n".join(lines)
+
+
+def latency_power(root: Path = RESULTS_B) -> str:
+    """How power-limited the GPU was across every GPU latency row, from their telemetry."""
+    files = sorted(root.rglob("gpu_*.json"))
+    rows = [json.loads(f.read_text(encoding="utf-8")) for f in files]
+    rows = [r for r in rows if "telemetry" in r]
+    if not rows:
+        return "GPU power while timed: TODO."
+    timed = [r["telemetry"]["timed"] for r in rows]
+    limits = sorted({t["power_limit_w"]["max"] for t in timed if t["power_limit_w"]})
+    medians = [t["power_draw_w"]["median"] for t in timed]
+    capped = sum(t["clock_events"]["sw_power_cap"] for t in timed)
+    samples = sum(t["samples"] for t in timed)
+    return (
+        f"All {len(rows)} GPU latency rows ran power-limited: the enforced power limit was "
+        f"{' / '.join(f'{x:.0f}' for x in limits)} W, each row's median draw while timed was "
+        f"{min(medians):.0f} to {max(medians):.0f} W, and the driver's power cap was active in "
+        f"{capped / samples:.0%} of the {samples} timed samples (nvidia-smi, every 500 ms)."
+    )
+
+
 def _latency_env(root: Path = RESULTS_B) -> str:
     files = sorted(root.glob("*.json"))
     if not files:
@@ -311,6 +380,8 @@ SECTIONS = {
     "table-b": table_b,
     "table-b-env": _latency_env,
     "table-b-gpu": table_b_gpu,
+    "table-b-precision": table_b_precision,
+    "table-b-power": latency_power,
     "table-c": table_c,
     "table-d": table_d,
     "operating-points": operating_points,

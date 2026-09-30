@@ -162,6 +162,9 @@ class EvalSettings(BaseModel):
     latency_cpu_chunk_s: float = 1200.0
     latency_cpu_chunk_warmup: int = 5
     latency_cpu_cooldown_s: float = 600.0
+    # Inference precision (D-039): a bf16 or fp16 forward gets latency rows only if its argmax
+    # agrees with the fp32 forward's on at least this share of every calib and dev set.
+    precision_min_agreement: float = 0.995
     gpu_p99_budget_ms: float = 50.0
     cpu_p99_budget_ms: float = 100.0
 

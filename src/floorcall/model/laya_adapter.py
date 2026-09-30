@@ -17,7 +17,7 @@ import json
 import math
 import time
 from collections.abc import Iterator, Mapping, Sequence
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal, cast
@@ -108,6 +108,14 @@ def bucket_length(length: int, bucket: int, max_len: int) -> int:
     return max(length, min(math.ceil(length / bucket) * bucket, max_len))
 
 
+# Inference precisions on CUDA: the autocast dtype, or None for no autocast (fp32).
+PRECISIONS: dict[str, torch.dtype | None] = {
+    "fp32": None,
+    "bf16": torch.bfloat16,
+    "fp16": torch.float16,
+}
+
+
 class _CudaGraphs:
     """The decision model's forward, captured as CUDA graphs and replayed.
 
@@ -127,10 +135,15 @@ class _CudaGraphs:
     """
 
     def __init__(
-        self, model: torch.nn.Module, dtype: torch.dtype, pad_id: int, bucket: int, max_len: int
+        self,
+        model: torch.nn.Module,
+        dtype: torch.dtype | None,
+        pad_id: int,
+        bucket: int,
+        max_len: int,
     ) -> None:
         self.model = model
-        self.dtype = dtype
+        self.dtype = dtype  # the autocast dtype, or None for a plain fp32 forward
         self.pad_id = pad_id
         self.bucket = bucket
         self.max_len = max_len
@@ -154,7 +167,12 @@ class _CudaGraphs:
             static[name].copy_(batch[name])
 
     def _forward(self, static: dict[str, torch.Tensor]) -> torch.Tensor:
-        with torch.autocast(device_type="cuda", dtype=self.dtype):
+        amp = (
+            torch.autocast(device_type="cuda", dtype=self.dtype)
+            if self.dtype is not None
+            else nullcontext()
+        )
+        with amp:
             logits, _act = self.model(
                 static["input_ids"],
                 static["attention_mask"],
@@ -256,13 +274,34 @@ class LayaDecider:
         return sorted(self._graphs.graphs) if self._graphs else []
 
     def enable_cuda_graphs(self, bucket: int) -> None:
+        """Capture the forward at the current precision (see `set_precision`)."""
         if self.device != "cuda":
             raise RuntimeError(f"CUDA graphs need the model on cuda; it is on {self.device}")
-        if not self._agent.amp_enabled:
-            raise RuntimeError("CUDA graphs are built for the autocast forward Laya serves with")
+        dtype = self._agent.dtype if self._agent.amp_enabled else None
         self._graphs = _CudaGraphs(
-            self._agent.model, self._agent.dtype, self._tok.pad_token_id, bucket, self.max_len
+            self._agent.model, dtype, self._tok.pad_token_id, bucket, self.max_len
         )
+
+    @property
+    def precision(self) -> str:
+        """The precision the forward runs in: "fp32" (no autocast), "bf16" or "fp16"."""
+        if not self._agent.amp_enabled:
+            return "fp32"
+        return {torch.bfloat16: "bf16", torch.float16: "fp16"}.get(self._agent.dtype, "other")
+
+    def set_precision(self, precision: str) -> None:
+        """Inference precision on CUDA (DECISIONS.md D-039), Laya's serving modes: "fp32" (autocast
+        off) or "bf16" / "fp16" autocast over the fp32 weights. Laya reads both settings on every
+        forward. Captured CUDA graphs belong to one precision, so they are dropped; enable them
+        again afterwards."""
+        if precision not in PRECISIONS:
+            raise ValueError(f"precision must be one of {sorted(PRECISIONS)}, not {precision!r}")
+        if self.device != "cuda":
+            raise RuntimeError(f"precision variants are for cuda; the model is on {self.device}")
+        dtype = PRECISIONS[precision]
+        self._agent.amp_enabled = dtype is not None  # laya-internal
+        self._agent.dtype = dtype if dtype is not None else torch.float32  # laya-internal
+        self._graphs = None
 
     def disable_cuda_graphs(self) -> None:
         self._graphs = None

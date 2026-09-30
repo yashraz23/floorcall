@@ -73,7 +73,14 @@ def cases(d: LayaDecider, per_decision: int) -> list[tuple[dict[str, Any], dict[
 @pytest.mark.model
 @pytest.mark.gpu
 @needs_gpu
-def test_graphed_matches_eager(decider: LayaDecider) -> None:
+@pytest.mark.parametrize("precision", ["bf16", "fp32", "fp16"])
+def test_graphed_matches_eager(decider: LayaDecider, precision: str) -> None:
+    # every inference precision (D-039) captures and replays the same function as its eager forward
+    decider.set_precision(precision)
+    assert decider.precision == precision
+    assert (
+        decider.autocast_dtype == {"fp32": None, "bf16": "bfloat16", "fp16": "float16"}[precision]
+    )
     sample = cases(decider, per_decision=20)
     decider.disable_cuda_graphs()
     eager = [decider.logits_one(st, qs) for st, qs in sample]
@@ -99,6 +106,7 @@ def test_graphed_matches_eager(decider: LayaDecider) -> None:
     assert not real_flips, f"decisions with a real margin flipped: {real_flips}"
     assert max_dz <= 0.3, f"max |dlogit| {max_dz:.4f}"
     assert max_dp <= 0.06, f"max |dp| {max_dp:.4f}"
+    decider.set_precision("bf16")  # the checkpoint's default, for the tests that follow
 
 
 @pytest.mark.model

@@ -480,21 +480,35 @@ def run(
     which: str = "all",
     *,
     compare_stock: bool = False,
+    precisions: Sequence[str] = (),
     log: Callable[[str], None] = print,
 ) -> list[dict[str, Any]]:
-    """Measure the selected rows under the thermal rules; return the rows kept."""
+    """Measure the selected rows under the thermal rules; return the rows kept.
+
+    `precisions` (D-039) measures the configured checkpoint at each precision instead, interleaved
+    row by row like the stock comparison; each goes to results/table_b/precision/<precision>/, and a
+    precision that failed the parity check is refused.
+    """
+    from floorcall.evaluate.precision import passing
     from floorcall.model.laya_adapter import LayaDecider
 
     selected = [r for r in ROWS if which == "all" or r.name.startswith(which)]
+    # arms: (name, which loaded model, precision to set or None, where kept rows go)
+    arms: list[tuple[str, str, str | None, Path]] = [("configured", "configured", None, RESULTS)]
+    lays = {"configured": settings.laya}
+    if compare_stock:
+        if settings.laya.checkpoint == LayaSettings().checkpoint:
+            raise ValueError("--compare-stock needs a non-stock checkpoint configured")
+        lays["stock"] = LayaSettings()
+        arms.append(("stock", "stock", None, RESULTS / "stock"))
+    if precisions:
+        if refused := [p for p in precisions if not passing(p)]:
+            raise ValueError(f"no latency rows for {refused}: they did not pass the parity check")
+        arms = [(p, "configured", p, RESULTS / "precision" / p) for p in precisions]
     # Provenance is read when the run starts: the code executing is what was loaded then, and
     # edits to files during a long run do not change it.
     code = git_head()
     env = environment()
-    models = {"configured": settings.laya}
-    if compare_stock:
-        if settings.laya.checkpoint == LayaSettings().checkpoint:
-            raise ValueError("--compare-stock needs a non-stock checkpoint configured")
-        models["stock"] = LayaSettings()
     out = []
     for device in ("cuda", "cpu"):
         rows = [r for r in selected if r.device == device]
@@ -502,13 +516,24 @@ def run(
             continue
         loaded = {
             name: LayaDecider(LayaSettings(**{**lay.model_dump(), "device": device}))
-            for name, lay in models.items()
+            for name, lay in lays.items()
+            if any(a[1] == name for a in arms)
         }
         for i, row in enumerate(rows):
-            # alternate which model goes first, so drift over the session hits both alike
-            order = list(loaded) if i % 2 == 0 else list(reversed(loaded))
-            for name in order:
-                kept = measure_row(settings, row, loaded[name], name, code, env, log)
+            # rotate which arm goes first, so drift over the session hits every arm alike
+            k = i % len(arms)
+            for name, model_key, precision, target in arms[k:] + arms[:k]:
+                kept = measure_row(
+                    settings,
+                    row,
+                    loaded[model_key],
+                    name,
+                    code,
+                    env,
+                    log,
+                    target=target,
+                    precision=precision,
+                )
                 if kept is not None:
                     out.append(kept)
         for model in loaded.values():
@@ -529,10 +554,13 @@ def measure_row(
     probe_factory: Callable[[], GpuProbe] | None = None,
     wait: Callable[..., dict[str, Any]] = wait_until_cool,
     sleep: Callable[[float], None] = time.sleep,
+    target: Path | None = None,
+    precision: str | None = None,
 ) -> dict[str, Any] | None:
     """One row for one model: gate, measure with telemetry, then keep or discard and retry."""
     ev = settings.eval
-    target = RESULTS / "stock" if name == "stock" else RESULTS
+    if target is None:
+        target = RESULTS / "stock" if name == "stock" else RESULTS
     decider = Decider(model, settings.state)
     snaps = inputs(settings, row.event)
     gate_kw = {
@@ -548,6 +576,8 @@ def measure_row(
 
     for attempt in range(1, ev.latency_max_attempts + 1):
         gate = wait(ev.latency_start_max_temp_c, **gate_kw)
+        if precision is not None:
+            model.set_precision(precision)  # drops any captured graphs; recaptured below
         if row.graphs:
             model.enable_cuda_graphs(settings.laya.graph_bucket_tokens)
         else:
@@ -584,6 +614,7 @@ def measure_row(
             "device": model.device,
             "cuda_graphs": model.cuda_graphs,
             "autocast": model.autocast_dtype,
+            "precision": getattr(model, "precision", None),
             "event": row.event.value,
             "questions": list(questions.EVENT_QUESTIONS[row.event]),
             "sequential": row.sequential,

@@ -412,6 +412,9 @@ def eval_latency(
     compare_stock: bool = typer.Option(
         False, help="also measure the stock checkpoint, row by row (results/table_b/stock/)"
     ),
+    precisions: str = typer.Option(
+        "", help="e.g. fp32,bf16,fp16: the configured checkpoint at each precision (D-039)"
+    ),
 ) -> None:
     """Table B: batch-1 decision latency under the thermal rules (D-037) -> results/table_b/.
 
@@ -420,7 +423,10 @@ def eval_latency(
     """
     from floorcall.evaluate import latency
 
-    for r in latency.run(get_settings(), rows, compare_stock=compare_stock, log=console.print):
+    chosen = tuple(p.strip() for p in precisions.split(",") if p.strip())
+    for r in latency.run(
+        get_settings(), rows, compare_stock=compare_stock, precisions=chosen, log=console.print
+    ):
         t, tel = r["total_ms"], r["telemetry"]["timed"]
         temp, sm = tel["temperature_c"] or {}, tel["sm_clock_mhz"] or {}
         console.print(
@@ -481,6 +487,34 @@ def eval_checkpoint(
     from floorcall.evaluate.checkpoint import evaluate_table_a
 
     _print_rows(evaluate_table_a(get_settings(), checkpoint))
+
+
+@eval_app.command("precision-parity")
+def eval_precision_parity(
+    checkpoint: Annotated[Path, typer.Option(help="a calibrated training run directory")],
+) -> None:
+    """D-039: do bf16 and fp16 forwards agree with fp32 on calib and dev (never test)?"""
+    from floorcall.evaluate.precision import run_parity
+
+    report = run_parity(get_settings(), checkpoint)
+    for p, entry in report["precisions"].items():
+        v = entry["verdict"]
+        console.print(
+            f"{p}: {'PASS' if v['passes'] else 'FAIL'}  worst argmax agreement "
+            f"{v['worst_argmax_agreement']:.4%} ({v['worst_set']}), max |dp| "
+            f"{v['max_abs_prob_diff']:.2e}"
+        )
+        for key, st in entry["sets"].items():
+            extra = (
+                f"  threshold agreement {st['threshold_agreement']:.4%}"
+                if "threshold" in st
+                else ""
+            )
+            console.print(
+                f"   {key:22s} n {st['n']:6d}  argmax {st['argmax_agreement']:.4%} "
+                f"({st['argmax_disagreements']} differ)  max |dp| {st['max_abs_prob_diff']:.2e}  "
+                f"mean |dp| {st['mean_abs_prob_diff']:.2e}{extra}"
+            )
 
 
 @eval_app.command("recover-predictions")
