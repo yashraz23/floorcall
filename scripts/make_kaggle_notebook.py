@@ -73,20 +73,39 @@ bundle = json.loads(Path(WORK, "BUNDLE.json").read_text())
 code(
     """
 # Pinned dependencies next to Kaggle's own CUDA torch (never replaced), then floorcall itself,
-# editable, so its paths resolve inside WORK.
+# editable, so its paths resolve inside WORK. Kaggle runs Python 3.12 while pyproject pins 3.11,
+# so the editable install ignores requires-python (DECISIONS.md D-043). This kernel imports none
+# of these packages: everything that uses them runs in a fresh subprocess, which loads the pinned
+# versions from disk.
 pins = [f"{name}=={v}" for name, v in bundle["pinned"].items()]
 subprocess.run([sys.executable, "-m", "pip", "install", "-q", *pins], check=True)
-subprocess.run([sys.executable, "-m", "pip", "install", "-q", "--no-deps", "-e", WORK], check=True)
+subprocess.run(
+    [sys.executable, "-m", "pip", "install", "-q", "--no-deps", "--ignore-requires-python",
+     "-e", WORK],
+    check=True,
+)
 """
 )
 code(
     """
 # The environment this arm runs in. T4 and P100 (compute capability < 8) have no fast bf16, so
 # training runs in fp16 with dynamic loss scaling; Laya also serves them in fp16.
-import torch
-
-cap = torch.cuda.get_device_capability(0)
-print("torch", torch.__version__, "|", torch.cuda.get_device_name(0), "| capability", cap)
+# Asked in a subprocess, like everything after the pip cell, so this kernel never holds a
+# pre-upgrade numpy or pydantic.
+probe = subprocess.run(
+    [sys.executable, "-c",
+     "import json, platform, numpy, pandas, torch; print(json.dumps({"
+     "'python': platform.python_version(), 'torch': torch.__version__, "
+     "'numpy': numpy.__version__, 'pandas': pandas.__version__, "
+     "'gpu': torch.cuda.get_device_name(0), "
+     "'capability': list(torch.cuda.get_device_capability(0))}))"],
+    check=True, capture_output=True, text=True,
+)
+info = json.loads(probe.stdout.strip().splitlines()[-1])
+print(info)
+assert info["numpy"] == bundle["pinned"]["numpy"], "the pinned numpy is not what a new process loads"
+assert info["pandas"] == bundle["pinned"]["pandas"], "the pinned pandas is not what a new process loads"
+cap = info["capability"]
 env = {"FLOORCALL_CODE": bundle["commit"] + "-kaggle"}
 if cap[0] < 8:
     env["FLOORCALL_TRAIN__AMP_DTYPE"] = "fp16"
@@ -114,12 +133,15 @@ shutil.rmtree("/kaggle/working/smoke", ignore_errors=True)
 floorcall("train", "run", "--out", "/kaggle/working/smoke", "--ablation", ARM, extra=smoke)
 log = [json.loads(l) for l in open("/kaggle/working/smoke/train_log.jsonl")]
 rate = [r["rows_per_s"] for r in log if "update" in r][-1]
-sys.path.insert(0, f"{WORK}/src")
-from floorcall.config import get_settings
-
-cfg = get_settings().train
-epochs = EPOCHS or cfg.epochs
-rows = sum(cfg.rows_per_epoch.values()) * epochs
+train_cfg = subprocess.run(
+    [sys.executable, "-c",
+     "import json; from floorcall.config import get_settings; t = get_settings().train; "
+     "print(json.dumps({'epochs': t.epochs, 'rows': sum(t.rows_per_epoch.values())}))"],
+    check=True, capture_output=True, text=True, cwd=WORK,
+)
+cfg = json.loads(train_cfg.stdout.strip().splitlines()[-1])
+epochs = EPOCHS or cfg["epochs"]
+rows = cfg["rows"] * epochs
 print(f"smoke ok: {rate:.1f} rows/s -> this arm needs about {rows / rate / 3600:.1f} h of training "
       f"for {epochs} epochs, plus item building and calibration (Kaggle stops a session at 12 h)")
 shutil.rmtree("/kaggle/working/smoke")
