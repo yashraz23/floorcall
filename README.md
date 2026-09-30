@@ -186,16 +186,23 @@ probability level/2, and the last one or two words missing with probability leve
 <!-- table-c:start -->
 | Decision | noise 0.00 | noise 0.05 | noise 0.10 | noise 0.20 |
 |---|---|---|---|---|
-| D1 turn_complete | TODO | TODO | TODO | TODO |
-| D2 barge_in | TODO | TODO | TODO | TODO |
-| D3 route | TODO | TODO | TODO | TODO |
-| D4 escalate | TODO | TODO | TODO | TODO |
+| D1 turn_complete | 0.814 (0.820) | 0.775 (0.786) | 0.743 (0.760) | 0.679 (0.713) |
+| D2 barge_in | 0.937 (0.969) | 0.865 (0.927) | 0.810 (0.887) | 0.728 (0.814) |
+| D3 route | 0.906 (0.948) | 0.882 (0.937) | 0.845 (0.919) | 0.759 (0.878) |
+| D4 escalate | 0.672 (0.695) | 0.650 (0.675) | 0.643 (0.680) | 0.631 (0.665) |
 <!-- table-c:end -->
+
+Table C is scored at the fp16 default (docs/DECISIONS.md D-040), and Table A's fine-tuned rows at
+bf16, the default then. So the noise 0.00 column is Table A's "fine-tuned + temperature" computation
+at a different precision. It differs on 37 of 14,998 D1 predictions and 5 of 13,360 D2 predictions,
+and on none for D3 or D4, which moves accuracy and macro-F1 by at most 0.0003.
 
 ### Table D: ablations
 
-Each variant is a separately trained, calibrated checkpoint, scored under the same state settings it
-trained with. The normalization ablation is scored twice: on written text, where punctuation leaks
+Table D is trained on Kaggle: four arms (the full model and the three ablations), 2 epochs each,
+with the Kaggle full arm as the reference its ablations are read against, not r2 (docs/DECISIONS.md
+D-038). Each variant is a separately trained, calibrated checkpoint, scored under the same state
+settings it trained with. The normalization ablation is scored twice: on written text, where punctuation leaks
 the answer, and on ASR-style text, which is what a live pipeline delivers.
 
 <!-- table-d:start -->
@@ -221,7 +228,7 @@ then `eval figures` and `eval readme`.
 | Model | θ_interrupt | false stops (test) | missed interruptions (test) | θ_yield | premature responses (test) | added delay, ms (test) |
 |---|---|---|---|---|---|---|
 | stock Laya | 0.340 | 0.040 | 0.931 | 0.630 | 0.055 | 1599 |
-| fine-tuned + temperature | TODO | TODO | TODO | TODO | TODO | TODO |
+| fine-tuned + temperature | 0.090 | 0.050 | 0.003 | 0.785 | 0.043 | 903 |
 <!-- operating-points:end -->
 
 <!-- figures:start -->
@@ -235,7 +242,10 @@ then `eval figures` and `eval readme`.
   <img alt="θ_yield: premature responses against added delay" src="results/figures/tradeoff_yield.light.png" width="640">
 </picture>
 
-*Reliability, fine-tuned model, before and after temperature*: TODO
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="results/figures/reliability_finetuned_temp.dark.png">
+  <img alt="Reliability, fine-tuned model, before and after temperature" src="results/figures/reliability_finetuned_temp.light.png" width="640">
+</picture>
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="results/figures/reliability_stock_laya.dark.png">

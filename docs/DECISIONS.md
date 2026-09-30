@@ -925,3 +925,34 @@ was 90–115 W, and each row's median draw was 76–111 W.
   the previous session. That is read as a first-row effect, not an effect of the weights.
 - The precision table stays as the record of its own session (`00edac0`), in which the enforced
   limit was 85–95 W. The README's power note gives each session's telemetry separately.
+*Step 3 outcome (2026-09-30 UTC; code `fbde4d1`; fp16; each run under `scripts/thermal_guard.py`,
+peak 78 °C, no abort).*
+- **Operating points** (`results/curves/finetuned_temp.json`). They are chosen on calib and read on
+  test.
+  - θ_interrupt 0.090: false stops 5.0%, missed interruptions 0.3%. Stock Laya at its own θ (0.34)
+    misses 93.1%.
+  - θ_yield 0.785: premature responses 4.3%, 903 ms of added delay. Stock Laya adds 1,599 ms.
+- **Reliability**, ECE before → after temperature on test:
+
+  | Decision | Before | After |
+  |---|---|---|
+  | D1 | 0.020 | 0.010 |
+  | D2 | 0.008 | 0.004 |
+  | D3 | 0.043 | 0.010 |
+  | D4 | 0.275 | 0.064 |
+
+- **Table C**, macro-F1 at noise 0 → 0.20:
+
+  | Decision | Noise 0 | Noise 0.20 |
+  |---|---|---|
+  | D1 | 0.814 | 0.679 |
+  | D2 | 0.937 | 0.728 |
+  | D3 | 0.906 | 0.759 |
+  | D4 | 0.672 | 0.631 |
+
+- **The D-024 check.** Table C at noise 0.00 against Table A's "fine-tuned + temperature" row
+  differs only by precision (fp16 against bf16). Predictions differ on 37 of 14,998 D1 rows and 5
+  of 13,360 D2 rows, and on none for D3 or D4. Accuracy and macro-F1 move by at most 0.0003, and
+  ECE by at most 0.0007. This is shown in the README, not hidden.
+- The figures' "no skill" label moved above the diagonal, where it no longer sits on stock Laya's
+  curve.

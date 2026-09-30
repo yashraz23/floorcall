@@ -1,0 +1,52 @@
+{
+  "decision": "turn_complete",
+  "test_file": "turn_complete.test.v1.jsonl.gz",
+  "test_sha256": "61535c7876b307c20001be578eb692dfb9d43d7e7c5e59c1a7f2cc6108ff7f3c",
+  "checkpoint": "checkpoints\\main-r2",
+  "trained_at": "00fac02",
+  "code": "fbde4d1",
+  "labels": [
+    "false",
+    "true"
+  ],
+  "model": "finetuned_temp",
+  "precision": "fp16",
+  "noise_level": 0.0,
+  "temperature": 1.0812709913290557,
+  "metrics": {
+    "n": 14998,
+    "accuracy": 0.8197759701293506,
+    "accuracy_ci95": [
+      0.8135426517223753,
+      0.8258455151277534
+    ],
+    "macro_f1": 0.8136978514602138,
+    "ece": 0.010497209444324293,
+    "brier": 0.24247504940500747,
+    "mean_confidence": 0.830273179573675,
+    "per_class": {
+      "false": {
+        "support": 8843,
+        "precision": 0.8463447653429603,
+        "recall": 0.848354630781409
+      },
+      "true": {
+        "support": 6155,
+        "precision": 0.7813824584284317,
+        "recall": 0.7787164906580016
+      }
+    },
+    "confusion": [
+      [
+        7502,
+        1341
+      ],
+      [
+        1362,
+        4793
+      ]
+    ],
+    "hard_n": 775,
+    "hard_accuracy": 0.7251612903225807
+  }
+}

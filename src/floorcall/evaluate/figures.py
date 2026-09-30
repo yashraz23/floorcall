@@ -126,11 +126,12 @@ def _no_skill(ax: Axes, t: dict[str, Any], x: list[float], y: list[float]) -> No
     ax.annotate(
         "no skill",
         ((x[0] + x[1]) / 2, (y[0] + y[1]) / 2),
-        xytext=(-4, -14),
+        # above the diagonal: stock Laya's curves run on it or just under it
+        xytext=(6, 6),
         textcoords="offset points",
         fontsize=8,
         color=t["muted"],
-        ha="right",
+        ha="left",
     )
 
 

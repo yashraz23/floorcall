@@ -1,0 +1,65 @@
+{
+  "decision": "barge_in",
+  "test_file": "barge_in.test.v1.jsonl.gz",
+  "test_sha256": "c3b1461f0b625ad7cdf33732746786011a7f3e39a8d1798975875a2235716f14",
+  "checkpoint": "checkpoints\\main-r2",
+  "trained_at": "00fac02",
+  "code": "fbde4d1",
+  "labels": [
+    "backchannel",
+    "interruption",
+    "noise"
+  ],
+  "model": "finetuned_temp",
+  "precision": "fp16",
+  "noise_level": 0.1,
+  "temperature": 1.1973677978358157,
+  "metrics": {
+    "n": 13360,
+    "accuracy": 0.886751497005988,
+    "accuracy_ci95": [
+      0.8812662846093932,
+      0.8920143564900943
+    ],
+    "macro_f1": 0.8098635928039757,
+    "ece": 0.06813565618329387,
+    "brier": 0.1730492607938014,
+    "mean_confidence": 0.9546986658604469,
+    "per_class": {
+      "backchannel": {
+        "support": 5659,
+        "precision": 0.9835079117450413,
+        "recall": 0.7798197561406609
+      },
+      "interruption": {
+        "support": 6700,
+        "precision": 0.9585598824393828,
+        "recall": 0.9735820895522388
+      },
+      "noise": {
+        "support": 1001,
+        "precision": 0.44052224371373305,
+        "recall": 0.9100899100899101
+      }
+    },
+    "confusion": [
+      [
+        4413,
+        215,
+        1031
+      ],
+      [
+        51,
+        6523,
+        126
+      ],
+      [
+        23,
+        67,
+        911
+      ]
+    ],
+    "hard_n": 5012,
+    "hard_accuracy": 0.8778930566640064
+  }
+}
