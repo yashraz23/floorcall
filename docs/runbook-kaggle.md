@@ -40,10 +40,20 @@ means `KAGGLE_OWNER` is not the Kaggle username of the API token in use.
 
 ## 2. Upload it (private)
 
+The CLI runs through `uvx`, with no install. The API token goes in `~/.kaggle/kaggle.json`
+(Kaggle → Settings → API).
+
 ```bash
-pip install kaggle                  # once; API token in ~/.kaggle/kaggle.json (Kaggle → Settings → API)
-kaggle datasets create -p dist/kaggle/floorcall-table-d --dir-mode zip
+# first upload (private by default)
+uvx --from "kaggle>=1.8" kaggle datasets create -p dist/kaggle/floorcall-table-d --dir-mode zip
+# every later bundle: a new version of the same dataset
+uvx --from "kaggle>=1.8" kaggle datasets version -p dist/kaggle/floorcall-table-d -m "bundle <commit>" --dir-mode zip
 ```
+
+**Kaggle unpacks uploads** (D-042). It decompresses every `.gz` and flattens the bundle folder to
+the dataset's input root, `/kaggle/input/datasets/yashraz/floorcall-table-d`. So the bundle ships
+every `.jsonl.gz` as `.jsonl.gz.bin`, which Kaggle leaves alone. `BUNDLE.json` records each file's
+sha256 and the sha256 of its decompressed content.
 
 **The dataset must be private. Never pass `--public`.** A new dataset is private unless it is
 given. It holds the frozen test sets and is derived from Customer Support on Twitter
@@ -55,16 +65,17 @@ given. It holds the frozen test sets and is derived from Customer Support on Twi
 
 The bundle script has already scanned every file (D-038): names like `.env` or `kaggle.json`, key
 patterns, and every value from the local `.env`, inside the gzipped data too. It refuses the bundle
-on any hit. After a later commit, rebuild and push a new version with
-`kaggle datasets version -p dist/kaggle/floorcall-table-d -m "<commit>" --dir-mode zip`. A new
-version keeps the dataset private.
+on any hit. After a later commit, rebuild and push a new version with the `version` command above.
+A new version keeps the dataset private.
 
 ## 3. The notebook
 
 1. Kaggle → **Create → New notebook → File → Import notebook**, then choose
    `kaggle/floorcall_table_d.ipynb`.
 2. **Add input**, then pick the `floorcall-table-d` dataset. It mounts at
-   `/kaggle/input/floorcall-table-d/`; if the path differs, set `BUNDLE` in the first cell.
+   `/kaggle/input/datasets/yashraz/floorcall-table-d/`, the notebook's default `BUNDLE`; if the path
+   differs, set `BUNDLE` in the first cell. The bundle may sit at that root or one folder down, and
+   the notebook finds `BUNDLE.json` either way.
 3. Session options: **Accelerator: GPU T4 x2** (one GPU is used) or P100, and **Internet: on**,
    for pip and the pinned Laya checkpoint.
 4. In the first cell set `ARM`. `EPOCHS` stays 2 (D-038). Optionally set `SMOKE_ONLY = True`
@@ -77,7 +88,7 @@ What the notebook does, and where it stops if anything is off:
 
 | Cell | Does | Stops if |
 |---|---|---|
-| bundle | copies the bundle to `/kaggle/working/floorcall`, re-hashes every data file | any file differs from `BUNDLE.json` |
+| bundle | `scripts/kaggle_restore.py` (standard library only): copies the bundle to `/kaggle/working/floorcall` and verifies every data file. It checks the original bytes of each `.gz.bin` and renames them back to `.gz`. If Kaggle unpacked one anyway, it checks the decompressed content, then rebuilds the `.gz` and requires the original bytes. | any file missing or differing, or a rebuilt `.gz` that does not match byte for byte |
 | install | pinned versions from `BUNDLE.json`; Kaggle's own CUDA torch is kept | pip fails |
 | environment | prints torch, GPU and capability; on capability < 8, sets `FLOORCALL_TRAIN__AMP_DTYPE=fp16` | — |
 | smoke | the whole training path on 600 train rows per task, 2 epochs of 64 rows; prints the time estimate | anything fails: the fp16 path has not run on a T4 before this cell |
