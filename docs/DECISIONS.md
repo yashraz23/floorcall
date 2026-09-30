@@ -896,8 +896,10 @@ session:
   overclock.
 - **Windows power mode was set to Best performance.** The AC overlay GUID is `ded574b5…`, over the
   Balanced plan.
-- **The GPU's enforced power limit was 102 W**, the vendor default: 80 W base (`nvidia-smi`'s
-  `power.default_limit`) plus Dynamic Boost. `nvidia-smi` reports a min of 5 W and a max of 125 W.
+- **The GPU's enforced power limit is the vendor default:** 80 W base (`nvidia-smi`'s
+  `power.default_limit`) plus Dynamic Boost, which moves it by itself. It read 102 W, and then 115 W
+  at idle just before the session. `nvidia-smi` reports a min of 5 W and a max of 125 W. The limit
+  actually enforced while each row ran is in that row's telemetry.
 Every row records the environment it ran in, including these values and its per-row telemetry.
 This session, fine-tuned and stock back to back at the fp16 default under all the thermal rules,
 replaces Table B's GPU rows. Its p99 is reported as measured, with no further optimization.
