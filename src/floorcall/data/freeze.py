@@ -31,13 +31,20 @@ class FrozenSetChangedError(RuntimeError):
     """A rebuild produced different bytes for an already-frozen test set."""
 
 
-def jsonl_gz_bytes(rows: Iterable[Mapping[str, Any]]) -> bytes:
-    text = "".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows)
+def gzip_bytes(raw: bytes) -> bytes:
+    """Deterministic gzip: the same input gives the same bytes. scripts/kaggle_restore.py keeps an
+    identical copy (it runs before floorcall is installed) to rebuild uploads Kaggle unpacked; a
+    test checks the two agree."""
     buf = io.BytesIO()
     # filename="" and mtime=0 keep the gzip header free of anything but the data
     with gzip.GzipFile(filename="", mode="wb", fileobj=buf, mtime=0, compresslevel=9) as gz:
-        gz.write(text.encode("utf-8"))
+        gz.write(raw)
     return buf.getvalue()
+
+
+def jsonl_gz_bytes(rows: Iterable[Mapping[str, Any]]) -> bytes:
+    text = "".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows)
+    return gzip_bytes(text.encode("utf-8"))
 
 
 def read_jsonl_gz(path: Path) -> list[dict[str, Any]]:

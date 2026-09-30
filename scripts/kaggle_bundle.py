@@ -114,8 +114,14 @@ def git(*args: str) -> str:
     ).stdout
 
 
-def sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+def file_entry(path: Path) -> dict[str, str]:
+    """The bytes' sha256; for a .gz, also its decompressed content's (D-042): Kaggle unpacks every
+    .jsonl.gz on upload, and scripts/kaggle_restore.py verifies the content and rebuilds the .gz."""
+    data = path.read_bytes()
+    entry = {"sha256": hashlib.sha256(data).hexdigest()}
+    if path.name.endswith(".gz"):
+        entry["content_sha256"] = hashlib.sha256(gzip.decompress(data)).hexdigest()
+    return entry
 
 
 def main() -> None:
@@ -141,18 +147,18 @@ def main() -> None:
     from floorcall.data.build import processed_file
 
     s = get_settings()
-    files: dict[str, str] = {}
+    files: dict[str, dict[str, str]] = {}
     for d in DECISIONS:
         for split in ("train", "calib"):
             src = s.paths.data_processed / processed_file(d, split)
             dst = tree / "data" / "processed" / src.name
             dst.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(src, dst)
-            files[f"data/processed/{src.name}"] = sha256(dst)
+            files[f"data/processed/{src.name}"] = file_entry(dst)
     frozen = tree / "data" / "test_frozen"
     shutil.copytree(s.paths.test_frozen, frozen)
     for p in sorted(frozen.iterdir()):
-        files[f"data/test_frozen/{p.name}"] = sha256(p)
+        files[f"data/test_frozen/{p.name}"] = file_entry(p)
 
     bundle = {
         "commit": commit,
@@ -179,7 +185,14 @@ def main() -> None:
     n = sum(1 for p in OUT.rglob("*") if p.is_file())
     print(f"wrote {OUT} ({size / 1e6:.1f} MB, {n} files) from commit {commit}")
     print("secret scan: clean (file names, key patterns, local .env values; gz data included)")
-    print(f"upload it PRIVATE: kaggle datasets create -p dist/kaggle/{DATASET_SLUG} --dir-mode zip")
+    kaggle = 'uvx --from "kaggle>=1.8" kaggle'
+    print(
+        f"first upload, PRIVATE: {kaggle} datasets create -p dist/kaggle/{DATASET_SLUG} --dir-mode zip"
+    )
+    print(
+        f"new version: {kaggle} datasets version -p dist/kaggle/{DATASET_SLUG} "
+        f'-m "bundle {commit}" --dir-mode zip'
+    )
     print("(never --public; then check the dataset page shows Private)")
 
 
