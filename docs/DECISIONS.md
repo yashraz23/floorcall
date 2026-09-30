@@ -956,3 +956,17 @@ peak 78 °C, no abort).*
   ECE by at most 0.0007. This is shown in the README, not hidden.
 - The figures' "no skill" label moved above the diagonal, where it no longer sits on stock Laya's
   curve.
+*D-037 outcome: CPU latency rows (2026-09-30 UTC; code `74cf2b0`).* These are the fine-tuned
+checkpoint at fp32, the CPU forward, with Best performance recorded. They replace Table B's CPU
+rows from 28 September, which were the stock checkpoint's. Each row was kept on its first attempt.
+
+| Path | p50 ms | p99 ms | Chunks |
+|---|---|---|---|
+| user_pause, 1 call | 976.9 | 2,219.8 | 836 calls in 20.0 min, a 10-minute cooldown and the gate, then 164 calls |
+| user_pause, 3 calls | 680.9 | 1,953.6 | one chunk, 18.6 min |
+| barge-in | 1,153.6 | 1,464.5 | one chunk, 19.3 min |
+
+- **Every CPU path misses p99 ≤ 100 ms by 15–22×.** Reported as measured.
+- As in the spike (D-014), the sequential user_pause is faster than the batched one on CPU,
+  because every batched row pads to the longest.
+- The GPU, sampled as a heat proxy, peaked at 63 °C.

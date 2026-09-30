@@ -104,9 +104,9 @@ readme`). Budgets: p99 ≤ 50 ms on GPU, ≤ 100 ms on CPU.
 | GPU, eager: user_pause, 3 questions in 1 call | 56.4 | 82.3 | 88.5 | 50.3 | 1.1 | no (≤ 50 ms) |
 | GPU, eager: user_pause, 3 questions in 3 calls | 120.4 | 158.6 | 179.3 | 110.0 | 0.9 | no (≤ 50 ms) |
 | GPU, eager: user_speech_during_agent, 2 questions in 1 call | 55.4 | 66.4 | 73.7 | 49.1 | 2.5 | no (≤ 50 ms) |
-| CPU: user_pause, 3 questions in 1 call | 1160.9 | 2577.6 | 2647.8 | 1156.7 | 0.7 | no (≤ 100 ms) |
-| CPU: user_pause, 3 questions in 3 calls | 822.6 | 2299.0 | 2347.1 | 814.9 | 0.6 | no (≤ 100 ms) |
-| CPU: user_speech_during_agent, 2 questions in 1 call | 1351.5 | 1716.0 | 1750.9 | 1347.1 | 1.6 | no (≤ 100 ms) |
+| CPU: user_pause, 3 questions in 1 call | 976.9 | 2162.4 | 2219.8 | 973.1 | 0.7 | no (≤ 100 ms) |
+| CPU: user_pause, 3 questions in 3 calls | 680.9 | 1899.1 | 1953.6 | 674.0 | 0.6 | no (≤ 100 ms) |
+| CPU: user_speech_during_agent, 2 questions in 1 call | 1153.6 | 1426.7 | 1464.5 | 1149.7 | 1.4 | no (≤ 100 ms) |
 | prompted LLM (OpenRouter), user_pause, 3 questions in 1 call, network included | TODO | TODO | TODO | TODO | TODO | TODO |
 <!-- table-b:end -->
 
@@ -123,8 +123,9 @@ base plus Dynamic Boost. Every row waited for the GPU to cool to 55 °C, was sam
 throughout, and would have been discarded and retried had the GPU throttled while it was timed
 (docs/DECISIONS.md D-037). None did; the table below shows each row's conditions. **No GPU path
 meets p99 ≤ 50 ms**, and the p99 is reported as measured. Earlier GPU numbers were taken overclocked
-and are discarded. The CPU rows are the stock checkpoint's from 28 September; they will be
-re-measured in chunks with cooldowns between them.
+and are discarded. The CPU rows are the fine-tuned checkpoint at fp32 (the CPU forward), measured
+2026-09-30 in chunks of at most 20 minutes, with a 10-minute cooldown and the temperature gate
+between chunks (docs/DECISIONS.md D-037). **Every CPU path misses p99 ≤ 100 ms by 15–22×.**
 
 <!-- table-b-gpu:start -->
 | Path | Stock p50 / p99 ms | Fine-tuned p50 / p99 ms | Fine-tuned vs stock, p50 | GPU max °C (stock / fine-tuned) | SM clock median, MHz | Power median / limit, W | Throttled while timed |
