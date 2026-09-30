@@ -1,0 +1,54 @@
+{
+  "decision": "turn_complete",
+  "test_file": "turn_complete.test.v1.jsonl.gz",
+  "test_sha256": "61535c7876b307c20001be578eb692dfb9d43d7e7c5e59c1a7f2cc6108ff7f3c",
+  "a": "finetuned_temp",
+  "b": "tfidf_lr",
+  "n": 14998,
+  "samples": 10000,
+  "seed": 20260927,
+  "method": "paired percentile bootstrap: both models on the same resampled rows",
+  "code": "fb81818",
+  "differences": {
+    "accuracy": {
+      "a": 0.8195759434591279,
+      "b": 0.6236831577543672,
+      "difference": 0.19589278570476065,
+      "ci95": [
+        0.18642485664755304,
+        0.2050940125350047
+      ],
+      "share_a_not_better": 0.0
+    },
+    "macro_f1": {
+      "a": 0.8134118522252107,
+      "b": 0.5444155671818094,
+      "difference": 0.26899628504340134,
+      "ci95": [
+        0.25899342233451045,
+        0.2789478965101363
+      ],
+      "share_a_not_better": 0.0
+    },
+    "ece": {
+      "a": 0.010285259162463919,
+      "b": 0.008184556133183843,
+      "difference": 0.0021007030292800755,
+      "ci95": [
+        -0.007232661581576063,
+        0.00738787200234679
+      ],
+      "share_a_not_better": 0.524
+    },
+    "brier": {
+      "a": 0.24252619368717537,
+      "b": 0.45638543419792493,
+      "difference": -0.21385924051074956,
+      "ci95": [
+        -0.22032591621892272,
+        -0.2070695923517947
+      ],
+      "share_a_not_better": 0.0
+    }
+  }
+}

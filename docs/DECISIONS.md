@@ -814,3 +814,20 @@ arms, `full` among them, each trained for 2 epochs.** (Yash's decisions.)
   with CUDA graphs is p50 32.5 / p99 64.9 ms. The rows, with their telemetry, are in
   `results/table_b/` (fine-tuned) and `results/table_b/stock/`. The CPU rows are still the stock
   checkpoint's from 28 September and will be re-measured in chunks.
+*D-036, paired against the best cheap baseline (2026-09-30).* The fine-tuned model is compared
+with the strongest cheap baseline of each decision: the lexical rule for D2, and TF-IDF + LR for
+D1, D3 and D4 (D4 at the baseline's own calib threshold). The comparison uses the saved per-row
+predictions and the same paired protocol, and nothing is re-scored (`floorcall eval paired
+--against baselines`). The check against committed rows keeps the confusion exact but now allows
+float round-off of at most 1e-12: the baselines saved log-probabilities, and exp(log p) is not
+bit-identical to p (up to 4e-15 in ECE, measured).
+
+| Decision | Baseline | Macro-F1 difference | Not better | Other differences |
+|---|---|---|---|---|
+| D1 | TF-IDF + LR | +0.269 [+0.259, +0.279] | 0.0% | — |
+| D2 | lexical rule | +0.029 [+0.022, +0.035] | 0.0% | the rule's ECE is 0.001 against 0.003; not significant |
+| D3 | TF-IDF + LR | +0.058 [+0.032, +0.085] | 0.0% | — |
+| D4 | TF-IDF + LR | +0.000 [−0.061, +0.060] | 49.8% | better calibrated: ECE −0.103 [−0.153, −0.032], Brier −0.055 [−0.106, −0.004] |
+
+On D4, fine-tuning buys calibration but no ranking over a bag of words trained on the same LLM
+labels.
