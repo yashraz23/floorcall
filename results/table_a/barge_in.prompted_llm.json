@@ -1,0 +1,68 @@
+{
+  "decision": "barge_in",
+  "test_file": "barge_in.test.v1.jsonl.gz",
+  "test_sha256": "c3b1461f0b625ad7cdf33732746786011a7f3e39a8d1798975875a2235716f14",
+  "code": "b9ca30a",
+  "labels": [
+    "backchannel",
+    "interruption",
+    "noise"
+  ],
+  "model": "prompted_llm",
+  "llm": "openai/gpt-oss-20b",
+  "prompt": "llm-baseline-v1",
+  "provider_pin": "deepinfra/bf16",
+  "n_test_rows": 13360,
+  "subsampled": false,
+  "invalid_answers": 1,
+  "probabilities": "stated by the model, not token log-probabilities",
+  "cost_usd": 0.39111527,
+  "metrics": {
+    "n": 13360,
+    "accuracy": 0.7078592814371257,
+    "accuracy_ci95": [
+      0.7000891997596208,
+      0.7155098597204017
+    ],
+    "macro_f1": 0.5736611601276944,
+    "ece": 0.19616142714570858,
+    "brier": 0.492576246257485,
+    "mean_confidence": 0.9018270958083833,
+    "per_class": {
+      "backchannel": {
+        "support": 5659,
+        "precision": 0.6297925124041498,
+        "recall": 0.9869234847146139
+      },
+      "interruption": {
+        "support": 6700,
+        "precision": 0.8968118763689462,
+        "recall": 0.55
+      },
+      "noise": {
+        "support": 1001,
+        "precision": 0.48825065274151436,
+        "recall": 0.18681318681318682
+      }
+    },
+    "confusion": [
+      [
+        5585,
+        71,
+        3
+      ],
+      [
+        2822,
+        3685,
+        193
+      ],
+      [
+        461,
+        353,
+        187
+      ]
+    ],
+    "hard_n": 5012,
+    "hard_accuracy": 0.7106943335993615
+  }
+}

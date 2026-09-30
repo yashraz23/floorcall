@@ -1,0 +1,83 @@
+{
+  "decision": "escalate",
+  "test_file": "escalate.test.v2.jsonl.gz",
+  "test_sha256": "91994160a288950ef3a820df09359149c65bcb636b146dedc41a9d5a6c1ece97",
+  "code": "b9ca30a",
+  "labels": [
+    "false",
+    "true"
+  ],
+  "model": "prompted_llm",
+  "llm": "openai/gpt-oss-20b",
+  "prompt": "llm-baseline-v1",
+  "provider_pin": "deepinfra/bf16",
+  "n_test_rows": 200,
+  "subsampled": false,
+  "invalid_answers": 0,
+  "probabilities": "stated by the model, not token log-probabilities",
+  "cost_usd": 0.003487000000000018,
+  "metrics": {
+    "n": 200,
+    "accuracy": 0.635,
+    "accuracy_ci95": [
+      0.5663157405897017,
+      0.6985958378123518
+    ],
+    "macro_f1": 0.6096152303537528,
+    "ece": 0.24780000000000002,
+    "brier": 0.539326,
+    "mean_confidence": 0.8697,
+    "per_class": {
+      "false": {
+        "support": 111,
+        "precision": 1.0,
+        "recall": 0.34234234234234234
+      },
+      "true": {
+        "support": 89,
+        "precision": 0.5493827160493827,
+        "recall": 1.0
+      }
+    },
+    "confusion": [
+      [
+        38,
+        73
+      ],
+      [
+        0,
+        89
+      ]
+    ],
+    "hard_n": 100,
+    "hard_accuracy": 0.57,
+    "ci95": {
+      "accuracy": [
+        0.57,
+        0.7
+      ],
+      "macro_f1": [
+        0.5384544334975371,
+        0.677198760016097
+      ],
+      "ece": [
+        0.18629874999999993,
+        0.3122999999999999
+      ],
+      "brier": [
+        0.44512694999999997,
+        0.6352285249999999
+      ],
+      "hard_accuracy": [
+        0.47,
+        0.66
+      ]
+    },
+    "bootstrap": {
+      "samples": 10000,
+      "seed": 20260927,
+      "method": "percentile interval; rows resampled with replacement"
+    }
+  },
+  "temperature": 1.0
+}
