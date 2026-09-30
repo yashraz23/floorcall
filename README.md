@@ -107,7 +107,7 @@ readme`). Budgets: p99 ≤ 50 ms on GPU, ≤ 100 ms on CPU.
 | CPU: user_pause, 3 questions in 1 call | 976.9 | 2162.4 | 2219.8 | 973.1 | 0.7 | no (≤ 100 ms) |
 | CPU: user_pause, 3 questions in 3 calls | 680.9 | 1899.1 | 1953.6 | 674.0 | 0.6 | no (≤ 100 ms) |
 | CPU: user_speech_during_agent, 2 questions in 1 call | 1153.6 | 1426.7 | 1464.5 | 1149.7 | 1.4 | no (≤ 100 ms) |
-| prompted LLM (gpt-oss-20b via OpenRouter, pinned DeepInfra bf16), user_pause, 3 questions in 1 call: network latency, request to parsed answer | TODO | TODO | TODO | TODO | TODO | TODO |
+| prompted LLM (gpt-oss-20b via OpenRouter, pinned DeepInfra bf16), user_pause, 3 questions in 1 call: network latency, request to parsed answer | 2565.1 | 4270.7 | 6072.2 | n/a | n/a | no (≤ 50 ms) |
 <!-- table-b:end -->
 
 <!-- table-b-env:start -->

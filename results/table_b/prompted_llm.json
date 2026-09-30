@@ -1,0 +1,53 @@
+{
+  "row": "prompted_llm",
+  "label": "prompted LLM (openai/gpt-oss-20b via OpenRouter), user_pause, 3 questions in 1 call: network latency, request to parsed answer",
+  "provider_pin": "deepinfra/bf16",
+  "device": "remote (OpenRouter)",
+  "event": "user_pause",
+  "questions": [
+    "turn_complete",
+    "route",
+    "escalate"
+  ],
+  "warmup": 50,
+  "iterations": 1000,
+  "failed_calls": 0,
+  "inputs": 50,
+  "llm": "openai/gpt-oss-20b",
+  "prompt": "llm-baseline-v1",
+  "code": "cc37e06",
+  "environment": {
+    "python": "3.11.16",
+    "torch": "2.14.0+cu130",
+    "transformers": "5.17.0",
+    "laya": "0.3.21",
+    "cpu": "Intel64 Family 6 Model 197 Stepping 2, GenuineIntel",
+    "torch_threads": 16,
+    "gpu": "NVIDIA GeForce RTX 5070 Ti Laptop GPU",
+    "gpu_driver": "591.86, [N/A]",
+    "on_ac_power": true,
+    "power_plan": "Power Scheme GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (Balanced)",
+    "windows_power_mode_ac": {
+      "guid": "ded574b5-45a0-4f42-8737-46345c09c238",
+      "name": "Best performance"
+    },
+    "gpu_power": {
+      "enforced_w": "115.00",
+      "default_w": "80.00",
+      "min_w": "5.00",
+      "max_w": "125.00",
+      "max_sm_clock_mhz": "3090",
+      "max_mem_clock_mhz": "14001"
+    }
+  },
+  "budget_p99_ms": 50.0,
+  "fits_budget": false,
+  "total_ms": {
+    "p50": 2565.1202500012005,
+    "p95": 4270.735299999068,
+    "p99": 6072.16489399725,
+    "mean": 2796.1066451999213,
+    "max": 36311.988999994355
+  },
+  "cost_usd": 0.0480372200000001
+}

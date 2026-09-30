@@ -1001,3 +1001,28 @@ rows from 28 September, which were the stock checkpoint's. Each row was kept on 
 - **Table B:** the user_pause event, all three questions in one prompt, batch 1, sequential, cache
   bypassed. Labelled **network latency**, request to parsed answer, on the 50 fixed inputs with 50
   warmup and 1,000 timed calls. The GPU thermal rules do not apply: no local model runs.
+*D-041 outcome (2026-09-30 UTC).*
+- **Table A** (code `b9ca30a`, $0.84, every test set whole, all calls served by DeepInfra):
+
+  | Decision | Accuracy | Macro-F1 | ECE | Invalid answers |
+  |---|---|---|---|---|
+  | D1 | 0.721 | 0.721 | 0.138 | 77 of 14,998 |
+  | D2 | 0.708 | 0.574 | 0.196 | 1 of 13,360 |
+  | D3 | 0.970 | 0.939 | 0.028 | 0 of 1,449 |
+  | D4 | 0.635 | 0.610 | 0.248 | 0 of 200 |
+
+  Invalid answers are empty or unparseable, and counted as uniform.
+- **What the baseline shows.** It beats stock Laya on D1–D3. It trails the fine-tuned model on D1,
+  D2 and D4 (0.813, 0.937, 0.681) but leads it on D3 route (0.939 against 0.906). Its stated
+  probabilities are poorly calibrated on D1, D2 and D4.
+- **Per-row answers.** This module predated D-036's rule to save them, and now follows it. For
+  this pass they were rebuilt from the response cache alone, with no API call. They matched the
+  written rows exactly for D3 and D4, which gained bootstrap intervals and saved answers. They did
+  not match for D1 and D2: 47 and 18 test rows share an identical state with another row, so the
+  cache holds one answer where the pass fetched two. Those rows stay as written, with a Wilson
+  interval on accuracy only.
+- **Table B, network latency** (code `cc37e06`). The user_pause event with three questions in one
+  prompt, batch 1, 1,000 timed calls after 50 warmup, request to parsed answer, cache bypassed,
+  0 failures, $0.05: **p50 2,565 ms, p95 4,271 ms, p99 6,072 ms**, max 36.3 s. That is about 100×
+  floorcall's GPU p99.
+- Total LLM spend is now $1.09 of the $4.75 stop.
