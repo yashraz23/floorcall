@@ -890,3 +890,14 @@ numbers bound the difference. Every new result file records its `precision`. Cur
 will be scored under fp16. Where one of them should equal a Table A row by construction (Table C at
 noise 0.00, D-024), a difference within the bf16-to-fp32 parity bound is expected and will be
 shown, not hidden.
+*D-040, the final GPU latency session: machine settings (2026-09-30).* Per Yash, before the
+session:
+- **G-Helper was reset to Factory Defaults.** Core and memory clock offsets are 0, so there is no
+  overclock.
+- **Windows power mode was set to Best performance.** The AC overlay GUID is `ded574b5…`, over the
+  Balanced plan.
+- **The GPU's enforced power limit was 102 W**, the vendor default: 80 W base (`nvidia-smi`'s
+  `power.default_limit`) plus Dynamic Boost. `nvidia-smi` reports a min of 5 W and a max of 125 W.
+Every row records the environment it ran in, including these values and its per-row telemetry.
+This session, fine-tuned and stock back to back at the fp16 default under all the thermal rules,
+replaces Table B's GPU rows. Its p99 is reported as measured, with no further optimization.
