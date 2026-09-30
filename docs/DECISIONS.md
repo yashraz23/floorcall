@@ -855,3 +855,19 @@ at 49–54 °C, peaked at 70–71 °C, and never throttled):
 The enforced limit was 95 W, each row's median draw was 69–93 W, and the driver's power cap was
 active in 68% of the timed samples. The README's power note is generated from those files; it
 does not say "~85 W", because the telemetry does not.
+*D-039 outcome: latency by precision (2026-09-30 UTC; code `00edac0`).* All 18 rows (6 GPU paths ×
+fp32, bf16, fp16, interleaved) were kept on their first attempt, with no throttling and a peak of
+70 °C. Each row's autocast setting matches its precision.
+- **fp32 is 1.4–1.9× slower** than bf16 on the batched and CUDA-graph rows (user_pause with
+  graphs: p50 72.8 against 40.2 ms). The eager 3-call row is launch-bound and about the same at
+  every precision.
+- **fp16 and bf16 are within about ±10% of each other.** fp16 is faster on barge-in with graphs
+  (45.6 / 57.9 ms p50 / p99, against 50.7 / 65.9) and slower on user_pause with graphs over
+  3 calls (55.4 against 50.3 at p50).
+- **No precision brings a GPU row to p99 ≤ 50 ms.** The closest is fp16 barge-in with graphs, at
+  57.9 ms.
+- **This table is its own session:** its bf16 rows differ from the earlier Table B session's by
+  −10% to +24% at p50, so precisions are compared within it only.
+- **fp16 agreed with fp32 on every calib and dev row, where bf16 did not quite.** It is no slower,
+  so it would be a reasonable serving default. Changing Laya's default is left to Yash; nothing
+  has been changed.

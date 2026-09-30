@@ -135,7 +135,7 @@ cooldowns between them.
 <!-- table-b-gpu:end -->
 
 <!-- table-b-power:start -->
-All 12 GPU latency rows ran power-limited: the enforced power limit was 95 W, each row's median draw while timed was 69 to 93 W, and the driver's power cap was active in 68% of the 1497 timed samples (nvidia-smi, every 500 ms).
+All 30 GPU latency rows ran power-limited: the enforced power limit was 95 W, each row's median draw while timed was 69 to 94 W, and the driver's power cap was active in 79% of the 4237 timed samples (nvidia-smi, every 500 ms).
 <!-- table-b-power:end -->
 
 **Inference precision.** Every row above runs Laya's default on this GPU: bf16 autocast over fp32
@@ -146,13 +146,19 @@ answers agree with fp32's on at least 99.5% of every calib and dev set (docs/DEC
 <!-- table-b-precision:start -->
 | Path | fp32 p50 / p99 ms | bf16 p50 / p99 ms | fp16 p50 / p99 ms | GPU max °C (fp32 / bf16 / fp16) | Throttled while timed |
 |---|---|---|---|---|---|
-| GPU, CUDA graphs: user_pause, 3 questions in 1 call | TODO | TODO | TODO | - / - / - | TODO |
-| GPU, CUDA graphs: user_pause, 3 questions in 3 calls | TODO | TODO | TODO | - / - / - | TODO |
-| GPU, CUDA graphs: user_speech_during_agent, 2 questions in 1 call | TODO | TODO | TODO | - / - / - | TODO |
-| GPU, eager: user_pause, 3 questions in 1 call | TODO | TODO | TODO | - / - / - | TODO |
-| GPU, eager: user_pause, 3 questions in 3 calls | TODO | TODO | TODO | - / - / - | TODO |
-| GPU, eager: user_speech_during_agent, 2 questions in 1 call | TODO | TODO | TODO | - / - / - | TODO |
+| GPU, CUDA graphs: user_pause, 3 questions in 1 call | 72.8 / 160.8 | 40.2 / 80.7 | 38.9 / 77.6 | 70 / 69 / 69 | no |
+| GPU, CUDA graphs: user_pause, 3 questions in 3 calls | 69.7 / 155.8 | 50.3 / 81.1 | 55.4 / 89.7 | 69 / 68 / 69 | no |
+| GPU, CUDA graphs: user_speech_during_agent, 2 questions in 1 call | 94.5 / 116.3 | 50.7 / 65.9 | 45.6 / 57.9 | 69 / 70 / 69 | no |
+| GPU, eager: user_pause, 3 questions in 1 call | 79.8 / 175.4 | 54.4 / 88.3 | 54.6 / 88.8 | 69 / 69 / 69 | no |
+| GPU, eager: user_pause, 3 questions in 3 calls | 112.1 / 176.5 | 115.3 / 158.7 | 112.5 / 167.2 | 70 / 66 / 67 | no |
+| GPU, eager: user_speech_during_agent, 2 questions in 1 call | 96.7 / 119.4 | 59.0 / 79.1 | 57.6 / 76.8 | 70 / 69 / 69 | no |
+
+Parity against fp32 on calib and dev (21906 rows, never test; bar 99.5%): bf16: worst argmax agreement 99.85% (turn_complete/dev), largest probability difference 0.068, passed; fp16: worst argmax agreement 100.00% (turn_complete/calib), largest probability difference 0.021, passed.
 <!-- table-b-precision:end -->
+
+The precision table is its own session. Its bf16 rows are the same setting as the rows of Table B
+above, measured about an hour apart, and differ from them by −10% to +24% at p50: the session
+effect on this power-capped laptop. Compare precisions within the table, not across tables.
 
 Both checkpoints load their weights as fp32, and they time within a few percent of each other, in
 both directions, so the latency here does not depend on the fine-tuning. The laptop GPU ran
