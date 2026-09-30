@@ -98,12 +98,12 @@ readme`). Budgets: p99 ≤ 50 ms on GPU, ≤ 100 ms on CPU.
 <!-- table-b:start -->
 | Path | p50 ms | p95 ms | p99 ms | of which forward, p50 | of which packing, p50 | Fits budget (p99) |
 |---|---|---|---|---|---|---|
-| GPU, CUDA graphs: user_pause, 3 questions in 1 call | 32.5 | 62.2 | 64.9 | 28.6 | 0.7 | no (≤ 50 ms) |
-| GPU, CUDA graphs: user_pause, 3 questions in 3 calls | 43.8 | 71.5 | 75.9 | 32.2 | 0.9 | no (≤ 50 ms) |
-| GPU, CUDA graphs: user_speech_during_agent, 2 questions in 1 call | 43.0 | 53.6 | 57.6 | 35.6 | 2.5 | no (≤ 50 ms) |
-| GPU, eager: user_pause, 3 questions in 1 call | 56.3 | 74.1 | 78.5 | 50.1 | 1.1 | no (≤ 50 ms) |
-| GPU, eager: user_pause, 3 questions in 3 calls | 128.5 | 174.7 | 186.9 | 115.7 | 1.1 | no (≤ 50 ms) |
-| GPU, eager: user_speech_during_agent, 2 questions in 1 call | 57.0 | 67.9 | 72.8 | 49.3 | 2.8 | no (≤ 50 ms) |
+| GPU, CUDA graphs: user_pause, 3 questions in 1 call | 29.1 | 55.6 | 59.0 | 24.6 | 0.8 | no (≤ 50 ms) |
+| GPU, CUDA graphs: user_pause, 3 questions in 3 calls | 52.4 | 79.2 | 85.2 | 43.1 | 0.8 | no (≤ 50 ms) |
+| GPU, CUDA graphs: user_speech_during_agent, 2 questions in 1 call | 44.3 | 54.9 | 57.4 | 38.3 | 1.9 | no (≤ 50 ms) |
+| GPU, eager: user_pause, 3 questions in 1 call | 56.4 | 82.3 | 88.5 | 50.3 | 1.1 | no (≤ 50 ms) |
+| GPU, eager: user_pause, 3 questions in 3 calls | 120.4 | 158.6 | 179.3 | 110.0 | 0.9 | no (≤ 50 ms) |
+| GPU, eager: user_speech_during_agent, 2 questions in 1 call | 55.4 | 66.4 | 73.7 | 49.1 | 2.5 | no (≤ 50 ms) |
 | CPU: user_pause, 3 questions in 1 call | 1160.9 | 2577.6 | 2647.8 | 1156.7 | 0.7 | no (≤ 100 ms) |
 | CPU: user_pause, 3 questions in 3 calls | 822.6 | 2299.0 | 2347.1 | 814.9 | 0.6 | no (≤ 100 ms) |
 | CPU: user_speech_during_agent, 2 questions in 1 call | 1351.5 | 1716.0 | 1750.9 | 1347.1 | 1.6 | no (≤ 100 ms) |
@@ -111,37 +111,44 @@ readme`). Budgets: p99 ≤ 50 ms on GPU, ≤ 100 ms on CPU.
 <!-- table-b:end -->
 
 <!-- table-b-env:start -->
-Measured on NVIDIA GeForce RTX 5070 Ti Laptop GPU (driver 591.86) and Intel64 Family 6 Model 197 Stepping 2, GenuineIntel with 16 torch threads; on AC power: True; torch 2.14.0+cu130, laya 0.3.21. GPU rows measured 2026-09-30 (UTC). Batch 1, 50 warmup and 1000 timed iterations over 50 fixed inputs per event; every timed call is a full `Decider.decide` (packing, tokenizing, forward, temperatures).
+Measured on NVIDIA GeForce RTX 5070 Ti Laptop GPU (driver 591.86) and Intel64 Family 6 Model 197 Stepping 2, GenuineIntel with 16 torch threads; on AC power: True; torch 2.14.0+cu130, laya 0.3.21. GPU rows measured 2026-09-30 (UTC). Windows power mode: Best performance. GPU power limit: vendor default, 80 W base plus Dynamic Boost (115 W enforced at the start). Batch 1, 50 warmup and 1000 timed iterations over 50 fixed inputs per event; every timed call is a full `Decider.decide` (packing, tokenizing, forward, temperatures).
 <!-- table-b-env:end -->
 
 "3 questions in 1 call" is one batched forward pass with one row per question; each row re-reads
-the state (docs/DECISIONS.md D-003). The GPU rows above are the fine-tuned checkpoint's, measured
-at stock clocks with the stock checkpoint back to back, alternating which went first. Every row
-waited for the GPU to cool to 55 °C, was sampled by nvidia-smi throughout, and would have been
-discarded and retried had the GPU throttled while it was timed (docs/DECISIONS.md D-037). The
-table below shows the conditions. Earlier GPU numbers were taken overclocked and are discarded. The
-CPU rows are the stock checkpoint's from 28 September; they will be re-measured in chunks with
-cooldowns between them.
+the state (docs/DECISIONS.md D-003). The GPU rows above are the final latency session
+(docs/DECISIONS.md D-040). They are the fine-tuned checkpoint at the fp16 default, with the stock
+checkpoint back to back, alternating which went first. The laptop was on factory settings: G-Helper
+defaults (no clock offsets), Windows' Best performance mode, and the vendor's power limit of 80 W
+base plus Dynamic Boost. Every row waited for the GPU to cool to 55 °C, was sampled by nvidia-smi
+throughout, and would have been discarded and retried had the GPU throttled while it was timed
+(docs/DECISIONS.md D-037). None did; the table below shows each row's conditions. **No GPU path
+meets p99 ≤ 50 ms**, and the p99 is reported as measured. Earlier GPU numbers were taken overclocked
+and are discarded. The CPU rows are the stock checkpoint's from 28 September; they will be
+re-measured in chunks with cooldowns between them.
 
 <!-- table-b-gpu:start -->
 | Path | Stock p50 / p99 ms | Fine-tuned p50 / p99 ms | Fine-tuned vs stock, p50 | GPU max °C (stock / fine-tuned) | SM clock median, MHz | Power median / limit, W | Throttled while timed |
 |---|---|---|---|---|---|---|---|
-| GPU, CUDA graphs: user_pause, 3 questions in 1 call | 34.8 / 69.5 | 32.5 / 64.9 | -6.7% | 67 / 65 | 1972 / 1957 | 93 / 93 of 95 | no |
-| GPU, CUDA graphs: user_pause, 3 questions in 3 calls | 44.2 / 76.9 | 43.8 / 75.9 | -0.9% | 68 / 67 | 2055 / 2070 | 86 / 87 of 95 | no |
-| GPU, CUDA graphs: user_speech_during_agent, 2 questions in 1 call | 42.4 / 55.2 | 43.0 / 57.6 | +1.4% | 70 / 69 | 2025 / 2002 | 92 / 91 of 95 | no |
-| GPU, eager: user_pause, 3 questions in 1 call | 58.2 / 78.3 | 56.3 / 78.5 | -3.2% | 69 / 69 | 2227 / 2167 | 91 / 90 of 95 | no |
-| GPU, eager: user_pause, 3 questions in 3 calls | 133.9 / 185.7 | 128.5 / 186.9 | -4.0% | 65 / 64 | 2580 / 2565 | 69 / 70 of 95 | no |
-| GPU, eager: user_speech_during_agent, 2 questions in 1 call | 55.5 / 76.8 | 57.0 / 72.8 | +2.8% | 69 / 69 | 2257 / 2287 | 88 / 89 of 95 | no |
+| GPU, CUDA graphs: user_pause, 3 questions in 1 call | 37.3 / 74.7 | 29.1 / 59.0 | -22.0% | 74 / 69 | 2257 / 2010 | 111 / 109 of 115 | no |
+| GPU, CUDA graphs: user_pause, 3 questions in 3 calls | 51.5 / 83.9 | 52.4 / 85.2 | +1.6% | 74 / 74 | 2332 / 2306 | 102 / 102 of 115 | no |
+| GPU, CUDA graphs: user_speech_during_agent, 2 questions in 1 call | 44.3 / 56.4 | 44.3 / 57.4 | +0.2% | 75 / 75 | 2242 / 2220 | 110 / 110 of 115 | no |
+| GPU, eager: user_pause, 3 questions in 1 call | 54.4 / 84.9 | 56.4 / 88.5 | +3.7% | 75 / 76 | 2332 / 2257 | 103 / 100 of 115 | no |
+| GPU, eager: user_pause, 3 questions in 3 calls | 123.1 / 160.8 | 120.4 / 179.3 | -2.2% | 71 / 71 | 2505 / 2512 | 76 / 77 of 115 | no |
+| GPU, eager: user_speech_during_agent, 2 questions in 1 call | 55.0 / 71.5 | 55.4 / 73.7 | +0.8% | 74 / 74 | 2265 / 2280 | 98 / 99 of 115 | no |
 <!-- table-b-gpu:end -->
 
 <!-- table-b-power:start -->
-All 30 GPU latency rows ran power-limited: the enforced power limit was 95 W, each row's median draw while timed was 69 to 94 W, and the driver's power cap was active in 79% of the 4237 timed samples (nvidia-smi, every 500 ms).
+GPU power while timed, from nvidia-smi every 500 ms. Every GPU row ran power-limited:
+
+- Session `00edac0` (18 rows, from 2026-09-30 UTC): enforced power limit 85 to 95 W; each row's median draw while timed 76 to 94 W; the driver's power cap active in 85% of 2740 timed samples; Windows power mode: not recorded.
+- Session `ab4c45c` (12 rows, from 2026-09-30 UTC): enforced power limit 90 to 115 W; each row's median draw while timed 76 to 111 W; the driver's power cap active in 55% of 1503 timed samples; Windows power mode: Best performance.
 <!-- table-b-power:end -->
 
-**Inference precision.** Every row above runs Laya's default on this GPU: bf16 autocast over fp32
-weights. The table below times the fine-tuned checkpoint at three precisions, back to back under the
-same thermal rules: fp32 (no autocast), bf16 and fp16 autocast. A precision is timed only if its
-answers agree with fp32's on at least 99.5% of every calib and dev set (docs/DECISIONS.md D-039).
+**Inference precision.** fp16 autocast is the default since docs/DECISIONS.md D-040. It was
+chosen from the table below, an earlier session (D-039) that timed the fine-tuned checkpoint back to
+back at fp32 (no autocast), bf16 autocast (Laya's own default on this GPU) and fp16 autocast, under
+the same thermal rules. A precision was timed only if its answers agreed with fp32's on at least
+99.5% of every calib and dev set.
 
 <!-- table-b-precision:start -->
 | Path | fp32 p50 / p99 ms | bf16 p50 / p99 ms | fp16 p50 / p99 ms | GPU max °C (fp32 / bf16 / fp16) | Throttled while timed |
@@ -156,13 +163,15 @@ answers agree with fp32's on at least 99.5% of every calib and dev set (docs/DEC
 Parity against fp32 on calib and dev (21906 rows, never test; bar 99.5%): bf16: worst argmax agreement 99.85% (turn_complete/dev), largest probability difference 0.068, passed; fp16: worst argmax agreement 100.00% (turn_complete/calib), largest probability difference 0.021, passed.
 <!-- table-b-precision:end -->
 
-The precision table is its own session. Its bf16 rows are the same setting as the rows of Table B
-above, measured about an hour apart, and differ from them by −10% to +24% at p50: the session
-effect on this power-capped laptop. Compare precisions within the table, not across tables.
+The precision table is its own session, at that time's power settings (the power note above), and
+this laptop's timings move between sessions: compare its fp16 column with Table B's rows. Compare
+precisions within the table, not across tables.
 
-Both checkpoints load their weights as fp32, and they time within a few percent of each other, in
-both directions, so the latency here does not depend on the fine-tuning. The laptop GPU ran
-against its power limit for most of every row; that is its normal state under load, and it is
+Both checkpoints have the same weights in size and precision. They time within 4% of each other on
+five of the six GPU paths. The exception is the session's first row (CUDA graphs, user_pause), where
+the fine-tuned checkpoint ran first and came in faster; it did in the previous session too. That
+points to the first row of a session, not to the fine-tuning. The laptop GPU ran
+against its power limit for much of every row; that is its normal state under load, and it is
 recorded, not a reason to discard. Each row is still one run, and on this laptop the tail moves
 between runs (docs/DECISIONS.md D-028). Read a p99 here as one measurement on a power-limited
 laptop GPU, not a guarantee.

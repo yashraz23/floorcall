@@ -229,22 +229,35 @@ def table_b_precision(root: Path = RESULTS_B, parity_path: Path = PARITY) -> str
 
 
 def latency_power(root: Path = RESULTS_B) -> str:
-    """How power-limited the GPU was across every GPU latency row, from their telemetry."""
-    files = sorted(root.rglob("gpu_*.json"))
-    rows = [json.loads(f.read_text(encoding="utf-8")) for f in files]
+    """How power-limited the GPU was in each latency session, from the rows' telemetry. A session
+    is the rows of one run, identified by the commit it ran at."""
+    rows = [json.loads(f.read_text(encoding="utf-8")) for f in sorted(root.rglob("gpu_*.json"))]
     rows = [r for r in rows if "telemetry" in r]
     if not rows:
         return "GPU power while timed: TODO."
-    timed = [r["telemetry"]["timed"] for r in rows]
-    limits = sorted({t["power_limit_w"]["max"] for t in timed if t["power_limit_w"]})
-    medians = [t["power_draw_w"]["median"] for t in timed]
-    capped = sum(t["clock_events"]["sw_power_cap"] for t in timed)
-    samples = sum(t["samples"] for t in timed)
+    sessions: dict[str, list[dict[str, Any]]] = {}
+    for r in rows:
+        sessions.setdefault(r["code"], []).append(r)
+    lines = []
+    for code, rs in sorted(sessions.items(), key=lambda kv: kv[1][0].get("started_at", "")):
+        timed = [r["telemetry"]["timed"] for r in rs]
+        lo = min(t["power_limit_w"]["min"] for t in timed if t["power_limit_w"])
+        hi = max(t["power_limit_w"]["max"] for t in timed if t["power_limit_w"])
+        medians = [t["power_draw_w"]["median"] for t in timed]
+        capped = sum(t["clock_events"]["sw_power_cap"] for t in timed)
+        samples = sum(t["samples"] for t in timed)
+        env = rs[0]["environment"]
+        mode = (env.get("windows_power_mode_ac") or {}).get("name", "not recorded")
+        limit = f"{lo:.0f} W" if lo == hi else f"{lo:.0f} to {hi:.0f} W"
+        lines.append(
+            f"- Session `{code}` ({len(rs)} rows, from {rs[0].get('started_at', '?')[:10]} UTC): "
+            f"enforced power limit {limit}; each row's median draw while timed {min(medians):.0f} "
+            f"to {max(medians):.0f} W; the driver's power cap active in {capped / samples:.0%} of "
+            f"{samples} timed samples; Windows power mode: {mode}."
+        )
     return (
-        f"All {len(rows)} GPU latency rows ran power-limited: the enforced power limit was "
-        f"{' / '.join(f'{x:.0f}' for x in limits)} W, each row's median draw while timed was "
-        f"{min(medians):.0f} to {max(medians):.0f} W, and the driver's power cap was active in "
-        f"{capped / samples:.0%} of the {samples} timed samples (nvidia-smi, every 500 ms)."
+        "GPU power while timed, from nvidia-smi every 500 ms. Every GPU row ran power-limited:\n\n"
+        + "\n".join(lines)
     )
 
 
@@ -257,6 +270,15 @@ def _latency_env(root: Path = RESULTS_B) -> str:
     env = json.loads((gpu or files)[0].read_text(encoding="utf-8"))
     e, first = env["environment"], env
     when = f" GPU rows measured {env['started_at'][:10]} (UTC)." if "started_at" in env else ""
+    mode = (e.get("windows_power_mode_ac") or {}).get("name")
+    power = e.get("gpu_power") or {}
+    if mode:
+        when += f" Windows power mode: {mode}."
+    if power.get("default_w"):
+        when += (
+            f" GPU power limit: vendor default, {float(power['default_w']):.0f} W base plus "
+            f"Dynamic Boost ({float(power['enforced_w']):.0f} W enforced at the start)."
+        )
     return (
         f"Measured on {e.get('gpu')} (driver {str(e.get('gpu_driver')).split(',')[0]}) and "
         f"{e.get('cpu')} with {e.get('torch_threads')} torch threads; on AC power: "

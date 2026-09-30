@@ -903,3 +903,25 @@ session:
 Every row records the environment it ran in, including these values and its per-row telemetry.
 This session, fine-tuned and stock back to back at the fp16 default under all the thermal rules,
 replaces Table B's GPU rows. Its p99 is reported as measured, with no further optimization.
+*D-040 outcome: the final GPU latency session (2026-09-30 UTC; code `ab4c45c`).* This replaces
+Table B's GPU rows: 12 rows at fp16, fine-tuned and stock interleaved. All were kept on their first
+attempt, with no throttling and a peak of 76 °C. Every row records Best performance and the GPU's
+power settings (80 W default, 115 W enforced at the start). While the rows ran, the enforced limit
+was 90–115 W, and each row's median draw was 76–111 W.
+
+| Path | Fine-tuned p50 / p99 ms | Stock p50 / p99 ms |
+|---|---|---|
+| CUDA graphs, user_pause, 1 call | 29.1 / 59.0 | 37.3 / 74.7 |
+| CUDA graphs, user_pause, 3 calls | 52.4 / 85.2 | 51.5 / 83.9 |
+| CUDA graphs, barge-in | 44.3 / 57.4 | 44.3 / 56.4 |
+| Eager, user_pause, 1 call | 56.4 / 88.5 | 54.4 / 84.9 |
+| Eager, user_pause, 3 calls | 120.4 / 179.3 | 123.1 / 160.8 |
+| Eager, barge-in | 55.4 / 73.7 | 55.0 / 71.5 |
+
+- **No GPU path meets p99 ≤ 50 ms.** Reported as measured, with no further optimization (Yash's
+  decision).
+- The fine-tuned and stock checkpoints are within 4% at p50 on five paths. On the session's first
+  row they are 22% apart: the fine-tuned checkpoint ran first there, and was also faster there in
+  the previous session. That is read as a first-row effect, not an effect of the weights.
+- The precision table stays as the record of its own session (`00edac0`), in which the enforced
+  limit was 85–95 W. The README's power note gives each session's telemetry separately.
