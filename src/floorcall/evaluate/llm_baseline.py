@@ -93,35 +93,34 @@ def estimate_spend(settings: Settings, per_decision: int = 20) -> dict[str, Any]
     model = settings.llm.baseline_model
     before = ledger.spent()
     per_call: dict[str, float] = {}
+    invalid: dict[str, int] = {}
     plan: dict[str, int] = {}
+
+    def pilot(part: str, event: questions.Event, qs: dict[str, Any], rows: list[Any]) -> None:
+        # the ledger bills every call, empty answers included; the cache is bypassed so no call
+        # looks free
+        spent0, bad = ledger.spent(), 0
+        for r in rows:
+            try:
+                client.chat_json(
+                    model=model,
+                    messages=baseline_messages(packer.pack(event, snapshot_of(r)).state, qs),
+                    schema=baseline_schema(qs),
+                    purpose="baseline-estimate",
+                    use_cache=False,
+                )
+            except LLMError:
+                bad += 1
+        per_call[part] = (ledger.spent() - spent0) / len(rows)
+        invalid[part] = bad
+
     for decision in DECISIONS:
         calib = subsample(load_processed(settings, decision, "calib"), per_decision)
-        qs = questions.questions_by_id(decision)
-        costs = []
-        for r in calib.rows:
-            res = client.chat_json(
-                model=model,
-                messages=baseline_messages(packer.pack(calib.event, snapshot_of(r)).state, qs),
-                schema=baseline_schema(qs),
-                purpose="baseline-estimate",
-            )
-            costs.append(res.cost_usd)
-        per_call[decision] = float(np.mean(costs))
+        pilot(decision, calib.event, questions.questions_by_id(decision), calib.rows)
         plan[decision] = len(load_test(settings, decision).rows)
     event = questions.Event.USER_PAUSE
-    qs = questions.questions_for(event)
     calib = subsample(load_processed(settings, "turn_complete", "calib"), per_decision)
-    costs = []
-    for r in calib.rows:
-        res = client.chat_json(
-            model=model,
-            messages=baseline_messages(packer.pack(event, snapshot_of(r)).state, qs),
-            schema=baseline_schema(qs),
-            purpose="baseline-estimate",
-            use_cache=False,
-        )
-        costs.append(res.cost_usd)
-    per_call["latency"] = float(np.mean(costs))
+    pilot("latency", event, questions.questions_for(event), calib.rows)
     plan["latency"] = settings.eval.latency_warmup + settings.eval.latency_iters
     client.close()
     projected = {k: per_call[k] * n for k, n in plan.items()}
@@ -131,6 +130,7 @@ def estimate_spend(settings: Settings, per_decision: int = 20) -> dict[str, Any]
         "pilot_calls_per_part": per_decision,
         "pilot_cost_usd": ledger.spent() - before,
         "cost_per_call_usd": per_call,
+        "pilot_invalid_answers": invalid,
         "calls": plan,
         "projected_usd": projected,
         "projected_total_usd": sum(projected.values()),
