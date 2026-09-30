@@ -970,3 +970,34 @@ rows from 28 September, which were the stock checkpoint's. Each row was kept on 
 - As in the spike (D-014), the sequential user_pause is faster than the batched one on CPU,
   because every batched row pads to the longest.
 - The GPU, sampled as a heat proxy, peaked at 63 °C.
+
+**D-041 · 2026-09-30 · §12 Tables A and B · the prompted-LLM baseline, declared before its run** —
+(Yash's decisions.)
+- **Model and endpoint.** `openai/gpt-oss-20b` via OpenRouter, pinned to **DeepInfra's bf16
+  endpoint** (`deepinfra/bf16`, $0.030 / $0.140 per million tokens, 99.94% uptime over the last
+  day). It uses `only`/`order`, no fallbacks and the bf16 quantization, and a response from any
+  other provider is rejected (D-032's mechanism). It runs under the same $4.75 stop.
+- **The prompt** is `llm-baseline-v1`, fixed in the M2 code before any result existed. The LLM
+  gets exactly Laya's inputs: the same packed state and the same question wording. It states a
+  probability per option under a strict schema, so its ECE and Brier score measure stated
+  confidence. An answer that cannot be parsed, including an empty one, counts as uniform and is
+  reported as invalid.
+- **Spend, estimated first** (`floorcall eval llm-estimate`). The pilot used 20 calib rows per
+  decision and 20 latency-shaped prompts, never test, and cost $0.003.
+
+  | Part | Cost per call | Projected |
+  |---|---|---|
+  | D1 | $0.000024 | $0.36 |
+  | D2 | $0.000026 | $0.35 |
+  | D3 | $0.000039 | $0.06 |
+  | D4 | $0.000018 | $0.004 |
+  | 1,050 latency calls | $0.000050 | $0.05 |
+
+  **The total is $0.83, under the $2 limit**, so every test set is scored whole, once. D-030's
+  1,000-row subsamples of D1 and D2 are dropped (`LLMSettings.baseline_rows` is now empty); they
+  existed only to fit the budget. One of the 100 pilot answers came back empty.
+- **Table A:** one pass over each decision's frozen test set (test v2 for D4), 8 calls in
+  parallel.
+- **Table B:** the user_pause event, all three questions in one prompt, batch 1, sequential, cache
+  bypassed. Labelled **network latency**, request to parsed answer, on the 50 fixed inputs with 50
+  warmup and 1,000 timed calls. The GPU thermal rules do not apply: no local model runs.

@@ -178,6 +178,7 @@ def run_table_a(settings: Settings) -> list[dict[str, Any]]:
             "model": "prompted_llm",
             "llm": model,
             "prompt": BASELINE_VERSION,
+            "provider_pin": settings.llm.provider_pins[model].endpoint,
             "n_test_rows": len(full.rows),
             "subsampled": len(test.rows) < len(full.rows),
             "invalid_answers": sum(1 for _, ok in answers if not ok),
@@ -231,7 +232,9 @@ def run_latency(settings: Settings) -> dict[str, Any]:
     total = percentiles(timed)
     payload = {
         "row": "prompted_llm",
-        "label": f"prompted LLM ({model} via OpenRouter), user_pause, 3 questions in 1 call",
+        "label": f"prompted LLM ({model} via OpenRouter), user_pause, 3 questions in 1 call: "
+        "network latency, request to parsed answer",
+        "provider_pin": settings.llm.provider_pins[model].endpoint,
         "device": "remote (OpenRouter)",
         "event": event.value,
         "questions": list(qs),

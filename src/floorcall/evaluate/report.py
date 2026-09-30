@@ -117,7 +117,8 @@ LATENCY_ROWS = (
     ("cpu_barge", "CPU: user_speech_during_agent, 2 questions in 1 call"),
     (
         "prompted_llm",
-        "prompted LLM (OpenRouter), user_pause, 3 questions in 1 call, network included",
+        "prompted LLM (gpt-oss-20b via OpenRouter, pinned DeepInfra bf16), user_pause, "
+        "3 questions in 1 call: network latency, request to parsed answer",
     ),
 )
 

@@ -292,11 +292,9 @@ class LLMSettings(BaseModel):
     timeout_s: float = 60.0
     # D4 training rows to label from train-split banking threads, one message per thread.
     d4_train_rows: int = 6000
-    # Prompted-LLM baseline: D1 and D2 test sets are subsampled (evenly spaced, fixed); D3 and D4
-    # are scored whole. The n is reported beside every number.
-    baseline_rows: dict[str, int] = Field(
-        default_factory=lambda: {"turn_complete": 1000, "barge_in": 1000}
-    )
+    # Prompted-LLM baseline: rows per test set to score, evenly spaced; a decision not listed is
+    # scored whole. Empty since D-041: every test set whole (projected $0.83, pilot on calib).
+    baseline_rows: dict[str, int] = Field(default_factory=dict)
 
 
 class PathSettings(BaseModel):
