@@ -655,6 +655,15 @@ def eval_llm_baseline() -> None:
         )
 
 
+@eval_app.command("llm-recover")
+def eval_llm_recover() -> None:
+    """D-041: the prompted-LLM rows' per-row answers, from the response cache only (no API)."""
+    from floorcall.evaluate.llm_baseline import recover_table_a
+
+    for decision, found in recover_table_a(get_settings()).items():
+        console.print(f"{decision}: {found if found else 'identical'}")
+
+
 @eval_app.command("llm-latency")
 def eval_llm_latency() -> None:
     """Table B: the prompted LLM, end to end with the network, user_pause event."""

@@ -248,6 +248,15 @@ class LLMClient:
             "provider": provider,
         }
 
+    def cached(
+        self, model: str, messages: Sequence[Mapping[str, str]], schema: Mapping[str, Any]
+    ) -> dict[str, Any] | None:
+        """The cached answer to exactly this request, or None. Never calls the API."""
+        payload = self._payload(model, messages, schema)
+        key = hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
+        hit = self.ledger.cache_get(key)
+        return None if hit is None else dict(hit["data"])
+
     def chat_json(
         self,
         *,

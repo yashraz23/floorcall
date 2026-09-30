@@ -139,19 +139,70 @@ def estimate_spend(settings: Settings, per_decision: int = 20) -> dict[str, Any]
     }
 
 
-def run_table_a(settings: Settings) -> list[dict[str, Any]]:
+def _payload_a(
+    settings: Settings,
+    test: EvalSet,
+    full: EvalSet,
+    probs: np.ndarray,
+    invalid: int,
+    code: str,
+    cost: float,
+) -> dict[str, Any]:
+    model = settings.llm.baseline_model
+    return {
+        **_provenance(settings, test),
+        "code": code,
+        "model": "prompted_llm",
+        "llm": model,
+        "prompt": BASELINE_VERSION,
+        "provider_pin": settings.llm.provider_pins[model].endpoint,
+        "n_test_rows": len(full.rows),
+        "subsampled": len(test.rows) < len(full.rows),
+        "invalid_answers": invalid,
+        "probabilities": "stated by the model, not token log-probabilities",
+        "cost_usd": cost,
+        "metrics": score(
+            probs,
+            test.y,
+            test.hard,
+            test.labels,
+            n_bins=settings.eval.ece_bins,
+            bootstrap=(settings.eval.bootstrap_samples, settings.eval.bootstrap_seed),
+        ),
+    }
+
+
+def _write_a(decision: str, payload: dict[str, Any], test: EvalSet, probs: np.ndarray) -> None:
+    from floorcall.evaluate.checkpoint import save_predictions
+
+    # per-row answers kept (D-036); log-probabilities, so softmax at T = 1 gives them back
+    save_predictions(f"{decision}.prompted_llm", np.log(np.clip(probs, 1e-12, 1.0)), test)
+    path = RESULTS_A / f"{decision}.prompted_llm.json"
+    with path.open("w", encoding="utf-8", newline="\n") as f:
+        json.dump({**payload, "temperature": 1.0}, f, indent=2)
+        f.write("\n")
+
+
+def _states(
+    settings: Settings, packer: Decider, decision: str
+) -> tuple[EvalSet, EvalSet, list[Any]]:
     from floorcall.evaluate.dataset import snapshot_of
 
+    full = load_test(settings, decision)
+    test = subsample(full, settings.llm.baseline_rows.get(decision))
+    states = [packer.pack(test.event, snapshot_of(r)).state for r in test.rows]
+    return full, test, states
+
+
+def run_table_a(settings: Settings) -> list[dict[str, Any]]:
     code = git_head()
     client, ledger = _client(settings)
     packer = _packer(settings)
     model = settings.llm.baseline_model
     out = []
     for decision in DECISIONS:
-        full = load_test(settings, decision)
-        test = subsample(full, settings.llm.baseline_rows.get(decision))
+        full, test, states = _states(settings, packer, decision)
         qs = questions.questions_by_id(decision)
-        states = [packer.pack(test.event, snapshot_of(r)).state for r in test.rows]
         spent_before = ledger.spent()
 
         def ask(
@@ -172,27 +223,58 @@ def run_table_a(settings: Settings) -> list[dict[str, Any]]:
         with ThreadPoolExecutor(max_workers=settings.llm.concurrency) as pool:
             answers = list(pool.map(ask, states))
         probs = np.array([p for p, _ in answers])
-        payload = {
-            **_provenance(settings, test),
-            "code": code,
-            "model": "prompted_llm",
-            "llm": model,
-            "prompt": BASELINE_VERSION,
-            "provider_pin": settings.llm.provider_pins[model].endpoint,
-            "n_test_rows": len(full.rows),
-            "subsampled": len(test.rows) < len(full.rows),
-            "invalid_answers": sum(1 for _, ok in answers if not ok),
-            "probabilities": "stated by the model, not token log-probabilities",
-            "cost_usd": ledger.spent() - spent_before,
-            "metrics": score(probs, test.y, test.hard, test.labels, n_bins=settings.eval.ece_bins),
-        }
-        path = RESULTS_A / f"{decision}.prompted_llm.json"
-        with path.open("w", encoding="utf-8", newline="\n") as f:
-            json.dump(payload, f, indent=2)
-            f.write("\n")
+        invalid = sum(1 for _, ok in answers if not ok)
+        payload = _payload_a(
+            settings, test, full, probs, invalid, code, ledger.spent() - spent_before
+        )
+        _write_a(decision, payload, test, probs)
         out.append(payload)
     client.close()
     return out
+
+
+def recover_table_a(settings: Settings) -> dict[str, list[str]]:
+    """Rebuild each row's per-row answers from the response cache only (D-041): no API call.
+
+    The Table A pass predates D-036's rule to save per-row predictions. Every successful answer is
+    cached under its exact request; a failed one never was, and stays uniform and invalid, as it
+    was counted. The rebuilt answers are used only if they reproduce the written row's metrics and
+    invalid count exactly; then the row is rewritten with bootstrap intervals and its answers are
+    saved. The row keeps its code, cost and every other field.
+    """
+    client, _ = _client(settings)
+    packer = _packer(settings)
+    model = settings.llm.baseline_model
+    problems: dict[str, list[str]] = {}
+    for decision in DECISIONS:
+        full, test, states = _states(settings, packer, decision)
+        qs = questions.questions_by_id(decision)
+        labels = list(qs[decision]["criteria"])
+        answers = []
+        for state in states:
+            hit = client.cached(model, baseline_messages(state, qs), baseline_schema(qs))
+            if hit is None:
+                answers.append(([1.0 / len(labels)] * len(labels), False))
+            else:
+                answers.append(read_probabilities(hit.get(decision, {}), labels))
+        probs = np.array([p for p, _ in answers])
+        invalid = sum(1 for _, ok in answers if not ok)
+        path = RESULTS_A / f"{decision}.prompted_llm.json"
+        written = json.loads(path.read_text(encoding="utf-8"))
+        again = _payload_a(
+            settings, test, full, probs, invalid, written["code"], written["cost_usd"]
+        )
+        found = []
+        if invalid != written["invalid_answers"]:
+            found.append(f"invalid answers {invalid} vs {written['invalid_answers']}")
+        for key in ("accuracy", "macro_f1", "ece", "brier", "confusion", "hard_accuracy"):
+            if again["metrics"][key] != written["metrics"][key]:
+                found.append(f"{key}: {again['metrics'][key]} vs {written['metrics'][key]}")
+        problems[decision] = found
+        if not found:
+            _write_a(decision, {**written, "metrics": again["metrics"]}, test, probs)
+    client.close()
+    return problems
 
 
 def run_latency(settings: Settings) -> dict[str, Any]:
