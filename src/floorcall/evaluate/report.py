@@ -144,16 +144,54 @@ def table_b(root: Path = RESULTS_B) -> str:
     return "\n".join(lines)
 
 
+def table_b_gpu(root: Path = RESULTS_B) -> str:
+    """Stock and fine-tuned GPU rows side by side, each with the GPU's state while it was timed
+    (D-037). Every value comes from the rows' telemetry; nothing is typed by hand."""
+    lines = [
+        "| Path | Stock p50 / p99 ms | Fine-tuned p50 / p99 ms | Fine-tuned vs stock, p50 | "
+        "GPU max °C (stock / fine-tuned) | SM clock median, MHz | Power median / limit, W | "
+        "Throttled while timed |",
+        "|---|---|---|---|---|---|---|---|",
+    ]
+    for stem, label in LATENCY_ROWS:
+        if not stem.startswith("gpu_"):
+            continue
+        paths = (root / "stock" / f"{stem}.json", root / f"{stem}.json")
+        if not all(p.exists() for p in paths):
+            lines.append(f"| {label} | TODO | TODO | TODO | TODO | TODO | TODO | TODO |")
+            continue
+        s, f = (json.loads(p.read_text(encoding="utf-8")) for p in paths)
+        ts, tf = s["telemetry"]["timed"], f["telemetry"]["timed"]
+        change = (f["total_ms"]["p50"] / s["total_ms"]["p50"] - 1) * 100
+        throttled = (
+            s["telemetry"]["throttle_reasons_while_timed"]
+            + f["telemetry"]["throttle_reasons_while_timed"]
+        )
+        lines.append(
+            f"| {label} | {s['total_ms']['p50']:.1f} / {s['total_ms']['p99']:.1f} | "
+            f"{f['total_ms']['p50']:.1f} / {f['total_ms']['p99']:.1f} | {change:+.1f}% | "
+            f"{ts['temperature_c']['max']:.0f} / {tf['temperature_c']['max']:.0f} | "
+            f"{ts['sm_clock_mhz']['median']:.0f} / {tf['sm_clock_mhz']['median']:.0f} | "
+            f"{ts['power_draw_w']['median']:.0f} / {tf['power_draw_w']['median']:.0f} of "
+            f"{tf['power_limit_w']['max']:.0f} | "
+            f"{', '.join(sorted(set(throttled))) or 'no'} |"
+        )
+    return "\n".join(lines)
+
+
 def _latency_env(root: Path = RESULTS_B) -> str:
     files = sorted(root.glob("*.json"))
     if not files:
         return "Measured environment: TODO."
-    env = json.loads(files[0].read_text(encoding="utf-8"))
+    # The newest session describes the machine best: GPU rows (D-037) carry a start time.
+    gpu = [f for f in files if f.name.startswith("gpu_")]
+    env = json.loads((gpu or files)[0].read_text(encoding="utf-8"))
     e, first = env["environment"], env
+    when = f" GPU rows measured {env['started_at'][:10]} (UTC)." if "started_at" in env else ""
     return (
-        f"Measured on {e.get('gpu')} (driver, power limit: {e.get('gpu_driver')}) and "
+        f"Measured on {e.get('gpu')} (driver {str(e.get('gpu_driver')).split(',')[0]}) and "
         f"{e.get('cpu')} with {e.get('torch_threads')} torch threads; on AC power: "
-        f"{e.get('on_ac_power')}; torch {e.get('torch')}, laya {e.get('laya')}. "
+        f"{e.get('on_ac_power')}; torch {e.get('torch')}, laya {e.get('laya')}.{when} "
         f"Batch 1, {first['warmup']} warmup and {first['iterations']} timed iterations over "
         f"{first['inputs']} fixed inputs per event; every timed call is a full `Decider.decide` "
         "(packing, tokenizing, forward, temperatures)."
@@ -272,6 +310,7 @@ SECTIONS = {
     "table-a": table_a,
     "table-b": table_b,
     "table-b-env": _latency_env,
+    "table-b-gpu": table_b_gpu,
     "table-c": table_c,
     "table-d": table_d,
     "operating-points": operating_points,

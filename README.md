@@ -98,12 +98,12 @@ readme`). Budgets: p99 ≤ 50 ms on GPU, ≤ 100 ms on CPU.
 <!-- table-b:start -->
 | Path | p50 ms | p95 ms | p99 ms | of which forward, p50 | of which packing, p50 | Fits budget (p99) |
 |---|---|---|---|---|---|---|
-| GPU, CUDA graphs: user_pause, 3 questions in 1 call | TODO | TODO | TODO | TODO | TODO | TODO |
-| GPU, CUDA graphs: user_pause, 3 questions in 3 calls | TODO | TODO | TODO | TODO | TODO | TODO |
-| GPU, CUDA graphs: user_speech_during_agent, 2 questions in 1 call | TODO | TODO | TODO | TODO | TODO | TODO |
-| GPU, eager: user_pause, 3 questions in 1 call | TODO | TODO | TODO | TODO | TODO | TODO |
-| GPU, eager: user_pause, 3 questions in 3 calls | TODO | TODO | TODO | TODO | TODO | TODO |
-| GPU, eager: user_speech_during_agent, 2 questions in 1 call | TODO | TODO | TODO | TODO | TODO | TODO |
+| GPU, CUDA graphs: user_pause, 3 questions in 1 call | 32.5 | 62.2 | 64.9 | 28.6 | 0.7 | no (≤ 50 ms) |
+| GPU, CUDA graphs: user_pause, 3 questions in 3 calls | 43.8 | 71.5 | 75.9 | 32.2 | 0.9 | no (≤ 50 ms) |
+| GPU, CUDA graphs: user_speech_during_agent, 2 questions in 1 call | 43.0 | 53.6 | 57.6 | 35.6 | 2.5 | no (≤ 50 ms) |
+| GPU, eager: user_pause, 3 questions in 1 call | 56.3 | 74.1 | 78.5 | 50.1 | 1.1 | no (≤ 50 ms) |
+| GPU, eager: user_pause, 3 questions in 3 calls | 128.5 | 174.7 | 186.9 | 115.7 | 1.1 | no (≤ 50 ms) |
+| GPU, eager: user_speech_during_agent, 2 questions in 1 call | 57.0 | 67.9 | 72.8 | 49.3 | 2.8 | no (≤ 50 ms) |
 | CPU: user_pause, 3 questions in 1 call | 1160.9 | 2577.6 | 2647.8 | 1156.7 | 0.7 | no (≤ 100 ms) |
 | CPU: user_pause, 3 questions in 3 calls | 822.6 | 2299.0 | 2347.1 | 814.9 | 0.6 | no (≤ 100 ms) |
 | CPU: user_speech_during_agent, 2 questions in 1 call | 1351.5 | 1716.0 | 1750.9 | 1347.1 | 1.6 | no (≤ 100 ms) |
@@ -111,21 +111,35 @@ readme`). Budgets: p99 ≤ 50 ms on GPU, ≤ 100 ms on CPU.
 <!-- table-b:end -->
 
 <!-- table-b-env:start -->
-Measured on NVIDIA GeForce RTX 5070 Ti Laptop GPU (driver, power limit: 591.86, [N/A]) and Intel64 Family 6 Model 197 Stepping 2, GenuineIntel with 16 torch threads; on AC power: True; torch 2.14.0+cu130, laya 0.3.21. Batch 1, 50 warmup and 1000 timed iterations over 50 fixed inputs per event; every timed call is a full `Decider.decide` (packing, tokenizing, forward, temperatures).
+Measured on NVIDIA GeForce RTX 5070 Ti Laptop GPU (driver 591.86) and Intel64 Family 6 Model 197 Stepping 2, GenuineIntel with 16 torch threads; on AC power: True; torch 2.14.0+cu130, laya 0.3.21. GPU rows measured 2026-09-30 (UTC). Batch 1, 50 warmup and 1000 timed iterations over 50 fixed inputs per event; every timed call is a full `Decider.decide` (packing, tokenizing, forward, temperatures).
 <!-- table-b-env:end -->
 
 "3 questions in 1 call" is one batched forward pass with one row per question; each row re-reads
-the state (docs/DECISIONS.md D-003). **The GPU rows are being re-measured.** Every earlier GPU
-number was taken with the GPU overclocked, and the laptop later crashed from heat, so all of them
-were discarded. They are re-measured at stock clocks, stock and fine-tuned checkpoints back to
-back, with GPU temperature, clocks and power logged beside every row, and any row taken while
-throttling is thrown out (docs/DECISIONS.md D-037). The CPU rows above are the stock checkpoint's
-from 28 September; they will be re-measured in chunks with cooldowns between them.
+the state (docs/DECISIONS.md D-003). The GPU rows above are the fine-tuned checkpoint's, measured
+at stock clocks with the stock checkpoint back to back, alternating which went first. Every row
+waited for the GPU to cool to 55 °C, was sampled by nvidia-smi throughout, and would have been
+discarded and retried had the GPU throttled while it was timed (docs/DECISIONS.md D-037). The
+table below shows the conditions. Earlier GPU numbers were taken overclocked and are discarded. The
+CPU rows are the stock checkpoint's from 28 September; they will be re-measured in chunks with
+cooldowns between them.
 
-Each row is one run, and on this laptop the tail moves between runs. Two runs of the GPU rows
-(f4c7e87, then ae690c4) differed by 10–20% at p99 in both directions, more than the code change
-between them explains (docs/DECISIONS.md D-028). Read a p99 here as one measurement on a
-power-limited laptop GPU, not a guarantee.
+<!-- table-b-gpu:start -->
+| Path | Stock p50 / p99 ms | Fine-tuned p50 / p99 ms | Fine-tuned vs stock, p50 | GPU max °C (stock / fine-tuned) | SM clock median, MHz | Power median / limit, W | Throttled while timed |
+|---|---|---|---|---|---|---|---|
+| GPU, CUDA graphs: user_pause, 3 questions in 1 call | 34.8 / 69.5 | 32.5 / 64.9 | -6.7% | 67 / 65 | 1972 / 1957 | 93 / 93 of 95 | no |
+| GPU, CUDA graphs: user_pause, 3 questions in 3 calls | 44.2 / 76.9 | 43.8 / 75.9 | -0.9% | 68 / 67 | 2055 / 2070 | 86 / 87 of 95 | no |
+| GPU, CUDA graphs: user_speech_during_agent, 2 questions in 1 call | 42.4 / 55.2 | 43.0 / 57.6 | +1.4% | 70 / 69 | 2025 / 2002 | 92 / 91 of 95 | no |
+| GPU, eager: user_pause, 3 questions in 1 call | 58.2 / 78.3 | 56.3 / 78.5 | -3.2% | 69 / 69 | 2227 / 2167 | 91 / 90 of 95 | no |
+| GPU, eager: user_pause, 3 questions in 3 calls | 133.9 / 185.7 | 128.5 / 186.9 | -4.0% | 65 / 64 | 2580 / 2565 | 69 / 70 of 95 | no |
+| GPU, eager: user_speech_during_agent, 2 questions in 1 call | 55.5 / 76.8 | 57.0 / 72.8 | +2.8% | 69 / 69 | 2257 / 2287 | 88 / 89 of 95 | no |
+<!-- table-b-gpu:end -->
+
+Both checkpoints load their weights as fp32, and they time within a few percent of each other, in
+both directions, so the latency here does not depend on the fine-tuning. The laptop GPU ran
+against its power limit for most of every row; that is its normal state under load, and it is
+recorded, not a reason to discard. Each row is still one run, and on this laptop the tail moves
+between runs (docs/DECISIONS.md D-028). Read a p99 here as one measurement on a power-limited
+laptop GPU, not a guarantee.
 
 ### Table C: robustness to ASR noise
 

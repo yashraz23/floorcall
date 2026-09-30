@@ -799,3 +799,18 @@ arms, `full` among them, each trained for 2 epochs.** (Yash's decisions.)
   runbook has a check after upload. The bundle script refuses to finish if any file in the bundle
   looks like a secret: a `.env` or key file by name, a known key pattern, or any value from the
   local `.env`, whether in the files' raw bytes or inside the gzipped data.
+*D-037 outcome: GPU latency re-measured (2026-09-29 evening, 2026-09-30 UTC; code `7ca1792`).*
+- **Conditions.** Stock clocks, and stock and fine-tuned (r2) interleaved, alternating which went
+  first. All 12 rows were kept on their first attempt, and nothing was discarded. No row showed a
+  thermal or hardware slowdown or a power brake while timed. The GPU peaked at 64–70 °C. The
+  software power cap was active in most samples (95 W limit); that is recorded and is not a
+  discard reason.
+- **Weights make no difference.** Both checkpoints load their weights as fp32 (421.3M
+  parameters), and the fine-tuned model times within −6.7% to +2.8% of stock at p50. The earlier
+  "one third faster" came from comparing two overclocked sessions on different days, not from the
+  weights.
+- **Budget.** No GPU row meets p99 ≤ 50 ms. The closest is CUDA graphs on
+  `user_speech_during_agent`: fine-tuned p50 43.0 / p99 57.6 ms, stock 42.4 / 55.2. `user_pause`
+  with CUDA graphs is p50 32.5 / p99 64.9 ms. The rows, with their telemetry, are in
+  `results/table_b/` (fine-tuned) and `results/table_b/stock/`. The CPU rows are still the stock
+  checkpoint's from 28 September and will be re-measured in chunks.
