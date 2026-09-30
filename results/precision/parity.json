@@ -1,0 +1,311 @@
+{
+  "checkpoint": "checkpoints\\main-r2",
+  "code": "8e4fd71",
+  "reference": "fp32",
+  "sets": {
+    "turn_complete/calib": 8201,
+    "turn_complete/dev": 2717,
+    "barge_in/calib": 7407,
+    "barge_in/dev": 2693,
+    "route/calib": 400,
+    "route/dev": 88,
+    "escalate/calib": 100,
+    "escalate/dev": 300
+  },
+  "telemetry": {
+    "fp32": {
+      "thermal_gate": {
+        "start_temp_c": 49.0,
+        "waited_s": 0.0
+      },
+      "samples": 2010,
+      "temperature_c": {
+        "min": 47.0,
+        "median": 68.0,
+        "max": 70.0
+      },
+      "sm_clock_mhz": {
+        "min": 217.0,
+        "median": 1695.0,
+        "max": 2587.0
+      },
+      "mem_clock_mhz": {
+        "min": 405.0,
+        "median": 9001.0,
+        "max": 14051.0
+      },
+      "max_sm_clock_mhz": {
+        "min": 3090.0,
+        "median": 3090.0,
+        "max": 3090.0
+      },
+      "power_draw_w": {
+        "min": 6.79,
+        "median": 94.22,
+        "max": 97.1
+      },
+      "power_limit_w": {
+        "min": 95.0,
+        "median": 95.0,
+        "max": 95.0
+      },
+      "pstates": [
+        "P0",
+        "P2",
+        "P4",
+        "P5",
+        "P8"
+      ],
+      "clock_events": {
+        "hw_slowdown": 0,
+        "hw_thermal_slowdown": 0,
+        "sw_thermal_slowdown": 0,
+        "hw_power_brake_slowdown": 0,
+        "sw_power_cap": 1911
+      }
+    },
+    "bf16": {
+      "thermal_gate": {
+        "start_temp_c": 54.0,
+        "waited_s": 15.0
+      },
+      "samples": 956,
+      "temperature_c": {
+        "min": 50.0,
+        "median": 67.0,
+        "max": 71.0
+      },
+      "sm_clock_mhz": {
+        "min": 217.0,
+        "median": 2122.0,
+        "max": 2595.0
+      },
+      "mem_clock_mhz": {
+        "min": 405.0,
+        "median": 9001.0,
+        "max": 11051.0
+      },
+      "max_sm_clock_mhz": {
+        "min": 3090.0,
+        "median": 3090.0,
+        "max": 3090.0
+      },
+      "power_draw_w": {
+        "min": 9.02,
+        "median": 93.84,
+        "max": 96.36
+      },
+      "power_limit_w": {
+        "min": 95.0,
+        "median": 95.0,
+        "max": 95.0
+      },
+      "pstates": [
+        "P2",
+        "P4",
+        "P5",
+        "P8"
+      ],
+      "clock_events": {
+        "hw_slowdown": 0,
+        "hw_thermal_slowdown": 0,
+        "sw_thermal_slowdown": 0,
+        "hw_power_brake_slowdown": 0,
+        "sw_power_cap": 859
+      }
+    },
+    "fp16": {
+      "thermal_gate": {
+        "start_temp_c": 53.0,
+        "waited_s": 15.0
+      },
+      "samples": 964,
+      "temperature_c": {
+        "min": 51.0,
+        "median": 68.0,
+        "max": 70.0
+      },
+      "sm_clock_mhz": {
+        "min": 217.0,
+        "median": 2085.0,
+        "max": 2422.0
+      },
+      "mem_clock_mhz": {
+        "min": 405.0,
+        "median": 9001.0,
+        "max": 9001.0
+      },
+      "max_sm_clock_mhz": {
+        "min": 3090.0,
+        "median": 3090.0,
+        "max": 3090.0
+      },
+      "power_draw_w": {
+        "min": 9.11,
+        "median": 93.82499999999999,
+        "max": 96.39
+      },
+      "power_limit_w": {
+        "min": 95.0,
+        "median": 95.0,
+        "max": 95.0
+      },
+      "pstates": [
+        "P4",
+        "P5",
+        "P8"
+      ],
+      "clock_events": {
+        "hw_slowdown": 0,
+        "hw_thermal_slowdown": 0,
+        "sw_thermal_slowdown": 0,
+        "hw_power_brake_slowdown": 0,
+        "sw_power_cap": 874
+      }
+    }
+  },
+  "precisions": {
+    "bf16": {
+      "verdict": {
+        "passes": true,
+        "min_agreement_required": 0.995,
+        "worst_argmax_agreement": 0.9985277880014722,
+        "worst_set": "turn_complete/dev",
+        "max_abs_prob_diff": 0.06770012064706232
+      },
+      "sets": {
+        "turn_complete/calib": {
+          "n": 8201,
+          "argmax_agreement": 0.9992683819046457,
+          "argmax_disagreements": 6,
+          "max_abs_prob_diff": 0.02826513497504779,
+          "mean_abs_prob_diff": 0.0014230521741882417
+        },
+        "turn_complete/dev": {
+          "n": 2717,
+          "argmax_agreement": 0.9985277880014722,
+          "argmax_disagreements": 4,
+          "max_abs_prob_diff": 0.04657089762324121,
+          "mean_abs_prob_diff": 0.0014252731783008427
+        },
+        "barge_in/calib": {
+          "n": 7407,
+          "argmax_agreement": 0.9994599702983664,
+          "argmax_disagreements": 4,
+          "max_abs_prob_diff": 0.06770012064706232,
+          "mean_abs_prob_diff": 0.00020010247595107067
+        },
+        "barge_in/dev": {
+          "n": 2693,
+          "argmax_agreement": 0.999628666914222,
+          "argmax_disagreements": 1,
+          "max_abs_prob_diff": 0.03065124269131636,
+          "mean_abs_prob_diff": 0.00023423017744234626
+        },
+        "route/calib": {
+          "n": 400,
+          "argmax_agreement": 1.0,
+          "argmax_disagreements": 0,
+          "max_abs_prob_diff": 0.029336065215482487,
+          "mean_abs_prob_diff": 6.760499512310837e-05
+        },
+        "route/dev": {
+          "n": 88,
+          "argmax_agreement": 1.0,
+          "argmax_disagreements": 0,
+          "max_abs_prob_diff": 0.006543773266645347,
+          "mean_abs_prob_diff": 4.175095038564177e-05
+        },
+        "escalate/calib": {
+          "n": 100,
+          "argmax_agreement": 1.0,
+          "argmax_disagreements": 0,
+          "max_abs_prob_diff": 0.008332728491902308,
+          "mean_abs_prob_diff": 0.0010966653711526229,
+          "threshold": 0.505,
+          "threshold_agreement": 1.0
+        },
+        "escalate/dev": {
+          "n": 300,
+          "argmax_agreement": 1.0,
+          "argmax_disagreements": 0,
+          "max_abs_prob_diff": 0.008447306780143826,
+          "mean_abs_prob_diff": 0.0008956693523429906,
+          "threshold": 0.505,
+          "threshold_agreement": 0.9966666666666667
+        }
+      }
+    },
+    "fp16": {
+      "verdict": {
+        "passes": true,
+        "min_agreement_required": 0.995,
+        "worst_argmax_agreement": 1.0,
+        "worst_set": "turn_complete/calib",
+        "max_abs_prob_diff": 0.020550928826960302
+      },
+      "sets": {
+        "turn_complete/calib": {
+          "n": 8201,
+          "argmax_agreement": 1.0,
+          "argmax_disagreements": 0,
+          "max_abs_prob_diff": 0.020550928826960302,
+          "mean_abs_prob_diff": 0.00017303708796362997
+        },
+        "turn_complete/dev": {
+          "n": 2717,
+          "argmax_agreement": 1.0,
+          "argmax_disagreements": 0,
+          "max_abs_prob_diff": 0.011495942950267013,
+          "mean_abs_prob_diff": 0.0001796065676218245
+        },
+        "barge_in/calib": {
+          "n": 7407,
+          "argmax_agreement": 1.0,
+          "argmax_disagreements": 0,
+          "max_abs_prob_diff": 0.019169404806240076,
+          "mean_abs_prob_diff": 2.781246715721901e-05
+        },
+        "barge_in/dev": {
+          "n": 2693,
+          "argmax_agreement": 1.0,
+          "argmax_disagreements": 0,
+          "max_abs_prob_diff": 0.00897419905611796,
+          "mean_abs_prob_diff": 2.8927583138825292e-05
+        },
+        "route/calib": {
+          "n": 400,
+          "argmax_agreement": 1.0,
+          "argmax_disagreements": 0,
+          "max_abs_prob_diff": 0.0034333832479611637,
+          "mean_abs_prob_diff": 9.704233823505741e-06
+        },
+        "route/dev": {
+          "n": 88,
+          "argmax_agreement": 1.0,
+          "argmax_disagreements": 0,
+          "max_abs_prob_diff": 0.0005078411869320343,
+          "mean_abs_prob_diff": 3.634616365962728e-06
+        },
+        "escalate/calib": {
+          "n": 100,
+          "argmax_agreement": 1.0,
+          "argmax_disagreements": 0,
+          "max_abs_prob_diff": 0.000814230484116496,
+          "mean_abs_prob_diff": 0.00011281610207934556,
+          "threshold": 0.505,
+          "threshold_agreement": 1.0
+        },
+        "escalate/dev": {
+          "n": 300,
+          "argmax_agreement": 1.0,
+          "argmax_disagreements": 0,
+          "max_abs_prob_diff": 0.0014656382736319695,
+          "mean_abs_prob_diff": 0.00011207589067595428,
+          "threshold": 0.505,
+          "threshold_agreement": 1.0
+        }
+      }
+    }
+  }
+}

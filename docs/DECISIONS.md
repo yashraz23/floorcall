@@ -831,3 +831,27 @@ bit-identical to p (up to 4e-15 in ECE, measured).
 
 On D4, fine-tuning buys calibration but no ranking over a bag of words trained on the same LLM
 labels.
+
+**D-039 · 2026-09-30 · §12 Table B · inference precision** — **The fine-tuned checkpoint is timed at
+fp32, bf16 and fp16. A lower precision is timed only if its answers match fp32's.** (Yash's
+decision.)
+*What "precision" means here.* Laya serves this GPU with bf16 autocast over fp32 weights, taken
+from the checkpoint's `amp_dtype`. Every Table B row so far is that mode, so "fp32" in the
+earlier note about the stored weights described the weights, not the arithmetic. The three
+variants are Laya's serving modes: **fp32** (no autocast), **bf16** autocast (the default) and
+**fp16** autocast. `LayaDecider.set_precision` switches them at call time, CUDA graphs capture
+each, and graph-against-eager parity is tested at all three.
+*The parity rule.* On calib and the dev split (never test), with the served, temperature-scaled
+probabilities, a variant's argmax must agree with fp32's on at least 99.5% of every decision's
+calib set and dev set. Otherwise it gets no latency row, and Yash is shown the result.
+*Parity result* (`results/precision/parity.json`, code `8e4fd71`, 21,906 rows; each pass started
+at 49–54 °C, peaked at 70–71 °C, and never throttled):
+- **fp16: 100.00% agreement on every set.** Largest probability difference 0.021.
+- **bf16: worst 99.85%** (D1 dev: 4 of 2,717 rows flip; 6 of 8,201 on D1 calib, and 4 of
+  7,407 and 1 of 2,693 on D2). Largest probability difference 0.068. D4's thresholded decision
+  flips on 1 of its 300 dev rows.
+- Both pass, and both are timed, back to back with fp32.
+*Power, restated from telemetry.* Every GPU latency row so far ran against the GPU's power limit.
+The enforced limit was 95 W, each row's median draw was 69–93 W, and the driver's power cap was
+active in 68% of the timed samples. The README's power note is generated from those files; it
+does not say "~85 W", because the telemetry does not.
