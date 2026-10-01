@@ -1,0 +1,178 @@
+━━ 01_backchannels · Backchannels while the agent explains
+   covers: D2 backchannel
+   (before)       user   "my card got declined at the store this morning"
+   0.00-10.90 s  agent  "I can see that. Your card was declined because the store ran it as an international purchase, and your account has foreign transactions switched off by default, so our fraud system held it."
+   3.00-3.30 s  user   "uh-huh"
+   ▸ speech over the agent · want keep_talking  ◆ the agents diverge
+       naive     ✗ stop_and_listen: stopped talking at 3.00 s (7900 ms of its line unsaid)
+                   any user speech stops the agent
+       floorcall ✓ keep_talking: kept talking
+                   backchannel (p=1.00); p(interruption) 0.00 < 0.09 · heard "uh-huh" by 3.30 s · decided at 3.30 s + 55.4 ms budget (GPU p50) · compute 583 ms on cpu (fp32) (not on the timeline)
+   ▸ pause · want (no expectation)  ◆ the agents diverge
+       naive       respond_after_timeout, route - (no router): answered 800 ms after the user stopped; the user spoke again 2400 ms later
+                   silence 800 ms >= timeout 800 ms
+   6.50-6.80 s  user   "right"
+   ▸ speech over the agent · want keep_talking  ◆ the agents diverge
+       naive     ✗ no decision: the agent had already stopped talking at 3.00 s
+       floorcall ✓ keep_talking: kept talking
+                   backchannel (p=1.00); p(interruption) 0.00 < 0.09 · heard "right" by 6.80 s · decided at 6.80 s + 55.4 ms budget (GPU p50) · compute 647 ms on cpu (fp32) (not on the timeline)
+   ▸ pause · want (no expectation)  ◆ the agents diverge
+       naive       respond_after_timeout, route - (no router): answered 800 ms after the user stopped; the user spoke again 3800 ms later
+                   silence 800 ms >= timeout 800 ms
+   11.40-13.80 s  user   "okay, so how do I switch that on"
+   ▸ pause · want respond  ◆ the agents diverge
+       naive     ✓ respond_after_timeout, route - (no router): answered 800 ms after the user stopped (timeout)
+                   silence 800 ms >= timeout 800 ms
+       floorcall ✓ respond_after_timeout, route out_of_scope: answered 2000 ms after the user stopped (safety net)
+                   p(turn_complete)=0.61 < 0.785, silence 300 ms < 2000 ms; then silence 2000 ms >= max_wait 2000 ms · decided at 14.10 s + 56.4 ms budget (GPU p50) · compute 1,588 ms on cpu (fp32) (not on the timeline)
+   16.00-21.30 s  agent  "You can switch it on in the app, under card settings, then try the payment again."
+
+━━ 02_real_interruption · A real interruption: a charge the user did not make
+   covers: D2 interruption, D3 route
+   (before)       user   "can you go through my recent transactions"
+   0.00-12.90 s  agent  "Sure. On Monday there was a payment of forty two dollars to City Water, then on Tuesday a card payment of three hundred and ten dollars at Electro Mart, then on Wednesday a transfer of fifty dollars to savings."
+   10.00-11.50 s  user   "wait, that one's not mine"
+   ▸ speech over the agent · want stop_and_listen
+       naive     ✓ stop_and_listen: stopped talking at 10.00 s (2900 ms of its line unsaid)
+                   any user speech stops the agent
+       floorcall ✓ stop_and_listen: stopped talking at 10.66 s (2245 ms of its line unsaid)
+                   p(interruption)=0.39 >= 0.09 · heard "wait, that" by 10.60 s · decided at 10.60 s + 55.4 ms budget (GPU p50) · compute 600 ms on cpu (fp32) (not on the timeline)
+   11.70-13.20 s  user   "I never bought anything there"
+   ▸ pause · want respond, route report_fraud  ◆ the agents diverge
+       naive     ✗ respond_after_timeout, route - (no router): answered 800 ms after the user stopped (timeout)
+                   silence 800 ms >= timeout 800 ms
+       floorcall ✗ respond, route transactions: answered 356 ms after the user stopped (decision)
+                   p(turn_complete)=0.83 >= 0.785 · decided at 13.50 s + 56.4 ms budget (GPU p50) · compute 1,243 ms on cpu (fp32) (not on the timeline)
+   15.40-20.70 s  agent  "I'm sorry about that. I'll block the card and open a fraud claim for that payment."
+
+━━ 03_yeah_vs_yeah_but · The same word twice: "yeah" and "yeah but"
+   covers: D2 hard subset: backchannel vs interruption
+   (before)       user   "why was my card declined"
+   0.00-11.60 s  agent  "Your card was declined because the payment was over your daily spending limit, which is five hundred dollars, and the purchase was six hundred and twenty dollars, so the bank held it for your safety."
+   4.50-4.80 s  user   "yeah"
+   ▸ speech over the agent · want keep_talking  ◆ the agents diverge
+       naive     ✗ stop_and_listen: stopped talking at 4.50 s (7100 ms of its line unsaid)
+                   any user speech stops the agent
+       floorcall ✓ keep_talking: kept talking
+                   backchannel (p=1.00); p(interruption) 0.00 < 0.09 · heard "yeah" by 4.80 s · decided at 4.80 s + 55.4 ms budget (GPU p50) · compute 524 ms on cpu (fp32) (not on the timeline)
+   ▸ pause · want (no expectation)  ◆ the agents diverge
+       naive       respond_after_timeout, route - (no router): answered 800 ms after the user stopped; the user spoke again 3400 ms later
+                   silence 800 ms >= timeout 800 ms
+   9.00-12.30 s  user   "yeah but I set my limit to a thousand last week"
+   ▸ speech over the agent · want stop_and_listen  ◆ the agents diverge
+       naive       no decision: the agent had already stopped talking at 4.50 s (not scored: nothing to stop)
+       floorcall ✓ stop_and_listen: stopped talking at 9.66 s (1945 ms of its line unsaid)
+                   p(interruption)=0.87 >= 0.09 · heard "yeah but" by 9.60 s · decided at 9.60 s + 55.4 ms budget (GPU p50) · compute 654 ms on cpu (fp32) (not on the timeline)
+   ▸ pause · want respond  ◆ the agents diverge
+       naive     ✓ respond_after_timeout, route - (no router): answered 800 ms after the user stopped (timeout)
+                   silence 800 ms >= timeout 800 ms
+       floorcall ✓ respond_after_timeout, route spending_history: answered 2000 ms after the user stopped (safety net)
+                   p(turn_complete)=0.69 < 0.785, silence 300 ms < 2000 ms; then silence 2000 ms >= max_wait 2000 ms · decided at 12.60 s + 56.4 ms budget (GPU p50) · compute 1,352 ms on cpu (fp32) (not on the timeline)
+   14.50-20.50 s  agent  "I see the change request from last week, but it was never confirmed. I can confirm it now."
+
+━━ 04_side_talk · Talk to someone else in the room
+   covers: D2 noise, D3 route
+   (before)       user   "how much is my electricity bill"
+   0.00-10.90 s  agent  "Your electricity bill is one hundred and twelve dollars and forty cents, and it is due on the fifteenth of this month. Would you like to pay it now from your checking account?"
+   3.50-5.30 s  user   "honey can you grab the door"
+   ▸ speech over the agent · want ignore
+       naive     ✗ stop_and_listen: stopped talking at 3.50 s (7400 ms of its line unsaid)
+                   any user speech stops the agent
+       floorcall ✗ stop_and_listen: stopped talking at 4.16 s (6745 ms of its line unsaid)
+                   p(interruption)=0.73 >= 0.09 · heard "honey can" by 4.10 s · decided at 4.10 s + 55.4 ms budget (GPU p50) · compute 542 ms on cpu (fp32) (not on the timeline)
+   ▸ pause · want (no expectation)  ◆ the agents diverge
+       naive       respond_after_timeout, route - (no router): answered 800 ms after the user stopped; the user spoke again 5300 ms later
+                   silence 800 ms >= timeout 800 ms
+       floorcall   respond, route bill_balance: answered 356 ms after the user stopped; the user spoke again 5744 ms later
+                   p(turn_complete)=0.90 >= 0.785 · decided at 5.60 s + 56.4 ms budget (GPU p50) · compute 1,202 ms on cpu (fp32) (not on the timeline)
+   11.40-12.90 s  user   "yes, please pay it now"
+   ▸ pause · want respond, route pay_bill  ◆ the agents diverge
+       naive     ✗ respond_after_timeout, route - (no router): answered 800 ms after the user stopped (timeout)
+                   silence 800 ms >= timeout 800 ms
+       floorcall ✓ respond, route pay_bill: answered 356 ms after the user stopped (decision)
+                   p(turn_complete)=0.89 >= 0.785 · decided at 13.20 s + 56.4 ms budget (GPU p50) · compute 1,262 ms on cpu (fp32) (not on the timeline)
+   15.10-19.10 s  agent  "Done. One hundred and twelve dollars and forty cents has been paid."
+
+━━ 05_mid_sentence_pause · The user pauses mid-request
+   covers: D1 early pause, D3 route
+   (before)       agent  "Hi, thanks for calling. How can I help today?"
+   0.00-1.50 s  user   "I want to pay my"
+   ▸ pause · want keep_listening  ◆ the agents diverge
+       naive     ✗ respond_after_timeout, route - (no router): answered 800 ms after the user stopped, mid-thought: it cut them off 300 ms before they went on
+                   silence 800 ms >= timeout 800 ms
+       floorcall ✓ keep_listening: kept listening
+                   p(turn_complete)=0.00 < 0.785, silence 300 ms < 2000 ms · decided at 1.80 s + 56.4 ms budget (GPU p50) · compute 1,143 ms on cpu (fp32) (not on the timeline)
+   2.60-3.80 s  user   "credit card bill please"
+   ▸ pause · want respond, route pay_bill  ◆ the agents diverge
+       naive     ✗ respond_after_timeout, route - (no router): answered 800 ms after the user stopped (timeout)
+                   silence 800 ms >= timeout 800 ms
+       floorcall ✓ respond, route pay_bill: answered 356 ms after the user stopped (decision)
+                   p(turn_complete)=0.83 >= 0.785 · decided at 4.10 s + 56.4 ms budget (GPU p50) · compute 1,154 ms on cpu (fp32) (not on the timeline)
+   6.00-8.70 s  agent  "Sure. Which account should the payment come from?"
+
+━━ 06_finished_turn · A finished question
+   covers: D1 finished turn, D3 route
+   (before)       agent  "Hi, thanks for calling. How can I help today?"
+   0.00-2.10 s  user   "what's the balance on my checking account"
+   ▸ pause · want respond, route balance  ◆ the agents diverge
+       naive     ✗ respond_after_timeout, route - (no router): answered 800 ms after the user stopped (timeout)
+                   silence 800 ms >= timeout 800 ms
+       floorcall ✓ respond, route balance: answered 356 ms after the user stopped (decision)
+                   p(turn_complete)=0.80 >= 0.785 · decided at 2.40 s + 56.4 ms budget (GPU p50) · compute 1,172 ms on cpu (fp32) (not on the timeline)
+   4.30-8.30 s  agent  "Your checking account balance is two thousand four hundred and six dollars."
+
+━━ 07_out_of_scope · A request a bank agent does not handle
+   covers: D3 out of scope
+   (before)       agent  "Hi, thanks for calling. How can I help today?"
+   0.00-3.90 s  user   "can you book me a table for two at an italian place tonight"
+   ▸ pause · want respond, route out_of_scope  ◆ the agents diverge
+       naive     ✗ respond_after_timeout, route - (no router): answered 800 ms after the user stopped (timeout)
+                   silence 800 ms >= timeout 800 ms
+       floorcall ✓ respond, route out_of_scope: answered 356 ms after the user stopped (decision)
+                   p(turn_complete)=0.87 >= 0.785 · decided at 4.20 s + 56.4 ms budget (GPU p50) · compute 1,207 ms on cpu (fp32) (not on the timeline)
+   6.10-9.80 s  agent  "Sorry, I can only help with your bank accounts and cards."
+
+━━ 08_escalation · A frustrated user asks for a person, twice
+   covers: D4 escalate, D1 early pause
+   (before)       user   "my transfer to my landlord still hasn't arrived"
+   (before)       agent  "Transfers can take up to three business days to arrive."
+   (before)       user   "you said that on monday, it's been five days"
+   (before)       agent  "Transfers can take up to three business days to arrive."
+   0.00-2.70 s  user   "this is ridiculous, I've explained this three times now,"
+   ▸ pause · want keep_listening  ◆ the agents diverge
+       naive     ✗ respond_after_timeout, route - (no router): answered 800 ms after the user stopped, mid-thought: it cut them off 300 ms before they went on
+                   silence 800 ms >= timeout 800 ms
+       floorcall ✗ respond, route spending_history: answered 356 ms after the user stopped, mid-thought: it cut them off 744 ms before they went on
+                   p(turn_complete)=0.88 >= 0.785 · decided at 3.00 s + 56.4 ms budget (GPU p50) · compute 1,441 ms on cpu (fp32) (not on the timeline)
+   3.80-5.60 s  user   "just get me a real person"
+   ▸ pause · want respond, hand off to a human  ◆ the agents diverge
+       naive     ✗ respond_after_timeout, route - (no router), no hand-off: answered 800 ms after the user stopped (timeout)
+                   silence 800 ms >= timeout 800 ms
+       floorcall ✓ respond_after_timeout, route spending_history, hand off to a human: answered 2000 ms after the user stopped (safety net)
+                   p(turn_complete)=0.61 < 0.785, silence 300 ms < 2000 ms; then silence 2000 ms >= max_wait 2000 ms; p(escalate)=0.59 >= 0.505: hand off · decided at 5.90 s + 56.4 ms budget (GPU p50) · compute 1,431 ms on cpu (fp32) (not on the timeline)
+   7.80-15.80 s  agent  "I understand your frustration. Before I transfer you, can I just confirm the amount was nine hundred dollars and the payee was your landlord?"
+   11.20-13.90 s  user   "no, stop, put me through to a human now"
+   ▸ speech over the agent · want stop_and_listen, hand off to a human
+       naive     ✗ stop_and_listen, no hand-off: stopped talking at 11.20 s (4600 ms of its line unsaid)
+                   any user speech stops the agent
+       floorcall ✗ stop_and_listen, no hand-off: stopped talking at 11.86 s (3945 ms of its line unsaid)
+                   p(interruption)=0.74 >= 0.09 · heard "no, stop," by 11.80 s · decided at 11.80 s + 55.4 ms budget (GPU p50) · compute 912 ms on cpu (fp32) (not on the timeline)
+   ▸ pause · want respond, hand off to a human  ◆ the agents diverge
+       naive     ✗ respond_after_timeout, route - (no router), no hand-off: answered 800 ms after the user stopped (timeout)
+                   silence 800 ms >= timeout 800 ms
+       floorcall ✓ respond, route freeze_account, hand off to a human: answered 356 ms after the user stopped (decision)
+                   p(turn_complete)=0.89 >= 0.785; p(escalate)=0.70 >= 0.505: hand off · decided at 14.20 s + 56.4 ms budget (GPU p50) · compute 1,591 ms on cpu (fp32) (not on the timeline)
+
+━━ Summary
+   Illustrative demo scripts, not an evaluation set: the evaluation is Tables A-D. The counts below are scripted decision points, not accuracy.
+   8 scripts, 18 expected decision points
+   naive     acted as wanted at 3 of 17
+   floorcall acted as wanted at 14 of 18
+   points where the agents diverge: 19
+   timeline budget per user_pause decision: 56.4 ms (results/table_b/gpu_eager_pause.json, total_ms.p50: GPU, eager: user_pause (3 questions, 1 call))
+   timeline budget per user_speech_during_agent decision: 55.4 ms (results/table_b/gpu_eager_barge.json, total_ms.p50: GPU, eager: user_speech_during_agent (2 questions, 1 call))
+   measured compute in this replay, on cpu (fp32): p50 1,172 ms, max 1,591 ms over 19 forward passes (not on the timeline)
+   theta_interrupt = 0.09  (results/curves/finetuned_temp.json, interrupt.theta)
+   theta_yield = 0.785  (results/curves/finetuned_temp.json, yield.theta)
+   theta_escalate = 0.505  (results/table_a/escalate.finetuned_temp_threshold.json, threshold_choice.theta)
+   theta_oos = 0.45  (results/thresholds/route_oos.json, choice.theta)

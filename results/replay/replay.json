@@ -1,0 +1,1591 @@
+{
+ "note": "Illustrative demo scripts, not an evaluation set: the evaluation is Tables A-D. The counts below are scripted decision points, not accuracy.",
+ "code": "d1b7e54",
+ "checkpoint": "checkpoints/main-r2",
+ "device": "cpu (fp32)",
+ "naive_silence_ms": 800,
+ "barge_window_ms": 600,
+ "vad_pause_ms": 300,
+ "max_wait_ms": 2000,
+ "scripts_manifest": {
+  "01_backchannels.json": "360621be3203d3c8c8d86a7d90b69e48e110de4b29ca0bce889520fd267d8240",
+  "02_real_interruption.json": "6172ba4f685a17d0d1d573b8339a172fd31b287721e365b3074505439c8cdbc2",
+  "03_yeah_vs_yeah_but.json": "2cb91e1daecfb9e53d70d70679a7ee027abe704aebf5054112245c49f6651dd6",
+  "04_side_talk.json": "539a3ac7636e80984a269627c342e5c63d156615c3c366944f761d8f2d5972fc",
+  "05_mid_sentence_pause.json": "f9582ad21ab5650b15d8e170600c87388a606f5d2eb24b56cdcf1db84007b14b",
+  "06_finished_turn.json": "fb18909b7d3c30ec15ca97d66f53d6ab75ee534c53e0b4b184afc7b3c8df0886",
+  "07_out_of_scope.json": "def4820153c6c4b1b20b31957b08afd17bd8932ab7b8ed9953a0e06633e29736",
+  "08_escalation.json": "b94f510f31b02522fdfd7cd236794cc136db9b236da6db8337cd5079624216e0"
+ },
+ "thresholds": {
+  "theta_interrupt": {
+   "value": 0.09,
+   "file": "results/curves/finetuned_temp.json",
+   "key": "interrupt.theta"
+  },
+  "theta_yield": {
+   "value": 0.785,
+   "file": "results/curves/finetuned_temp.json",
+   "key": "yield.theta"
+  },
+  "theta_escalate": {
+   "value": 0.505,
+   "file": "results/table_a/escalate.finetuned_temp_threshold.json",
+   "key": "threshold_choice.theta"
+  },
+  "theta_oos": {
+   "value": 0.45,
+   "file": "results/thresholds/route_oos.json",
+   "key": "choice.theta"
+  }
+ },
+ "budgets_ms": {
+  "user_pause": {
+   "value": 56.43030000101135,
+   "file": "results/table_b/gpu_eager_pause.json",
+   "key": "total_ms.p50",
+   "label": "GPU, eager: user_pause (3 questions, 1 call)"
+  },
+  "user_speech_during_agent": {
+   "value": 55.4436500005977,
+   "file": "results/table_b/gpu_eager_barge.json",
+   "key": "total_ms.p50",
+   "label": "GPU, eager: user_speech_during_agent (2 questions, 1 call)"
+  }
+ },
+ "scripts": [
+  {
+   "id": "01_backchannels",
+   "runs": {
+    "naive": {
+     "agent": "naive",
+     "outcomes": [
+      {
+       "seg": 1,
+       "event": "user_speech_during_agent",
+       "act": {
+        "action": "stop_and_listen",
+        "route": null,
+        "escalate": false,
+        "reason": "any user speech stops the agent",
+        "decided_at_ms": 3000,
+        "effective_ms": 3000,
+        "budget_ms": 0.0,
+        "compute_ms": null,
+        "device": null,
+        "probabilities": null,
+        "heard": "",
+        "timer": false
+       },
+       "consequence": "stopped talking at 3.00 s (7900 ms of its line unsaid)",
+       "want": "keep_talking",
+       "want_route": null,
+       "want_escalate": null,
+       "ok": false
+      },
+      {
+       "seg": 1,
+       "event": "user_pause",
+       "act": {
+        "action": "respond_after_timeout",
+        "route": null,
+        "escalate": false,
+        "reason": "silence 800 ms >= timeout 800 ms",
+        "decided_at_ms": 4100,
+        "effective_ms": 4100,
+        "budget_ms": 0.0,
+        "compute_ms": null,
+        "device": null,
+        "probabilities": null,
+        "heard": "",
+        "timer": true
+       },
+       "consequence": "answered 800 ms after the user stopped; the user spoke again 2400 ms later",
+       "want": null,
+       "want_route": null,
+       "want_escalate": null,
+       "ok": null
+      },
+      {
+       "seg": 2,
+       "event": "user_pause",
+       "act": {
+        "action": "respond_after_timeout",
+        "route": null,
+        "escalate": false,
+        "reason": "silence 800 ms >= timeout 800 ms",
+        "decided_at_ms": 7600,
+        "effective_ms": 7600,
+        "budget_ms": 0.0,
+        "compute_ms": null,
+        "device": null,
+        "probabilities": null,
+        "heard": "",
+        "timer": true
+       },
+       "consequence": "answered 800 ms after the user stopped; the user spoke again 3800 ms later",
+       "want": null,
+       "want_route": null,
+       "want_escalate": null,
+       "ok": null
+      },
+      {
+       "seg": 3,
+       "event": "user_pause",
+       "act": {
+        "action": "respond_after_timeout",
+        "route": null,
+        "escalate": false,
+        "reason": "silence 800 ms >= timeout 800 ms",
+        "decided_at_ms": 14600,
+        "effective_ms": 14600,
+        "budget_ms": 0.0,
+        "compute_ms": null,
+        "device": null,
+        "probabilities": null,
+        "heard": "",
+        "timer": true
+       },
+       "consequence": "answered 800 ms after the user stopped (timeout)",
+       "want": "respond",
+       "want_route": null,
+       "want_escalate": null,
+       "ok": true
+      }
+     ],
+     "missed": [
+      {
+       "seg": 2,
+       "want": "keep_talking",
+       "why": "the agent had already stopped talking at 3.00 s",
+       "counts": true
+      }
+     ]
+    },
+    "floorcall": {
+     "agent": "floorcall",
+     "outcomes": [
+      {
+       "seg": 1,
+       "event": "user_speech_during_agent",
+       "act": {
+        "action": "keep_talking",
+        "route": null,
+        "escalate": false,
+        "reason": "backchannel (p=1.00); p(interruption) 0.00 < 0.09",
+        "decided_at_ms": 3300,
+        "effective_ms": 3355.4436500005977,
+        "budget_ms": 55.4436500005977,
+        "compute_ms": 582.6214999979129,
+        "device": "cpu (fp32)",
+        "probabilities": {
+         "barge_in": {
+          "backchannel": 0.9992838723024691,
+          "interruption": 0.00042061960688610876,
+          "noise": 0.0002955080906449159
+         },
+         "escalate": {
+          "false": 0.9927330281916033,
+          "true": 0.007266971808396679
+         }
+        },
+        "heard": "uh-huh",
+        "timer": false
+       },
+       "consequence": "kept talking",
+       "want": "keep_talking",
+       "want_route": null,
+       "want_escalate": null,
+       "ok": true
+      },
+      {
+       "seg": 2,
+       "event": "user_speech_during_agent",
+       "act": {
+        "action": "keep_talking",
+        "route": null,
+        "escalate": false,
+        "reason": "backchannel (p=1.00); p(interruption) 0.00 < 0.09",
+        "decided_at_ms": 6800,
+        "effective_ms": 6855.443650000598,
+        "budget_ms": 55.4436500005977,
+        "compute_ms": 647.430600001826,
+        "device": "cpu (fp32)",
+        "probabilities": {
+         "barge_in": {
+          "backchannel": 0.9957331831575273,
+          "interruption": 0.0032324846101872136,
+          "noise": 0.0010343322322853914
+         },
+         "escalate": {
+          "false": 0.9276659040211628,
+          "true": 0.07233409597883726
+         }
+        },
+        "heard": "right",
+        "timer": false
+       },
+       "consequence": "kept talking",
+       "want": "keep_talking",
+       "want_route": null,
+       "want_escalate": null,
+       "ok": true
+      },
+      {
+       "seg": 3,
+       "event": "user_pause",
+       "act": {
+        "action": "respond_after_timeout",
+        "route": "out_of_scope",
+        "escalate": false,
+        "reason": "p(turn_complete)=0.61 < 0.785, silence 300 ms < 2000 ms; then silence 2000 ms >= max_wait 2000 ms",
+        "decided_at_ms": 14100,
+        "effective_ms": 15800,
+        "budget_ms": 56.43030000101135,
+        "compute_ms": 1588.0755999969551,
+        "device": "cpu (fp32)",
+        "probabilities": {
+         "turn_complete": {
+          "false": 0.3850312038156711,
+          "true": 0.6149687961843289
+         },
+         "route": {
+          "transfer": 0.01571310655296297,
+          "transactions": 0.017644779201570773,
+          "balance": 0.01659927618295568,
+          "freeze_account": 0.015717627784011468,
+          "pay_bill": 0.015255259918428628,
+          "bill_balance": 0.015083401205339807,
+          "bill_due": 0.016655516622422945,
+          "interest_rate": 0.015957912845408023,
+          "routing": 0.015996666792134476,
+          "min_payment": 0.016465780011263555,
+          "order_checks": 0.016409056988864038,
+          "pin_change": 0.01724006627435065,
+          "report_fraud": 0.016772987045429025,
+          "account_blocked": 0.1324910139576009,
+          "spending_history": 0.16675487456661314,
+          "out_of_scope": 0.48924267405064387
+         },
+         "escalate": {
+          "false": 0.7874948640796609,
+          "true": 0.21250513592033915
+         }
+        },
+        "heard": "okay, so how do I switch that on",
+        "timer": true
+       },
+       "consequence": "answered 2000 ms after the user stopped (safety net)",
+       "want": "respond",
+       "want_route": null,
+       "want_escalate": null,
+       "ok": true
+      }
+     ],
+     "missed": []
+    }
+   },
+   "divergences": [
+    [
+     1,
+     "user_pause"
+    ],
+    [
+     1,
+     "user_speech_during_agent"
+    ],
+    [
+     2,
+     "user_pause"
+    ],
+    [
+     2,
+     "user_speech_during_agent"
+    ],
+    [
+     3,
+     "user_pause"
+    ]
+   ]
+  },
+  {
+   "id": "02_real_interruption",
+   "runs": {
+    "naive": {
+     "agent": "naive",
+     "outcomes": [
+      {
+       "seg": 1,
+       "event": "user_speech_during_agent",
+       "act": {
+        "action": "stop_and_listen",
+        "route": null,
+        "escalate": false,
+        "reason": "any user speech stops the agent",
+        "decided_at_ms": 10000,
+        "effective_ms": 10000,
+        "budget_ms": 0.0,
+        "compute_ms": null,
+        "device": null,
+        "probabilities": null,
+        "heard": "",
+        "timer": false
+       },
+       "consequence": "stopped talking at 10.00 s (2900 ms of its line unsaid)",
+       "want": "stop_and_listen",
+       "want_route": null,
+       "want_escalate": null,
+       "ok": true
+      },
+      {
+       "seg": 2,
+       "event": "user_pause",
+       "act": {
+        "action": "respond_after_timeout",
+        "route": null,
+        "escalate": false,
+        "reason": "silence 800 ms >= timeout 800 ms",
+        "decided_at_ms": 14000,
+        "effective_ms": 14000,
+        "budget_ms": 0.0,
+        "compute_ms": null,
+        "device": null,
+        "probabilities": null,
+        "heard": "",
+        "timer": true
+       },
+       "consequence": "answered 800 ms after the user stopped (timeout)",
+       "want": "respond",
+       "want_route": "report_fraud",
+       "want_escalate": null,
+       "ok": false
+      }
+     ],
+     "missed": []
+    },
+    "floorcall": {
+     "agent": "floorcall",
+     "outcomes": [
+      {
+       "seg": 1,
+       "event": "user_speech_during_agent",
+       "act": {
+        "action": "stop_and_listen",
+        "route": null,
+        "escalate": false,
+        "reason": "p(interruption)=0.39 >= 0.09",
+        "decided_at_ms": 10600,
+        "effective_ms": 10655.443650000598,
+        "budget_ms": 55.4436500005977,
+        "compute_ms": 599.5591999962926,
+        "device": "cpu (fp32)",
+        "probabilities": {
+         "barge_in": {
+          "backchannel": 0.04855214875528222,
+          "interruption": 0.39044459490681277,
+          "noise": 0.5610032563379049
+         },
+         "escalate": {
+          "false": 0.6789407906356086,
+          "true": 0.3210592093643913
+         }
+        },
+        "heard": "wait, that",
+        "timer": false
+       },
+       "consequence": "stopped talking at 10.66 s (2245 ms of its line unsaid)",
+       "want": "stop_and_listen",
+       "want_route": null,
+       "want_escalate": null,
+       "ok": true
+      },
+      {
+       "seg": 2,
+       "event": "user_pause",
+       "act": {
+        "action": "respond",
+        "route": "transactions",
+        "escalate": false,
+        "reason": "p(turn_complete)=0.83 >= 0.785",
+        "decided_at_ms": 13500,
+        "effective_ms": 13556.430300001011,
+        "budget_ms": 56.43030000101135,
+        "compute_ms": 1242.542499996489,
+        "device": "cpu (fp32)",
+        "probabilities": {
+         "turn_complete": {
+          "false": 0.17243503837375676,
+          "true": 0.8275649616262432
+         },
+         "route": {
+          "transfer": 0.003388093414103972,
+          "transactions": 0.7507081750801508,
+          "balance": 0.0032844779080549143,
+          "freeze_account": 0.003047961489526309,
+          "pay_bill": 0.0031092313405361705,
+          "bill_balance": 0.0030723146630079515,
+          "bill_due": 0.0032691789419936846,
+          "interest_rate": 0.0032646926324388184,
+          "routing": 0.0035216934802367846,
+          "min_payment": 0.0040627310213994725,
+          "order_checks": 0.0035542268198325783,
+          "pin_change": 0.0033013882481814226,
+          "report_fraud": 0.13461389982896635,
+          "account_blocked": 0.004334993876240626,
+          "spending_history": 0.02571244293488385,
+          "out_of_scope": 0.04775449832044623
+         },
+         "escalate": {
+          "false": 0.7815753105314622,
+          "true": 0.21842468946853777
+         }
+        },
+        "heard": "wait, that one's not mine I never bought anything there",
+        "timer": false
+       },
+       "consequence": "answered 356 ms after the user stopped (decision)",
+       "want": "respond",
+       "want_route": "report_fraud",
+       "want_escalate": null,
+       "ok": false
+      }
+     ],
+     "missed": []
+    }
+   },
+   "divergences": [
+    [
+     2,
+     "user_pause"
+    ]
+   ]
+  },
+  {
+   "id": "03_yeah_vs_yeah_but",
+   "runs": {
+    "naive": {
+     "agent": "naive",
+     "outcomes": [
+      {
+       "seg": 1,
+       "event": "user_speech_during_agent",
+       "act": {
+        "action": "stop_and_listen",
+        "route": null,
+        "escalate": false,
+        "reason": "any user speech stops the agent",
+        "decided_at_ms": 4500,
+        "effective_ms": 4500,
+        "budget_ms": 0.0,
+        "compute_ms": null,
+        "device": null,
+        "probabilities": null,
+        "heard": "",
+        "timer": false
+       },
+       "consequence": "stopped talking at 4.50 s (7100 ms of its line unsaid)",
+       "want": "keep_talking",
+       "want_route": null,
+       "want_escalate": null,
+       "ok": false
+      },
+      {
+       "seg": 1,
+       "event": "user_pause",
+       "act": {
+        "action": "respond_after_timeout",
+        "route": null,
+        "escalate": false,
+        "reason": "silence 800 ms >= timeout 800 ms",
+        "decided_at_ms": 5600,
+        "effective_ms": 5600,
+        "budget_ms": 0.0,
+        "compute_ms": null,
+        "device": null,
+        "probabilities": null,
+        "heard": "",
+        "timer": true
+       },
+       "consequence": "answered 800 ms after the user stopped; the user spoke again 3400 ms later",
+       "want": null,
+       "want_route": null,
+       "want_escalate": null,
+       "ok": null
+      },
+      {
+       "seg": 2,
+       "event": "user_pause",
+       "act": {
+        "action": "respond_after_timeout",
+        "route": null,
+        "escalate": false,
+        "reason": "silence 800 ms >= timeout 800 ms",
+        "decided_at_ms": 13100,
+        "effective_ms": 13100,
+        "budget_ms": 0.0,
+        "compute_ms": null,
+        "device": null,
+        "probabilities": null,
+        "heard": "",
+        "timer": true
+       },
+       "consequence": "answered 800 ms after the user stopped (timeout)",
+       "want": "respond",
+       "want_route": null,
+       "want_escalate": null,
+       "ok": true
+      }
+     ],
+     "missed": [
+      {
+       "seg": 2,
+       "want": "stop_and_listen",
+       "why": "the agent had already stopped talking at 4.50 s",
+       "counts": false
+      }
+     ]
+    },
+    "floorcall": {
+     "agent": "floorcall",
+     "outcomes": [
+      {
+       "seg": 1,
+       "event": "user_speech_during_agent",
+       "act": {
+        "action": "keep_talking",
+        "route": null,
+        "escalate": false,
+        "reason": "backchannel (p=1.00); p(interruption) 0.00 < 0.09",
+        "decided_at_ms": 4800,
+        "effective_ms": 4855.443650000598,
+        "budget_ms": 55.4436500005977,
+        "compute_ms": 523.5013000055915,
+        "device": "cpu (fp32)",
+        "probabilities": {
+         "barge_in": {
+          "backchannel": 0.9982882262648336,
+          "interruption": 0.001116765735892981,
+          "noise": 0.000595007999273422
+         },
+         "escalate": {
+          "false": 0.9948425666396665,
+          "true": 0.005157433360333611
+         }
+        },
+        "heard": "yeah",
+        "timer": false
+       },
+       "consequence": "kept talking",
+       "want": "keep_talking",
+       "want_route": null,
+       "want_escalate": null,
+       "ok": true
+      },
+      {
+       "seg": 2,
+       "event": "user_speech_during_agent",
+       "act": {
+        "action": "stop_and_listen",
+        "route": null,
+        "escalate": false,
+        "reason": "p(interruption)=0.87 >= 0.09",
+        "decided_at_ms": 9600,
+        "effective_ms": 9655.443650000598,
+        "budget_ms": 55.4436500005977,
+        "compute_ms": 654.4786000013119,
+        "device": "cpu (fp32)",
+        "probabilities": {
+         "barge_in": {
+          "backchannel": 0.004827644809457637,
+          "interruption": 0.86555026590099,
+          "noise": 0.12962208928955216
+         },
+         "escalate": {
+          "false": 0.6218321717770224,
+          "true": 0.37816782822297756
+         }
+        },
+        "heard": "yeah but",
+        "timer": false
+       },
+       "consequence": "stopped talking at 9.66 s (1945 ms of its line unsaid)",
+       "want": "stop_and_listen",
+       "want_route": null,
+       "want_escalate": null,
+       "ok": true
+      },
+      {
+       "seg": 2,
+       "event": "user_pause",
+       "act": {
+        "action": "respond_after_timeout",
+        "route": "spending_history",
+        "escalate": false,
+        "reason": "p(turn_complete)=0.69 < 0.785, silence 300 ms < 2000 ms; then silence 2000 ms >= max_wait 2000 ms",
+        "decided_at_ms": 12600,
+        "effective_ms": 14300,
+        "budget_ms": 56.43030000101135,
+        "compute_ms": 1351.5900999918813,
+        "device": "cpu (fp32)",
+        "probabilities": {
+         "turn_complete": {
+          "false": 0.31151424057316734,
+          "true": 0.6884857594268327
+         },
+         "route": {
+          "transfer": 0.02819829739893378,
+          "transactions": 0.034320440174447964,
+          "balance": 0.0326387714211055,
+          "freeze_account": 0.024173488906509142,
+          "pay_bill": 0.022933453785642603,
+          "bill_balance": 0.019612844369229894,
+          "bill_due": 0.02369627322469007,
+          "interest_rate": 0.04318667290075508,
+          "routing": 0.019362344419235192,
+          "min_payment": 0.1048825938769128,
+          "order_checks": 0.022405157749717557,
+          "pin_change": 0.021771905661824024,
+          "report_fraud": 0.027130428475623213,
+          "account_blocked": 0.1217260362884267,
+          "spending_history": 0.17018163385929228,
+          "out_of_scope": 0.2837796574876542
+         },
+         "escalate": {
+          "false": 0.7363216213721583,
+          "true": 0.2636783786278417
+         }
+        },
+        "heard": "yeah but I set my limit to a thousand last week",
+        "timer": true
+       },
+       "consequence": "answered 2000 ms after the user stopped (safety net)",
+       "want": "respond",
+       "want_route": null,
+       "want_escalate": null,
+       "ok": true
+      }
+     ],
+     "missed": []
+    }
+   },
+   "divergences": [
+    [
+     1,
+     "user_pause"
+    ],
+    [
+     1,
+     "user_speech_during_agent"
+    ],
+    [
+     2,
+     "user_pause"
+    ],
+    [
+     2,
+     "user_speech_during_agent"
+    ]
+   ]
+  },
+  {
+   "id": "04_side_talk",
+   "runs": {
+    "naive": {
+     "agent": "naive",
+     "outcomes": [
+      {
+       "seg": 1,
+       "event": "user_speech_during_agent",
+       "act": {
+        "action": "stop_and_listen",
+        "route": null,
+        "escalate": false,
+        "reason": "any user speech stops the agent",
+        "decided_at_ms": 3500,
+        "effective_ms": 3500,
+        "budget_ms": 0.0,
+        "compute_ms": null,
+        "device": null,
+        "probabilities": null,
+        "heard": "",
+        "timer": false
+       },
+       "consequence": "stopped talking at 3.50 s (7400 ms of its line unsaid)",
+       "want": "ignore",
+       "want_route": null,
+       "want_escalate": null,
+       "ok": false
+      },
+      {
+       "seg": 1,
+       "event": "user_pause",
+       "act": {
+        "action": "respond_after_timeout",
+        "route": null,
+        "escalate": false,
+        "reason": "silence 800 ms >= timeout 800 ms",
+        "decided_at_ms": 6100,
+        "effective_ms": 6100,
+        "budget_ms": 0.0,
+        "compute_ms": null,
+        "device": null,
+        "probabilities": null,
+        "heard": "",
+        "timer": true
+       },
+       "consequence": "answered 800 ms after the user stopped; the user spoke again 5300 ms later",
+       "want": null,
+       "want_route": null,
+       "want_escalate": null,
+       "ok": null
+      },
+      {
+       "seg": 2,
+       "event": "user_pause",
+       "act": {
+        "action": "respond_after_timeout",
+        "route": null,
+        "escalate": false,
+        "reason": "silence 800 ms >= timeout 800 ms",
+        "decided_at_ms": 13700,
+        "effective_ms": 13700,
+        "budget_ms": 0.0,
+        "compute_ms": null,
+        "device": null,
+        "probabilities": null,
+        "heard": "",
+        "timer": true
+       },
+       "consequence": "answered 800 ms after the user stopped (timeout)",
+       "want": "respond",
+       "want_route": "pay_bill",
+       "want_escalate": null,
+       "ok": false
+      }
+     ],
+     "missed": []
+    },
+    "floorcall": {
+     "agent": "floorcall",
+     "outcomes": [
+      {
+       "seg": 1,
+       "event": "user_speech_during_agent",
+       "act": {
+        "action": "stop_and_listen",
+        "route": null,
+        "escalate": false,
+        "reason": "p(interruption)=0.73 >= 0.09",
+        "decided_at_ms": 4100,
+        "effective_ms": 4155.443650000598,
+        "budget_ms": 55.4436500005977,
+        "compute_ms": 542.4333000119077,
+        "device": "cpu (fp32)",
+        "probabilities": {
+         "barge_in": {
+          "backchannel": 0.026999274964038825,
+          "interruption": 0.727869144563221,
+          "noise": 0.24513158047274
+         },
+         "escalate": {
+          "false": 0.7745901695803893,
+          "true": 0.22540983041961077
+         }
+        },
+        "heard": "honey can",
+        "timer": false
+       },
+       "consequence": "stopped talking at 4.16 s (6745 ms of its line unsaid)",
+       "want": "ignore",
+       "want_route": null,
+       "want_escalate": null,
+       "ok": false
+      },
+      {
+       "seg": 1,
+       "event": "user_pause",
+       "act": {
+        "action": "respond",
+        "route": "bill_balance",
+        "escalate": false,
+        "reason": "p(turn_complete)=0.90 >= 0.785",
+        "decided_at_ms": 5600,
+        "effective_ms": 5656.430300001011,
+        "budget_ms": 56.43030000101135,
+        "compute_ms": 1201.6367000032915,
+        "device": "cpu (fp32)",
+        "probabilities": {
+         "turn_complete": {
+          "false": 0.10471485864356551,
+          "true": 0.8952851413564344
+         },
+         "route": {
+          "transfer": 0.002829485038195973,
+          "transactions": 0.0031620172395523437,
+          "balance": 0.0038601690712166277,
+          "freeze_account": 0.0028791327232261747,
+          "pay_bill": 0.004842328597771227,
+          "bill_balance": 0.8895869673519342,
+          "bill_due": 0.023409981129634248,
+          "interest_rate": 0.0034633595674727785,
+          "routing": 0.0033769385951395448,
+          "min_payment": 0.005431335193448525,
+          "order_checks": 0.003158805918297391,
+          "pin_change": 0.0028603423594704756,
+          "report_fraud": 0.0030324922549931363,
+          "account_blocked": 0.004267975404811142,
+          "spending_history": 0.009937185017064289,
+          "out_of_scope": 0.03390148453777163
+         },
+         "escalate": {
+          "false": 0.7401854268328627,
+          "true": 0.25981457316713735
+         }
+        },
+        "heard": "honey can you grab the door",
+        "timer": false
+       },
+       "consequence": "answered 356 ms after the user stopped; the user spoke again 5744 ms later",
+       "want": null,
+       "want_route": null,
+       "want_escalate": null,
+       "ok": null
+      },
+      {
+       "seg": 2,
+       "event": "user_pause",
+       "act": {
+        "action": "respond",
+        "route": "pay_bill",
+        "escalate": false,
+        "reason": "p(turn_complete)=0.89 >= 0.785",
+        "decided_at_ms": 13200,
+        "effective_ms": 13256.430300001011,
+        "budget_ms": 56.43030000101135,
+        "compute_ms": 1261.8815999885555,
+        "device": "cpu (fp32)",
+        "probabilities": {
+         "turn_complete": {
+          "false": 0.11135392647348395,
+          "true": 0.8886460735265161
+         },
+         "route": {
+          "transfer": 0.0009550493882069586,
+          "transactions": 0.0010459170585132521,
+          "balance": 0.0010418952775854392,
+          "freeze_account": 0.0009610437397111945,
+          "pay_bill": 0.9551747508117024,
+          "bill_balance": 0.019722734229270088,
+          "bill_due": 0.008233199687989894,
+          "interest_rate": 0.0010610268309516357,
+          "routing": 0.0010762411711044252,
+          "min_payment": 0.0013763196878714401,
+          "order_checks": 0.001003012699439677,
+          "pin_change": 0.0009587839710980795,
+          "report_fraud": 0.00102184531603574,
+          "account_blocked": 0.0012452105611547974,
+          "spending_history": 0.0013646815215187687,
+          "out_of_scope": 0.0037582880478461574
+         },
+         "escalate": {
+          "false": 0.7398868030848635,
+          "true": 0.2601131969151365
+         }
+        },
+        "heard": "honey can you grab the door yes, please pay it now",
+        "timer": false
+       },
+       "consequence": "answered 356 ms after the user stopped (decision)",
+       "want": "respond",
+       "want_route": "pay_bill",
+       "want_escalate": null,
+       "ok": true
+      }
+     ],
+     "missed": []
+    }
+   },
+   "divergences": [
+    [
+     1,
+     "user_pause"
+    ],
+    [
+     2,
+     "user_pause"
+    ]
+   ]
+  },
+  {
+   "id": "05_mid_sentence_pause",
+   "runs": {
+    "naive": {
+     "agent": "naive",
+     "outcomes": [
+      {
+       "seg": 0,
+       "event": "user_pause",
+       "act": {
+        "action": "respond_after_timeout",
+        "route": null,
+        "escalate": false,
+        "reason": "silence 800 ms >= timeout 800 ms",
+        "decided_at_ms": 2300,
+        "effective_ms": 2300,
+        "budget_ms": 0.0,
+        "compute_ms": null,
+        "device": null,
+        "probabilities": null,
+        "heard": "",
+        "timer": true
+       },
+       "consequence": "answered 800 ms after the user stopped, mid-thought: it cut them off 300 ms before they went on",
+       "want": "keep_listening",
+       "want_route": null,
+       "want_escalate": null,
+       "ok": false
+      },
+      {
+       "seg": 1,
+       "event": "user_pause",
+       "act": {
+        "action": "respond_after_timeout",
+        "route": null,
+        "escalate": false,
+        "reason": "silence 800 ms >= timeout 800 ms",
+        "decided_at_ms": 4600,
+        "effective_ms": 4600,
+        "budget_ms": 0.0,
+        "compute_ms": null,
+        "device": null,
+        "probabilities": null,
+        "heard": "",
+        "timer": true
+       },
+       "consequence": "answered 800 ms after the user stopped (timeout)",
+       "want": "respond",
+       "want_route": "pay_bill",
+       "want_escalate": null,
+       "ok": false
+      }
+     ],
+     "missed": []
+    },
+    "floorcall": {
+     "agent": "floorcall",
+     "outcomes": [
+      {
+       "seg": 0,
+       "event": "user_pause",
+       "act": {
+        "action": "keep_listening",
+        "route": null,
+        "escalate": false,
+        "reason": "p(turn_complete)=0.00 < 0.785, silence 300 ms < 2000 ms",
+        "decided_at_ms": 1800,
+        "effective_ms": 1856.4303000010113,
+        "budget_ms": 56.43030000101135,
+        "compute_ms": 1142.6612999930512,
+        "device": "cpu (fp32)",
+        "probabilities": {
+         "turn_complete": {
+          "false": 0.9997457202643318,
+          "true": 0.0002542797356682724
+         },
+         "route": {
+          "transfer": 0.0009907700269122207,
+          "transactions": 0.0010741429168720858,
+          "balance": 0.0009963177243449133,
+          "freeze_account": 0.0010287533608817517,
+          "pay_bill": 0.8478648558970191,
+          "bill_balance": 0.0010750530625032969,
+          "bill_due": 0.0014470013538801802,
+          "interest_rate": 0.0010030889199231705,
+          "routing": 0.0009942366041973264,
+          "min_payment": 0.0009855110489131414,
+          "order_checks": 0.0009644798344565739,
+          "pin_change": 0.0009872530973510558,
+          "report_fraud": 0.0010316113648647634,
+          "account_blocked": 0.0010433261060448593,
+          "spending_history": 0.0010181727226208528,
+          "out_of_scope": 0.13749542595921468
+         },
+         "escalate": {
+          "false": 0.872028164826749,
+          "true": 0.1279718351732511
+         }
+        },
+        "heard": "I want to pay my",
+        "timer": false
+       },
+       "consequence": "kept listening",
+       "want": "keep_listening",
+       "want_route": null,
+       "want_escalate": null,
+       "ok": true
+      },
+      {
+       "seg": 1,
+       "event": "user_pause",
+       "act": {
+        "action": "respond",
+        "route": "pay_bill",
+        "escalate": false,
+        "reason": "p(turn_complete)=0.83 >= 0.785",
+        "decided_at_ms": 4100,
+        "effective_ms": 4156.430300001011,
+        "budget_ms": 56.43030000101135,
+        "compute_ms": 1153.7973999948008,
+        "device": "cpu (fp32)",
+        "probabilities": {
+         "turn_complete": {
+          "false": 0.17463366742606717,
+          "true": 0.8253663325739328
+         },
+         "route": {
+          "transfer": 2.836467536905729e-05,
+          "transactions": 3.0677858098541006e-05,
+          "balance": 2.918072205112377e-05,
+          "freeze_account": 2.901317894619454e-05,
+          "pay_bill": 0.9994695566511601,
+          "bill_balance": 4.013344425340962e-05,
+          "bill_due": 0.00010455826412614645,
+          "interest_rate": 3.000009829941245e-05,
+          "routing": 2.8768728084106914e-05,
+          "min_payment": 3.0006706110994918e-05,
+          "order_checks": 2.841115014241551e-05,
+          "pin_change": 2.865449558030652e-05,
+          "report_fraud": 2.9282908806276374e-05,
+          "account_blocked": 3.029961666218116e-05,
+          "spending_history": 2.899502283112878e-05,
+          "out_of_scope": 3.4096479478608815e-05
+         },
+         "escalate": {
+          "false": 0.7637867296521639,
+          "true": 0.23621327034783618
+         }
+        },
+        "heard": "I want to pay my credit card bill please",
+        "timer": false
+       },
+       "consequence": "answered 356 ms after the user stopped (decision)",
+       "want": "respond",
+       "want_route": "pay_bill",
+       "want_escalate": null,
+       "ok": true
+      }
+     ],
+     "missed": []
+    }
+   },
+   "divergences": [
+    [
+     0,
+     "user_pause"
+    ],
+    [
+     1,
+     "user_pause"
+    ]
+   ]
+  },
+  {
+   "id": "06_finished_turn",
+   "runs": {
+    "naive": {
+     "agent": "naive",
+     "outcomes": [
+      {
+       "seg": 0,
+       "event": "user_pause",
+       "act": {
+        "action": "respond_after_timeout",
+        "route": null,
+        "escalate": false,
+        "reason": "silence 800 ms >= timeout 800 ms",
+        "decided_at_ms": 2900,
+        "effective_ms": 2900,
+        "budget_ms": 0.0,
+        "compute_ms": null,
+        "device": null,
+        "probabilities": null,
+        "heard": "",
+        "timer": true
+       },
+       "consequence": "answered 800 ms after the user stopped (timeout)",
+       "want": "respond",
+       "want_route": "balance",
+       "want_escalate": null,
+       "ok": false
+      }
+     ],
+     "missed": []
+    },
+    "floorcall": {
+     "agent": "floorcall",
+     "outcomes": [
+      {
+       "seg": 0,
+       "event": "user_pause",
+       "act": {
+        "action": "respond",
+        "route": "balance",
+        "escalate": false,
+        "reason": "p(turn_complete)=0.80 >= 0.785",
+        "decided_at_ms": 2400,
+        "effective_ms": 2456.4303000010113,
+        "budget_ms": 56.43030000101135,
+        "compute_ms": 1171.8487000034656,
+        "device": "cpu (fp32)",
+        "probabilities": {
+         "turn_complete": {
+          "false": 0.1979329837496047,
+          "true": 0.8020670162503952
+         },
+         "route": {
+          "transfer": 0.001725490964259262,
+          "transactions": 0.0021231218397654906,
+          "balance": 0.9376600756082709,
+          "freeze_account": 0.0017588373790700246,
+          "pay_bill": 0.0017189635028812887,
+          "bill_balance": 0.03403197815278133,
+          "bill_due": 0.002484589933637624,
+          "interest_rate": 0.0018836613380731329,
+          "routing": 0.0017897921121206094,
+          "min_payment": 0.0018246622006270947,
+          "order_checks": 0.0017425655496903572,
+          "pin_change": 0.001709028257033449,
+          "report_fraud": 0.0018434335060725996,
+          "account_blocked": 0.0019359987033202909,
+          "spending_history": 0.0021196199376516565,
+          "out_of_scope": 0.003648181014744941
+         },
+         "escalate": {
+          "false": 0.8056691327730591,
+          "true": 0.19433086722694085
+         }
+        },
+        "heard": "what's the balance on my checking account",
+        "timer": false
+       },
+       "consequence": "answered 356 ms after the user stopped (decision)",
+       "want": "respond",
+       "want_route": "balance",
+       "want_escalate": null,
+       "ok": true
+      }
+     ],
+     "missed": []
+    }
+   },
+   "divergences": [
+    [
+     0,
+     "user_pause"
+    ]
+   ]
+  },
+  {
+   "id": "07_out_of_scope",
+   "runs": {
+    "naive": {
+     "agent": "naive",
+     "outcomes": [
+      {
+       "seg": 0,
+       "event": "user_pause",
+       "act": {
+        "action": "respond_after_timeout",
+        "route": null,
+        "escalate": false,
+        "reason": "silence 800 ms >= timeout 800 ms",
+        "decided_at_ms": 4700,
+        "effective_ms": 4700,
+        "budget_ms": 0.0,
+        "compute_ms": null,
+        "device": null,
+        "probabilities": null,
+        "heard": "",
+        "timer": true
+       },
+       "consequence": "answered 800 ms after the user stopped (timeout)",
+       "want": "respond",
+       "want_route": "out_of_scope",
+       "want_escalate": null,
+       "ok": false
+      }
+     ],
+     "missed": []
+    },
+    "floorcall": {
+     "agent": "floorcall",
+     "outcomes": [
+      {
+       "seg": 0,
+       "event": "user_pause",
+       "act": {
+        "action": "respond",
+        "route": "out_of_scope",
+        "escalate": false,
+        "reason": "p(turn_complete)=0.87 >= 0.785",
+        "decided_at_ms": 4200,
+        "effective_ms": 4256.430300001011,
+        "budget_ms": 56.43030000101135,
+        "compute_ms": 1206.624800004647,
+        "device": "cpu (fp32)",
+        "probabilities": {
+         "turn_complete": {
+          "false": 0.1312583610486508,
+          "true": 0.8687416389513493
+         },
+         "route": {
+          "transfer": 0.002982752196092131,
+          "transactions": 0.003066693851601918,
+          "balance": 0.0029115425716707242,
+          "freeze_account": 0.0028960960907630246,
+          "pay_bill": 0.00290779584143889,
+          "bill_balance": 0.002915624573231474,
+          "bill_due": 0.0029744754200854736,
+          "interest_rate": 0.003001719053703407,
+          "routing": 0.0030422886513962427,
+          "min_payment": 0.0030616545939059115,
+          "order_checks": 0.0031468059054202855,
+          "pin_change": 0.002947188121284522,
+          "report_fraud": 0.0029584000936162405,
+          "account_blocked": 0.0030169401322792397,
+          "spending_history": 0.002951818608609357,
+          "out_of_scope": 0.9552182042949011
+         },
+         "escalate": {
+          "false": 0.7941437071502653,
+          "true": 0.20585629284973486
+         }
+        },
+        "heard": "can you book me a table for two at an italian place tonight",
+        "timer": false
+       },
+       "consequence": "answered 356 ms after the user stopped (decision)",
+       "want": "respond",
+       "want_route": "out_of_scope",
+       "want_escalate": null,
+       "ok": true
+      }
+     ],
+     "missed": []
+    }
+   },
+   "divergences": [
+    [
+     0,
+     "user_pause"
+    ]
+   ]
+  },
+  {
+   "id": "08_escalation",
+   "runs": {
+    "naive": {
+     "agent": "naive",
+     "outcomes": [
+      {
+       "seg": 0,
+       "event": "user_pause",
+       "act": {
+        "action": "respond_after_timeout",
+        "route": null,
+        "escalate": false,
+        "reason": "silence 800 ms >= timeout 800 ms",
+        "decided_at_ms": 3500,
+        "effective_ms": 3500,
+        "budget_ms": 0.0,
+        "compute_ms": null,
+        "device": null,
+        "probabilities": null,
+        "heard": "",
+        "timer": true
+       },
+       "consequence": "answered 800 ms after the user stopped, mid-thought: it cut them off 300 ms before they went on",
+       "want": "keep_listening",
+       "want_route": null,
+       "want_escalate": null,
+       "ok": false
+      },
+      {
+       "seg": 1,
+       "event": "user_pause",
+       "act": {
+        "action": "respond_after_timeout",
+        "route": null,
+        "escalate": false,
+        "reason": "silence 800 ms >= timeout 800 ms",
+        "decided_at_ms": 6400,
+        "effective_ms": 6400,
+        "budget_ms": 0.0,
+        "compute_ms": null,
+        "device": null,
+        "probabilities": null,
+        "heard": "",
+        "timer": true
+       },
+       "consequence": "answered 800 ms after the user stopped (timeout)",
+       "want": "respond",
+       "want_route": null,
+       "want_escalate": true,
+       "ok": false
+      },
+      {
+       "seg": 3,
+       "event": "user_speech_during_agent",
+       "act": {
+        "action": "stop_and_listen",
+        "route": null,
+        "escalate": false,
+        "reason": "any user speech stops the agent",
+        "decided_at_ms": 11200,
+        "effective_ms": 11200,
+        "budget_ms": 0.0,
+        "compute_ms": null,
+        "device": null,
+        "probabilities": null,
+        "heard": "",
+        "timer": false
+       },
+       "consequence": "stopped talking at 11.20 s (4600 ms of its line unsaid)",
+       "want": "stop_and_listen",
+       "want_route": null,
+       "want_escalate": true,
+       "ok": false
+      },
+      {
+       "seg": 3,
+       "event": "user_pause",
+       "act": {
+        "action": "respond_after_timeout",
+        "route": null,
+        "escalate": false,
+        "reason": "silence 800 ms >= timeout 800 ms",
+        "decided_at_ms": 14700,
+        "effective_ms": 14700,
+        "budget_ms": 0.0,
+        "compute_ms": null,
+        "device": null,
+        "probabilities": null,
+        "heard": "",
+        "timer": true
+       },
+       "consequence": "answered 800 ms after the user stopped (timeout)",
+       "want": "respond",
+       "want_route": null,
+       "want_escalate": true,
+       "ok": false
+      }
+     ],
+     "missed": []
+    },
+    "floorcall": {
+     "agent": "floorcall",
+     "outcomes": [
+      {
+       "seg": 0,
+       "event": "user_pause",
+       "act": {
+        "action": "respond",
+        "route": "spending_history",
+        "escalate": false,
+        "reason": "p(turn_complete)=0.88 >= 0.785",
+        "decided_at_ms": 3000,
+        "effective_ms": 3056.4303000010113,
+        "budget_ms": 56.43030000101135,
+        "compute_ms": 1441.2588999985019,
+        "device": "cpu (fp32)",
+        "probabilities": {
+         "turn_complete": {
+          "false": 0.12008185045528864,
+          "true": 0.8799181495447114
+         },
+         "route": {
+          "transfer": 0.01410851749898448,
+          "transactions": 0.01826896317017351,
+          "balance": 0.014706886964474851,
+          "freeze_account": 0.01333311923783539,
+          "pay_bill": 0.014277028001564902,
+          "bill_balance": 0.014509356663426566,
+          "bill_due": 0.11379574791078517,
+          "interest_rate": 0.015097532793682285,
+          "routing": 0.015759463383005205,
+          "min_payment": 0.016701575809830237,
+          "order_checks": 0.015564567079673975,
+          "pin_change": 0.01419804826020144,
+          "report_fraud": 0.018054527252277436,
+          "account_blocked": 0.07108039512593163,
+          "spending_history": 0.27580435829674094,
+          "out_of_scope": 0.3547399125514118
+         },
+         "escalate": {
+          "false": 0.6241328666050685,
+          "true": 0.3758671333949315
+         }
+        },
+        "heard": "this is ridiculous, I've explained this three times now,",
+        "timer": false
+       },
+       "consequence": "answered 356 ms after the user stopped, mid-thought: it cut them off 744 ms before they went on",
+       "want": "keep_listening",
+       "want_route": null,
+       "want_escalate": null,
+       "ok": false
+      },
+      {
+       "seg": 1,
+       "event": "user_pause",
+       "act": {
+        "action": "respond_after_timeout",
+        "route": "spending_history",
+        "escalate": true,
+        "reason": "p(turn_complete)=0.61 < 0.785, silence 300 ms < 2000 ms; then silence 2000 ms >= max_wait 2000 ms; p(escalate)=0.59 >= 0.505: hand off",
+        "decided_at_ms": 5900,
+        "effective_ms": 7600,
+        "budget_ms": 56.43030000101135,
+        "compute_ms": 1430.6923000112874,
+        "device": "cpu (fp32)",
+        "probabilities": {
+         "turn_complete": {
+          "false": 0.3893072690027351,
+          "true": 0.610692730997265
+         },
+         "route": {
+          "transfer": 0.014953677850952028,
+          "transactions": 0.02002413595507544,
+          "balance": 0.01547025529912849,
+          "freeze_account": 0.02041838813283977,
+          "pay_bill": 0.01917281589065724,
+          "bill_balance": 0.016225080427058742,
+          "bill_due": 0.07697750220774698,
+          "interest_rate": 0.016178633291030815,
+          "routing": 0.016194120958942765,
+          "min_payment": 0.021565892911476273,
+          "order_checks": 0.017313323110025453,
+          "pin_change": 0.015945082039996634,
+          "report_fraud": 0.030860597069776743,
+          "account_blocked": 0.17063098626077292,
+          "spending_history": 0.22578311980209245,
+          "out_of_scope": 0.30228638879242725
+         },
+         "escalate": {
+          "false": 0.4066601279472379,
+          "true": 0.5933398720527621
+         }
+        },
+        "heard": "this is ridiculous, I've explained this three times now, just get me a real person",
+        "timer": true
+       },
+       "consequence": "answered 2000 ms after the user stopped (safety net)",
+       "want": "respond",
+       "want_route": null,
+       "want_escalate": true,
+       "ok": true
+      },
+      {
+       "seg": 3,
+       "event": "user_speech_during_agent",
+       "act": {
+        "action": "stop_and_listen",
+        "route": null,
+        "escalate": false,
+        "reason": "p(interruption)=0.74 >= 0.09",
+        "decided_at_ms": 11800,
+        "effective_ms": 11855.443650000598,
+        "budget_ms": 55.4436500005977,
+        "compute_ms": 911.624500004109,
+        "device": "cpu (fp32)",
+        "probabilities": {
+         "barge_in": {
+          "backchannel": 0.09311707575361883,
+          "interruption": 0.7387332672213509,
+          "noise": 0.16814965702503018
+         },
+         "escalate": {
+          "false": 0.5171049814114244,
+          "true": 0.4828950185885757
+         }
+        },
+        "heard": "no, stop,",
+        "timer": false
+       },
+       "consequence": "stopped talking at 11.86 s (3945 ms of its line unsaid)",
+       "want": "stop_and_listen",
+       "want_route": null,
+       "want_escalate": true,
+       "ok": false
+      },
+      {
+       "seg": 3,
+       "event": "user_pause",
+       "act": {
+        "action": "respond",
+        "route": "freeze_account",
+        "escalate": true,
+        "reason": "p(turn_complete)=0.89 >= 0.785; p(escalate)=0.70 >= 0.505: hand off",
+        "decided_at_ms": 14200,
+        "effective_ms": 14256.430300001011,
+        "budget_ms": 56.43030000101135,
+        "compute_ms": 1590.6971000076737,
+        "device": "cpu (fp32)",
+        "probabilities": {
+         "turn_complete": {
+          "false": 0.10832174433030074,
+          "true": 0.8916782556696993
+         },
+         "route": {
+          "transfer": 0.026179494775163466,
+          "transactions": 0.008144919346234973,
+          "balance": 0.005978910650307319,
+          "freeze_account": 0.3760606857506083,
+          "pay_bill": 0.007836774622645596,
+          "bill_balance": 0.006188907336875353,
+          "bill_due": 0.008745033884060092,
+          "interest_rate": 0.006830361743151809,
+          "routing": 0.006233424581118673,
+          "min_payment": 0.00770072643162683,
+          "order_checks": 0.0057828938227358516,
+          "pin_change": 0.006571415758263506,
+          "report_fraud": 0.07323799142199541,
+          "account_blocked": 0.3443831857298808,
+          "spending_history": 0.031382227761907536,
+          "out_of_scope": 0.07874304638342462
+         },
+         "escalate": {
+          "false": 0.3039099839377337,
+          "true": 0.6960900160622663
+         }
+        },
+        "heard": "no, stop, put me through to a human now",
+        "timer": false
+       },
+       "consequence": "answered 356 ms after the user stopped (decision)",
+       "want": "respond",
+       "want_route": null,
+       "want_escalate": true,
+       "ok": true
+      }
+     ],
+     "missed": []
+    }
+   },
+   "divergences": [
+    [
+     0,
+     "user_pause"
+    ],
+    [
+     1,
+     "user_pause"
+    ],
+    [
+     3,
+     "user_pause"
+    ]
+   ]
+  }
+ ]
+}

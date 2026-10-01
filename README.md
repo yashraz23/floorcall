@@ -10,14 +10,16 @@ small encoder model:
 - Should this conversation go to a human?
 
 It runs [Laya](https://github.com/NandhaKishorM/laya), an open-weight (Apache-2.0),
-non-autoregressive decision model, fine-tuned and recalibrated on real conversational data. It is
-plugged into a [Pipecat](https://github.com/pipecat-ai/pipecat) voice pipeline.
+non-autoregressive decision model, fine-tuned and recalibrated on real conversational data. The
+decision processor depends on no framework. Wrapping it for a
+[Pipecat](https://github.com/pipecat-ai/pipecat) voice pipeline, with live mode, is planned for v2
+(docs/DECISIONS.md D-044, D-045).
 
-> **Status, 2026-09-29.** Milestone 0 (the feasibility spike, [docs/spike-m0.md](docs/spike-m0.md))
-> is done. So is milestone 1 (data, [docs/data.md](docs/data.md)), including D4's hand-labelled
-> test set: v2, 200 messages relabelled blind under guideline v2 (docs/DECISIONS.md D-033). Table
-> A's baseline and fine-tuned rows are measured for all four decisions. Every other cell says TODO
-> until a committed command measures it, and nothing in this README is an estimate.
+> **Status, 2026-10-01.** Milestones 0 to 2 are done: the spike
+> ([docs/spike-m0.md](docs/spike-m0.md)), the data ([docs/data.md](docs/data.md)), and Tables A to
+> C with the curves. Milestone 3 is done too: the decision processor, the naive baseline agent and
+> replay mode. Table D's ablation arms are training on Kaggle. Every other cell says TODO until a
+> committed command measures it, and nothing in this README is an estimate.
 
 ## Why a decision model and not an LLM
 
@@ -253,6 +255,31 @@ then `eval figures` and `eval readme`.
   <img alt="Reliability, stock Laya: raw logits and shipped temperatures" src="results/figures/reliability_stock_laya.light.png" width="640">
 </picture>
 <!-- figures:end -->
+
+## Replay: the same call through a naive agent and through floorcall
+
+```bash
+uv run floorcall replay demo/scripts/*.json --compare naive    # no API key, no GPU
+```
+
+Eight scripted banking calls go through both agents:
+- backchannels against a real interruption;
+- "yeah" against "yeah but";
+- talk to someone else in the room;
+- a mid-request pause against a finished question;
+- an out-of-scope request;
+- a frustrated user asking for a person.
+
+The naive agent answers after 800 ms of silence and stops whenever the user speaks. The report
+shows every decision point, what each agent did, the consequence, and where the two diverge. The
+full output is in [results/replay/replay.txt](results/replay/replay.txt), and floorcall gets some
+points wrong.
+
+**These scripts are illustrative demos, not an evaluation set.** The evaluation is Tables A to D.
+The scripts were written and frozen by hash before floorcall first ran on them, and they have not
+been changed since. On replay's clock, each floorcall decision costs its event's GPU p50 from
+Table B. The CPU compute time is reported separately, labelled as CPU, and it does not move the
+timeline (docs/DECISIONS.md D-046).
 
 ## Design notes
 
