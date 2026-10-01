@@ -1158,3 +1158,16 @@ works. The scripts were frozen before floorcall ever ran on them.
   unlisted or changed script, and `.gitattributes` keeps the scripts' bytes exactly as committed.
   Whatever floorcall does on these scripts stays in the report, ✗ included. Rewording a script
   after seeing its output would tune the demo.
+
+**D-046 amendment 1 · 2026-10-01 · replay snapshot order** — The first model run (on `d70ce71`,
+not committed) exposed a bug in how the engine builds a snapshot. It grouped speech by when each
+segment started. So when the user spoke over the agent a second time, the earlier speech merged
+into the current speech: in 01, the model read "uh-huh right" instead of "right"; in 03, "yeah
+yeah but" instead of "yeah but". The agent's words between the two were lost. The fix orders
+speech by when it ends, word by word for the agent:
+- a backchannel stays a turn of its own;
+- agent words spoken during an interruption stay before it, so they don't split the user's turn.
+
+Two tests pin both cases. The scripts, their expectations and the manifest are unchanged. The
+first run, with the bug, had floorcall acting as wanted at 14 of 18 points and naive at 3 of 17.
+The run after the fix is the one committed to `results/replay/`.

@@ -278,21 +278,34 @@ class Timeline:
 
     def snapshot(self, t: float, *, min_words_from: int | None = None) -> Snapshot:
         """What the pipeline knows at `t`. `min_words_from`: the segment being decided on,
-        which has been heard, so it contributes at least one word."""
-        spoken: list[tuple[str, list[str]]] = [
-            (h.speaker, h.text.split()) for h in self.script.history
+        which has been heard, so it contributes at least one word.
+
+        Speech is put in order of when it ends: each agent word by its own end, each user
+        segment as a whole by its end (or by `t`, if it is still going). So an agent line the
+        user spoke over is split at the end of that user speech. A backchannel 3 s before the
+        current speech stays a turn of its own, between the agent's words before and after it.
+        Agent words spoken during an interruption stay before it, so the user's turn is not
+        split by them.
+        """
+        chunks: list[tuple[float, int, str, list[str]]] = [
+            (-math.inf, k, h.speaker, h.text.split()) for k, h in enumerate(self.script.history)
         ]
         for i, s in enumerate(self.script.timeline):
             if s.at_ms >= t and i != min_words_from:
                 continue
-            until = self.cut.get(i) if s.who == "agent" else None
-            words = _words_by(s, t, until)
+            if s.who == "agent":
+                spoken = _words_by(s, t, self.cut.get(i))
+                per = s.dur_ms / len(s.words)
+                for j, w in enumerate(spoken):  # word j ends at at + (j + 1) * per
+                    chunks.append((s.at_ms + (j + 1) * per, 0, "agent", [w]))
+                continue
+            words = _words_by(s, t)
             if i == min_words_from and not words:
                 words = s.words[:1]
             if words:
-                spoken.append((s.who, words))
+                chunks.append((min(s.end_ms, t), 1, "user", words))
         groups: list[tuple[str, list[str]]] = []
-        for who, words in spoken:
+        for _, _, who, words in sorted(chunks, key=lambda c: (c[0], c[1])):
             if groups and groups[-1][0] == who:
                 groups[-1][1].extend(words)
             else:

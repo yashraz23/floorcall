@@ -71,7 +71,12 @@ def script(**kw: Any) -> Script:
 
 BACKCHANNEL = script(
     timeline=[
-        {"who": "agent", "at_ms": 0, "dur_ms": 5000, "text": "one two three four five six seven eight"},
+        {
+            "who": "agent",
+            "at_ms": 0,
+            "dur_ms": 5000,
+            "text": "one two three four five six seven eight",
+        },
         {"who": "user", "at_ms": 1000, "dur_ms": 300, "text": "uh-huh"},
         {"who": "user", "at_ms": 3000, "dur_ms": 300, "text": "right"},
         {"who": "user", "at_ms": 5500, "dur_ms": 900, "text": "what is my balance"},
@@ -119,7 +124,10 @@ def test_expectations_are_checked() -> None:
     ):
         with pytest.raises(ValidationError):
             script(timeline=tl, expect=[bad])
-    two = [{"seg": 0, "want": "respond", "why": "x"}, {"seg": 0, "want": "keep_listening", "why": "y"}]
+    two = [
+        {"seg": 0, "want": "respond", "why": "x"},
+        {"seg": 0, "want": "keep_listening", "why": "y"},
+    ]
     with pytest.raises(ValidationError):
         script(timeline=tl, expect=two)
     # one barge and one pause expectation on the same segment is fine
@@ -271,3 +279,36 @@ def test_a_budget_row_for_another_configuration_is_refused() -> None:
     other = s.model_copy(update={"laya": s.laya.model_copy(update={"precision": "bf16"})})
     with pytest.raises(ValueError, match="not the served configuration"):
         decision_budgets(other, "checkpoints/main-r2")
+
+
+def test_an_earlier_backchannel_is_its_own_turn_not_part_of_the_current_speech() -> None:
+    d = FakeDecider()
+    simulate(BACKCHANNEL, floorcall_agent(d), vad_pause_ms=300)
+    (_, first), (_, second) = d.seen[:2]
+    assert first.user_partial == "uh-huh"
+    # "right" is read alone; "uh-huh" sits between the agent's words before and after it
+    assert second.user_partial == "right"
+    assert [(t.speaker, t.text) for t in second.recent_turns] == [
+        ("agent", "one two"),
+        ("user", "uh-huh"),
+    ]
+    assert second.agent_last_utterance == "three four five"
+
+
+def test_agent_words_during_an_interruption_do_not_split_the_users_turn() -> None:
+    d = FakeDecider(barge="interruption")
+    s = script(
+        timeline=[
+            {"who": "agent", "at_ms": 0, "dur_ms": 4000, "text": "a1 a2 a3 a4 a5 a6 a7 a8"},
+            {"who": "user", "at_ms": 1000, "dur_ms": 1000, "text": "wait no"},
+            {"who": "user", "at_ms": 2200, "dur_ms": 600, "text": "not that"},
+        ],
+        expect=[
+            {"seg": 1, "want": "stop_and_listen", "why": "x"},
+            {"seg": 2, "want": "respond", "why": "x"},
+        ],
+    )
+    simulate(s, floorcall_agent(d), vad_pause_ms=300)
+    pause = d.seen[-1][1]
+    assert pause.user_partial == "wait no not that"
+    assert pause.agent_last_utterance == "a1 a2 a3"  # cut at 1,640 ms, inside the user's speech
