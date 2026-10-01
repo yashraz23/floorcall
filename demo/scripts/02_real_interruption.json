@@ -1,0 +1,53 @@
+{
+  "id": "02_real_interruption",
+  "title": "A real interruption: a charge the user did not make",
+  "covers": [
+    "D2 interruption",
+    "D3 route"
+  ],
+  "history": [
+    {
+      "speaker": "user",
+      "text": "can you go through my recent transactions"
+    }
+  ],
+  "timeline": [
+    {
+      "who": "agent",
+      "at_ms": 0,
+      "dur_ms": 12900,
+      "text": "Sure. On Monday there was a payment of forty two dollars to City Water, then on Tuesday a card payment of three hundred and ten dollars at Electro Mart, then on Wednesday a transfer of fifty dollars to savings."
+    },
+    {
+      "who": "user",
+      "at_ms": 10000,
+      "dur_ms": 1500,
+      "text": "wait, that one's not mine"
+    },
+    {
+      "who": "user",
+      "at_ms": 11700,
+      "dur_ms": 1500,
+      "text": "I never bought anything there"
+    },
+    {
+      "who": "agent",
+      "at_ms": 15400,
+      "dur_ms": 5300,
+      "text": "I'm sorry about that. I'll block the card and open a fraud claim for that payment."
+    }
+  ],
+  "expect": [
+    {
+      "seg": 1,
+      "want": "stop_and_listen",
+      "why": "an objection: the user claims the floor"
+    },
+    {
+      "seg": 2,
+      "want": "respond",
+      "route": "report_fraud",
+      "why": "a finished report of a charge they did not make"
+    }
+  ]
+}

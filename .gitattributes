@@ -11,3 +11,6 @@ data/test_frozen/**/*.parquet binary
 *.png binary
 *.mp4 binary
 *.safetensors binary
+
+# Replay scripts are frozen by SHA256 in demo/scripts/MANIFEST.sha256 (D-046): keep their bytes.
+demo/scripts/*.json -text

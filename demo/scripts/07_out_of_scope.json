@@ -1,0 +1,35 @@
+{
+  "id": "07_out_of_scope",
+  "title": "A request a bank agent does not handle",
+  "covers": [
+    "D3 out of scope"
+  ],
+  "history": [
+    {
+      "speaker": "agent",
+      "text": "Hi, thanks for calling. How can I help today?"
+    }
+  ],
+  "timeline": [
+    {
+      "who": "user",
+      "at_ms": 0,
+      "dur_ms": 3900,
+      "text": "can you book me a table for two at an italian place tonight"
+    },
+    {
+      "who": "agent",
+      "at_ms": 6100,
+      "dur_ms": 3700,
+      "text": "Sorry, I can only help with your bank accounts and cards."
+    }
+  ],
+  "expect": [
+    {
+      "seg": 0,
+      "want": "respond",
+      "route": "out_of_scope",
+      "why": "a restaurant booking is not banking"
+    }
+  ]
+}

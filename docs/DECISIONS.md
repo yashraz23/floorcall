@@ -1114,3 +1114,47 @@ plan.)
   live mode. §14's never-cut list now says so.
 - **fpdf2 is approved** for the project report PDF (D-044). It is added when the report generator
   is written.
+
+**D-046 · 2026-10-01 · §13 replay mode · declared before the first model run** — How replay
+works. The scripts were frozen before floorcall ever ran on them.
+- **The 8 scripts are illustrative demos, not an evaluation set.** The evaluation is Tables A–D.
+  The README, the report and the replay summary all say so, and the replay summary's counts are
+  counts of scripted points, not accuracy.
+- **Each script is a fixed recording.** The user's speech and the agent's lines sit at fixed
+  times. Both agents replay the same recording, and an agent's decisions change only its own
+  speech: a line it stops is cut. This is not a closed-loop simulation, because the user does not
+  react to the agent. When an agent answers into a mid-thought pause, the report says it cut the
+  user off, and the recording plays on.
+- **Time is logical.** Each floorcall decision costs the GPU p50 from the event's Table B row
+  for the served configuration: CUDA graphs as `LayaSettings.cuda_graphs` sets them (off, so the
+  `gpu_eager_*` rows), precision fp16, one batched call. The value is read from
+  `results/table_b/`, never retyped (`pipeline/operating.py`). Replay computes on CPU by
+  default. That compute time is measured and reported beside each decision, labelled with its
+  device, and it never moves the timeline. Naive makes no model call, so its decisions take no
+  time. VAD's own lag is the same for both agents and is not modelled.
+- **When each agent decides.** floorcall decides on speech over the agent when that speech ends,
+  or after `barge_window_ms` (600 ms) of it, whichever comes first. The words heard by then are
+  spread evenly over the segment, and they are what the model reads. floorcall decides a pause
+  at `vad_pause_ms`, and the safety net answers at `max_wait_ms` without a second forward pass.
+  Naive stops at the onset of any speech and answers after 800 ms of silence (D-045). It has no
+  router and no escalation, so it fails every route and hand-off expectation, and the report
+  shows "no router".
+- **Every script passes timing rules for both agents before it can be frozen**
+  (`replay/checks.py`):
+  - Every mid-thought gap is longer than naive's 800 ms timeout, shorter than `max_wait_ms`, and
+    at least VAD plus the pause budget. The scripts use 1,100 ms.
+  - Every finished turn has at least `max_wait_ms` of silence before the agent's reply. The
+    scripts use 2,200 ms.
+  - Speech over the agent starts after the agent's first word, and floorcall's decision lands
+    while the line is still playing.
+  - An oracle agent that does exactly what each script wants must meet every expectation, and
+    it must meet no decision point that lacks one.
+- **Scoring.** Some expected decision points never arise for an agent. An example is a second
+  backchannel after naive has already stopped talking: that counts as a miss. A wanted stop when
+  the agent is already silent is not scored.
+- **Frozen before any model run.** `demo/scripts/MANIFEST.sha256` lists the SHA256 of every
+  script. The manifest's own SHA256 is
+  `776dffbd5e579188b12758257ee7a29fb0e09e158c1ea97fda23d3bb35ff6c6d`. Replay refuses an
+  unlisted or changed script, and `.gitattributes` keeps the scripts' bytes exactly as committed.
+  Whatever floorcall does on these scripts stays in the report, ✗ included. Rewording a script
+  after seeing its output would tune the demo.

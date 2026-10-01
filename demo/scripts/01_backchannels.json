@@ -1,0 +1,62 @@
+{
+  "id": "01_backchannels",
+  "title": "Backchannels while the agent explains",
+  "covers": [
+    "D2 backchannel"
+  ],
+  "history": [
+    {
+      "speaker": "user",
+      "text": "my card got declined at the store this morning"
+    }
+  ],
+  "timeline": [
+    {
+      "who": "agent",
+      "at_ms": 0,
+      "dur_ms": 10900,
+      "text": "I can see that. Your card was declined because the store ran it as an international purchase, and your account has foreign transactions switched off by default, so our fraud system held it."
+    },
+    {
+      "who": "user",
+      "at_ms": 3000,
+      "dur_ms": 300,
+      "text": "uh-huh"
+    },
+    {
+      "who": "user",
+      "at_ms": 6500,
+      "dur_ms": 300,
+      "text": "right"
+    },
+    {
+      "who": "user",
+      "at_ms": 11400,
+      "dur_ms": 2400,
+      "text": "okay, so how do I switch that on"
+    },
+    {
+      "who": "agent",
+      "at_ms": 16000,
+      "dur_ms": 5300,
+      "text": "You can switch it on in the app, under card settings, then try the payment again."
+    }
+  ],
+  "expect": [
+    {
+      "seg": 1,
+      "want": "keep_talking",
+      "why": "uh-huh is listener feedback, not a claim on the floor"
+    },
+    {
+      "seg": 2,
+      "want": "keep_talking",
+      "why": "right is listener feedback"
+    },
+    {
+      "seg": 3,
+      "want": "respond",
+      "why": "a finished question"
+    }
+  ]
+}

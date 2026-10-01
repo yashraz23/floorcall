@@ -1,0 +1,47 @@
+{
+  "id": "05_mid_sentence_pause",
+  "title": "The user pauses mid-request",
+  "covers": [
+    "D1 early pause",
+    "D3 route"
+  ],
+  "history": [
+    {
+      "speaker": "agent",
+      "text": "Hi, thanks for calling. How can I help today?"
+    }
+  ],
+  "timeline": [
+    {
+      "who": "user",
+      "at_ms": 0,
+      "dur_ms": 1500,
+      "text": "I want to pay my"
+    },
+    {
+      "who": "user",
+      "at_ms": 2600,
+      "dur_ms": 1200,
+      "text": "credit card bill please"
+    },
+    {
+      "who": "agent",
+      "at_ms": 6000,
+      "dur_ms": 2700,
+      "text": "Sure. Which account should the payment come from?"
+    }
+  ],
+  "expect": [
+    {
+      "seg": 0,
+      "want": "keep_listening",
+      "why": "cut off mid-phrase: pay my what?"
+    },
+    {
+      "seg": 1,
+      "want": "respond",
+      "route": "pay_bill",
+      "why": "the request is finished"
+    }
+  ]
+}

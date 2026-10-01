@@ -1,0 +1,53 @@
+{
+  "id": "04_side_talk",
+  "title": "Talk to someone else in the room",
+  "covers": [
+    "D2 noise",
+    "D3 route"
+  ],
+  "history": [
+    {
+      "speaker": "user",
+      "text": "how much is my electricity bill"
+    }
+  ],
+  "timeline": [
+    {
+      "who": "agent",
+      "at_ms": 0,
+      "dur_ms": 10900,
+      "text": "Your electricity bill is one hundred and twelve dollars and forty cents, and it is due on the fifteenth of this month. Would you like to pay it now from your checking account?"
+    },
+    {
+      "who": "user",
+      "at_ms": 3500,
+      "dur_ms": 1800,
+      "text": "honey can you grab the door"
+    },
+    {
+      "who": "user",
+      "at_ms": 11400,
+      "dur_ms": 1500,
+      "text": "yes, please pay it now"
+    },
+    {
+      "who": "agent",
+      "at_ms": 15100,
+      "dur_ms": 4000,
+      "text": "Done. One hundred and twelve dollars and forty cents has been paid."
+    }
+  ],
+  "expect": [
+    {
+      "seg": 1,
+      "want": "ignore",
+      "why": "said to someone else, not to the agent"
+    },
+    {
+      "seg": 2,
+      "want": "respond",
+      "route": "pay_bill",
+      "why": "a finished request to pay the bill"
+    }
+  ]
+}

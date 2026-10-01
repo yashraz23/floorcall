@@ -1,0 +1,56 @@
+{
+  "id": "03_yeah_vs_yeah_but",
+  "title": "The same word twice: \"yeah\" and \"yeah but\"",
+  "covers": [
+    "D2 hard subset: backchannel vs interruption"
+  ],
+  "history": [
+    {
+      "speaker": "user",
+      "text": "why was my card declined"
+    }
+  ],
+  "timeline": [
+    {
+      "who": "agent",
+      "at_ms": 0,
+      "dur_ms": 11600,
+      "text": "Your card was declined because the payment was over your daily spending limit, which is five hundred dollars, and the purchase was six hundred and twenty dollars, so the bank held it for your safety."
+    },
+    {
+      "who": "user",
+      "at_ms": 4500,
+      "dur_ms": 300,
+      "text": "yeah"
+    },
+    {
+      "who": "user",
+      "at_ms": 9000,
+      "dur_ms": 3300,
+      "text": "yeah but I set my limit to a thousand last week"
+    },
+    {
+      "who": "agent",
+      "at_ms": 14500,
+      "dur_ms": 6000,
+      "text": "I see the change request from last week, but it was never confirmed. I can confirm it now."
+    }
+  ],
+  "expect": [
+    {
+      "seg": 1,
+      "want": "keep_talking",
+      "why": "yeah alone is a backchannel"
+    },
+    {
+      "seg": 2,
+      "want": "stop_and_listen",
+      "why": "yeah but starts an objection"
+    },
+    {
+      "seg": 2,
+      "want": "respond",
+      "why": "the objection is finished"
+    }
+  ]
+}

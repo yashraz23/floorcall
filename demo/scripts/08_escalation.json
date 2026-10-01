@@ -1,0 +1,77 @@
+{
+  "id": "08_escalation",
+  "title": "A frustrated user asks for a person, twice",
+  "covers": [
+    "D4 escalate",
+    "D1 early pause"
+  ],
+  "history": [
+    {
+      "speaker": "user",
+      "text": "my transfer to my landlord still hasn't arrived"
+    },
+    {
+      "speaker": "agent",
+      "text": "Transfers can take up to three business days to arrive."
+    },
+    {
+      "speaker": "user",
+      "text": "you said that on monday, it's been five days"
+    },
+    {
+      "speaker": "agent",
+      "text": "Transfers can take up to three business days to arrive."
+    }
+  ],
+  "timeline": [
+    {
+      "who": "user",
+      "at_ms": 0,
+      "dur_ms": 2700,
+      "text": "this is ridiculous, I've explained this three times now,"
+    },
+    {
+      "who": "user",
+      "at_ms": 3800,
+      "dur_ms": 1800,
+      "text": "just get me a real person"
+    },
+    {
+      "who": "agent",
+      "at_ms": 7800,
+      "dur_ms": 8000,
+      "text": "I understand your frustration. Before I transfer you, can I just confirm the amount was nine hundred dollars and the payee was your landlord?"
+    },
+    {
+      "who": "user",
+      "at_ms": 11200,
+      "dur_ms": 2700,
+      "text": "no, stop, put me through to a human now"
+    }
+  ],
+  "expect": [
+    {
+      "seg": 0,
+      "want": "keep_listening",
+      "why": "mid-thought: the complaint is still going"
+    },
+    {
+      "seg": 1,
+      "want": "respond",
+      "escalate": true,
+      "why": "an explicit request for a person"
+    },
+    {
+      "seg": 3,
+      "want": "stop_and_listen",
+      "escalate": true,
+      "why": "asks for a human over the agent"
+    },
+    {
+      "seg": 3,
+      "want": "respond",
+      "escalate": true,
+      "why": "the request is finished"
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "id": "06_finished_turn",
+  "title": "A finished question",
+  "covers": [
+    "D1 finished turn",
+    "D3 route"
+  ],
+  "history": [
+    {
+      "speaker": "agent",
+      "text": "Hi, thanks for calling. How can I help today?"
+    }
+  ],
+  "timeline": [
+    {
+      "who": "user",
+      "at_ms": 0,
+      "dur_ms": 2100,
+      "text": "what's the balance on my checking account"
+    },
+    {
+      "who": "agent",
+      "at_ms": 4300,
+      "dur_ms": 4000,
+      "text": "Your checking account balance is two thousand four hundred and six dollars."
+    }
+  ],
+  "expect": [
+    {
+      "seg": 0,
+      "want": "respond",
+      "route": "balance",
+      "why": "a complete question"
+    }
+  ]
+}

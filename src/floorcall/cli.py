@@ -704,6 +704,55 @@ def llm_spend() -> None:
     )
 
 
+def _script_paths(given: list[Path] | None, default: Path) -> list[Path]:
+    """Script paths; a glob the shell did not expand (PowerShell) is expanded here."""
+    raw = [str(p) for p in given] if given else [str(default / "*.json")]
+    out: list[Path] = []
+    for item in raw:
+        out += (
+            sorted(Path(item).parent.glob(Path(item).name))
+            if any(c in item for c in "*?[")
+            else [Path(item)]
+        )
+    return out
+
+
+@app.command("replay")
+def replay(
+    scripts: Annotated[
+        list[Path] | None, typer.Argument(help="script files (default: demo/scripts/*.json)")
+    ] = None,
+    compare: str = typer.Option("naive", help="the baseline agent to compare with: naive"),
+    check: bool = typer.Option(False, "--check", help="check the scripts' timing only; no model"),
+    freeze: bool = typer.Option(False, "--freeze", help="check, then freeze the scripts' hashes"),
+    checkpoint: Annotated[
+        Path | None, typer.Option(help="default: ReplaySettings.checkpoint")
+    ] = None,
+    device: Annotated[str | None, typer.Option(help="default: ReplaySettings.device (cpu)")] = None,
+) -> None:
+    """Replay scripted calls through the naive agent and floorcall; print where they diverge.
+
+    Needs no API key. The scripts are illustrative demos, not an evaluation set (D-046)."""
+    from floorcall.replay.run import run_replay
+
+    if compare != "naive":
+        raise typer.BadParameter("the only baseline agent is naive")
+    settings = get_settings()
+    paths = _script_paths(scripts, settings.replay.scripts)
+    lines, ok = run_replay(
+        settings,
+        paths,
+        check_only=check or freeze,
+        freeze=freeze,
+        checkpoint=checkpoint,
+        device=device,
+    )
+    for line in lines:
+        console.print(line, markup=False, highlight=False, soft_wrap=True)
+    if not ok:
+        raise typer.Exit(1)
+
+
 @eval_app.command("readme")
 def eval_readme() -> None:
     """Rewrite README.md's result tables from results/ (TODO where no file exists)."""
