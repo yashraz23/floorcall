@@ -49,3 +49,37 @@ def test_a_threshold_needs_a_true_false_decision() -> None:
 def test_choose_threshold_checks_its_input() -> None:
     with pytest.raises(ValueError):
         choose_threshold(np.array([0.1, 0.2]), np.array([0]))
+
+
+# -- theta_oos (D-045): scored on the routing policy's own output --------------------------------
+
+
+def test_oos_threshold_is_the_middle_of_the_best_plateau() -> None:
+    from floorcall.evaluate.thresholds import RULE_OOS, choose_oos_threshold
+
+    # labels: a, b, oos. Every row is right exactly when 0.3 < theta <= 0.4.
+    probs = np.array(
+        [[0.6, 0.1, 0.3], [0.2, 0.5, 0.3], [0.3, 0.2, 0.5], [0.5, 0.1, 0.4]], dtype=np.float64
+    )
+    y = np.array([0, 1, 2, 2])
+    c = choose_oos_threshold(probs, y, oos=2)
+    assert c.macro_f1 == pytest.approx(1.0)
+    assert c.tied == 20  # 0.305 ... 0.400
+    assert c.theta == pytest.approx(0.35)
+    assert c.rule == RULE_OOS and c.n == 4
+
+
+def test_route_with_oos_matches_the_policy() -> None:
+    from floorcall.config import PolicySettings
+    from floorcall.evaluate.thresholds import route_with_oos
+    from floorcall.policy import _route
+
+    rng = np.random.default_rng(0)
+    labels = ["transfer", "balance", "out_of_scope"]
+    probs = rng.dirichlet(np.ones(3), size=200)
+    probs[:5] = [0.4, 0.4, 0.2]  # an in-scope tie: both take the first
+    for theta in (0.0, 0.25, 0.5, 0.9, 1.0):
+        got = route_with_oos(probs, 2, theta)
+        cfg = PolicySettings(theta_oos=theta)
+        want = [labels.index(_route(dict(zip(labels, p, strict=True)), cfg)) for p in probs]
+        assert got.tolist() == want

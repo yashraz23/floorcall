@@ -1093,3 +1093,24 @@ audio (§16). The live pipeline is the part most likely to take up the schedule.
 
 **Open, for Yash to decide:** the §13 hero video is on the never-cut list, but it was a recording
 of live mode.
+
+**D-045 · 2026-10-01 · §7, §13, §14 · Milestone 3 settled** — (Yash's answers to the Milestone 3
+plan.)
+- **The Pipecat wrapper moves to v2, with live mode (D-044).** `DecisionProcessor`
+  (`src/floorcall/pipeline/processor.py`) depends on no framework: a snapshot goes in, a decision
+  event comes out. Replay drives it directly. In v2, a Pipecat `FrameProcessor` will wrap it
+  without changing it. This diverges from §7, which made the processor a Pipecat FrameProcessor;
+  Milestone 3 adds no Pipecat dependency.
+- **The naive agent's silence timeout is 800 ms**, a typical voice-agent end-of-turn timeout. It
+  is not described as Pipecat's pinned default, because no Pipecat version is installed to check
+  it against. It lives in `ReplaySettings.naive_silence_ms`.
+- **θ_oos is chosen on D3 calib, never on test, by the rule θ_escalate uses:** the grid
+  0.000–1.000 in steps of 0.005, maximum macro-F1, median of ties. The macro-F1 is over all 16
+  route labels, scored on the policy's own output: `out_of_scope` if p(out_of_scope) ≥ θ,
+  otherwise the in-scope argmax. That is what θ_oos controls in `policy.on_user_pause`. It uses
+  the checkpoint's calib temperature. The result is committed to
+  `results/thresholds/route_oos.json`.
+- **The hero video is a 30–45 s screen recording of the Hugging Face Space's Replay tab**, not
+  live mode. §14's never-cut list now says so.
+- **fpdf2 is approved** for the project report PDF (D-044). It is added when the report generator
+  is written.

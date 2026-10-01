@@ -297,6 +297,22 @@ class LLMSettings(BaseModel):
     baseline_rows: dict[str, int] = Field(default_factory=dict)
 
 
+class ReplaySettings(BaseModel):
+    """Replay mode (floorcall.replay; DECISIONS.md D-045, D-046)."""
+
+    # The naive agent responds after this much silence and stops on any user speech (D-045): a
+    # typical voice-agent end-of-turn timeout, not a pinned Pipecat default.
+    naive_silence_ms: int = Field(800, gt=0)
+    # floorcall decides on speech during the agent's turn when that speech ends, or after this
+    # much of it, whichever comes first. The words heard by then are what the model reads.
+    barge_window_ms: int = Field(600, gt=0)
+    # What replay serves, and where it computes. CPU, so replaying needs no GPU and no key. The
+    # timeline does not use this compute time: each decision costs the Table B GPU p50 (D-046).
+    checkpoint: Path = REPO_ROOT / "checkpoints" / "main-r2"
+    device: str = "cpu"
+    scripts: Path = REPO_ROOT / "demo" / "scripts"
+
+
 class PathSettings(BaseModel):
     data_raw: Path = REPO_ROOT / "data" / "raw"
     data_processed: Path = REPO_ROOT / "data" / "processed"
@@ -320,6 +336,7 @@ class Settings(BaseSettings):
     eval: EvalSettings = EvalSettings()
     train: TrainSettings = TrainSettings()
     llm: LLMSettings = LLMSettings()
+    replay: ReplaySettings = ReplaySettings()
     paths: PathSettings = PathSettings()
     # Read from the environment or .env, never logged or written anywhere. SecretStr keeps it out
     # of settings dumps (run.json stores one).

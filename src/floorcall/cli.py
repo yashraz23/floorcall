@@ -602,6 +602,22 @@ def eval_curves(
             console.print(f"{key}: theta {out[key]['theta']:.3f}  test {out[key]['test_at_theta']}")
 
 
+@eval_app.command("oos-threshold")
+def eval_oos_threshold(
+    checkpoint: Annotated[Path, typer.Option(help="the calibrated, served training run")],
+    device: str = typer.Option("cpu", help="cpu | cuda"),
+) -> None:
+    """D-045: choose theta_oos on D3 calib (never test) -> results/thresholds/route_oos.json."""
+    from floorcall.evaluate.oos_threshold import run_oos_threshold
+
+    out = run_oos_threshold(get_settings(), checkpoint, device=device)
+    c = out["choice"]
+    console.print(
+        f"theta_oos {c['theta']:.3f}  calib macro-F1 {c['macro_f1']:.3f} (n={c['n']}, "
+        f"{c['tied']} tied; at 0.5: {out['calib_macro_f1_at_0.5']:.3f})"
+    )
+
+
 @eval_app.command("figures")
 def eval_figures() -> None:
     """Render results/curves/*.json to light and dark PNGs in results/figures/."""

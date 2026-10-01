@@ -355,7 +355,7 @@ Scripted conversations (turn text, timing, agent speaking windows) run through *
 4. Local STT/TTS fallbacks (keep hosted defaults only).
 5. Table C robustness.
 
-**Never cut:** frozen conversation-disjoint test sets, calibration metrics, the latency table, replay mode, the hero video.
+**Never cut:** frozen conversation-disjoint test sets, calibration metrics, the latency table, replay mode, the hero video (a 30–45 s screen recording of the Space's Replay tab; DECISIONS.md D-045).
 
 ---
 
