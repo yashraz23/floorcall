@@ -1171,3 +1171,44 @@ speech by when it ends, word by word for the agent:
 Two tests pin both cases. The scripts, their expectations and the manifest are unchanged. The
 first run, with the bug, had floorcall acting as wanted at 14 of 18 points and naive at 3 of 17.
 The run after the fix is the one committed to `results/replay/`.
+
+**D-038 outcome, the `full` arm · 2026-10-01** — Table D's reference arm finished on Kaggle and is
+in `results/table_d/full.*.json`. Its run record is in `results/training/kaggle_full/`. The other
+three arms (`no_history`, `no_agent`, `no_normalize`) are running and are added as they finish.
+- **Conditions.** Tesla T4, fp16 training with loss scaling, torch 2.10.0+cu128, Python 3.12
+  (D-043). Code `980e777-kaggle`, the bundle commit. 2 epochs (D-038), 12,883 s. **The kept
+  checkpoint is epoch 1.** Its dev cross-entropy (macro over tasks) was 0.185, against 0.201 at
+  epoch 2. r2 kept epoch 2 of 4.
+- **Verified before ingesting.**
+  - Every row's `test_sha256` matches `data/test_frozen/MANIFEST.json`.
+  - The run's `train_sha256` and `calib_sha256` match the local processed files and r2's.
+  - Its settings differ from r2's only in `train.amp_dtype` (bf16 → fp16) and `train.epochs`
+    (4 → 2), plus settings added after r2 that training does not read: latency, LLM and
+    inference precision.
+  - The code from `980e777` to HEAD adds replay and θ_oos only. Nothing on the training or
+    scoring path changed.
+  - The shipped per-row logits re-score locally to every committed metric. barge_in's ECE
+    differs in the 17th significant digit, from floating-point summation order.
+  - No file in the zip holds a secret, and the API key in `run.json` is null.
+- **A cross-hardware reproduction of r2.** It uses the same data, seed and recipe, on different
+  hardware, at a different precision, with a different schedule length and kept epoch. Each
+  difference below is the Kaggle full arm minus Table A's "fine-tuned + temperature" row. Both are
+  scored at argmax, so D4 is not at θ_escalate.
+
+  | | macro-F1 | accuracy | ECE | Brier | hard acc. |
+  |---|---|---|---|---|---|
+  | D1 turn_complete | +0.011 | +0.007 | +0.004 | −0.000 | −0.050 (n = 775) |
+  | D2 barge_in | +0.004 | +0.003 | +0.002 | −0.001 | +0.018 |
+  | D3 route | +0.005 | +0.007 | +0.003 | −0.009 | — |
+  | D4 escalate | +0.023 | +0.020 | +0.040 | −0.014 | +0.040 (n = 100) |
+
+  Headline macro-F1 lands within 0.011 of r2 on D1–D3. On D4 it is within 0.023, where n = 200
+  and the accuracy gap is 4 rows. Two differences are not small:
+  - D1's hard subset is 0.050 lower (0.675 against 0.725).
+  - D4's ECE is 0.103 against 0.064.
+
+  The fitted temperatures are all lower than r2's, D4's being 3.45 against 4.86. The arm's own
+  θ_escalate on calib is 0.605 (r2: 0.505); Table D does not use it. These differences are why
+  Table D reads its ablations against this arm and never against r2 (D-038).
+- **Per-row logits** are kept locally in `runs/eval/table_d/<decision>.full.npz` (gitignored), as
+  `evaluate_table_d` names them. The result zips stay in `kaggle/kaggle_results/` (gitignored).

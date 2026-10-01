@@ -206,12 +206,15 @@ Table D is trained on Kaggle: four arms (the full model and the three ablations)
 with the Kaggle full arm as the reference its ablations are read against, not r2 (docs/DECISIONS.md
 D-038). Each variant is a separately trained, calibrated checkpoint, scored under the same state
 settings it trained with. The normalization ablation is scored twice: on written text, where punctuation leaks
-the answer, and on ASR-style text, which is what a live pipeline delivers.
+the answer, and on ASR-style text, which is what a live pipeline delivers. The arms train in fp16
+on a Tesla T4. The full arm's macro-F1 lands within 0.011 of Table A's fine-tuned + temperature row
+on D1–D3 and within 0.023 on D4 (n = 200). Its D1 hard-subset accuracy is 0.050 lower
+(docs/DECISIONS.md D-038 outcome).
 
 <!-- table-d:start -->
 | Variant | D1 macro-F1 (acc) | D1 hard acc. | D2 macro-F1 (acc) | D2 hard acc. | D3 macro-F1 (acc) | D4 macro-F1 (acc) |
 |---|---|---|---|---|---|---|
-| full model | TODO | TODO | TODO | TODO | TODO | TODO |
+| full model | 0.824 (0.827) | 0.675 | 0.941 (0.973) | 0.994 | 0.911 (0.955) | 0.695 (0.715) |
 | without recent_turns | TODO | TODO | TODO | TODO | TODO | TODO |
 | without agent_last_utterance | TODO | TODO | TODO | TODO | TODO | TODO |
 | without normalization, scored on written text | TODO | TODO | TODO | TODO | TODO | TODO |

@@ -37,3 +37,6 @@ web-ui/dist/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Kaggle Table D result zips; their rows are copied into results/ (docs/runbook-kaggle.md)
+kaggle/kaggle_results/

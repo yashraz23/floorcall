@@ -1,0 +1,51 @@
+{
+  "temperatures": {
+    "turn_complete": 1.024523289349699,
+    "barge_in": 1.064290470939651,
+    "route": 1.3767906627478423,
+    "escalate": 3.449835200833218
+  },
+  "fits": {
+    "turn_complete": {
+      "n": 8201,
+      "nll_before": 0.37428837549118377,
+      "nll_after": 0.3742130032045659,
+      "at_bound": false
+    },
+    "barge_in": {
+      "n": 7407,
+      "nll_before": 0.07304365008321037,
+      "nll_after": 0.07281686177980423,
+      "at_bound": false
+    },
+    "route": {
+      "n": 400,
+      "nll_before": 0.1278400209092893,
+      "nll_after": 0.1123125837947419,
+      "at_bound": false
+    },
+    "escalate": {
+      "n": 100,
+      "nll_before": 0.8833755361339076,
+      "nll_after": 0.5281180139159446,
+      "at_bound": false
+    }
+  },
+  "calib_sha256": {
+    "turn_complete": "89374a76122e481fc03a71d23ade7f027d89265b76dadb89eff473f39991aa50",
+    "barge_in": "3f4b48a3549d165b52360c27e08eac03e4fafd039f034d0523f702119948c6da",
+    "route": "1f99ba6a0424ffac5294f44bd2976ea21b8b8b4bab1b0b656a8a1f14f1f872a3",
+    "escalate": "e9dbf51d0f093daafa88b84b3a8f1b58f0dedd83405fe0e3d1669f3daa4c428f"
+  },
+  "checkpoint": "/kaggle/working/runs/full",
+  "code": "980e777-kaggle",
+  "thresholds": {
+    "escalate": {
+      "theta": 0.605,
+      "macro_f1": 0.7612847222222222,
+      "n": 100,
+      "tied": 16,
+      "rule": "max macro-F1 on calib over thresholds 0.000-1.000 step 0.005; median of ties"
+    }
+  }
+}
