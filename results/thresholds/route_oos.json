@@ -1,0 +1,38 @@
+{
+  "decision": "route",
+  "threshold": "theta_oos",
+  "split": "calib",
+  "calib_file": "route.calib.jsonl.gz",
+  "calib_sha256": "1f99ba6a0424ffac5294f44bd2976ea21b8b8b4bab1b0b656a8a1f14f1f872a3",
+  "checkpoint": "checkpoints/main-r2",
+  "trained_at": "00fac02",
+  "code": "bb09005",
+  "device": "cpu",
+  "temperature": 1.922630856696969,
+  "labels": [
+    "transfer",
+    "transactions",
+    "balance",
+    "freeze_account",
+    "pay_bill",
+    "bill_balance",
+    "bill_due",
+    "interest_rate",
+    "routing",
+    "min_payment",
+    "order_checks",
+    "pin_change",
+    "report_fraud",
+    "account_blocked",
+    "spending_history",
+    "out_of_scope"
+  ],
+  "choice": {
+    "theta": 0.45,
+    "macro_f1": 0.9724124439268232,
+    "n": 400,
+    "tied": 59,
+    "rule": "max 16-label macro-F1 of the routing policy's output (out_of_scope if p(out_of_scope) >= theta, else the in-scope argmax) on calib over thresholds 0.000-1.000 step 0.005; median of ties"
+  },
+  "calib_macro_f1_at_0.5": 0.9724124439268232
+}
