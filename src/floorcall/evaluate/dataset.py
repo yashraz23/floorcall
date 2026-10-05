@@ -79,7 +79,10 @@ def _make(decision: str, split: str, rows: Sequence[dict[str, Any]]) -> EvalSet:
 
 
 def load_test(settings: Settings, decision: str) -> EvalSet:
-    return _make(decision, "test", read_jsonl_gz(settings.paths.test_frozen / test_file(decision)))
+    from floorcall.data.private import require
+
+    path = require(settings.paths.test_frozen / test_file(decision), settings)  # D4: D-049
+    return _make(decision, "test", read_jsonl_gz(path))
 
 
 def load_processed(settings: Settings, decision: str, split: str) -> EvalSet:

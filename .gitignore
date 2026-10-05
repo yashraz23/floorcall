@@ -40,3 +40,10 @@ Thumbs.db
 
 # Kaggle Table D result zips; their rows are copied into results/ (docs/runbook-kaggle.md)
 kaggle/kaggle_results/
+
+# D4's real Twitter text is not in the public repository (DECISIONS.md D-049): ids, labels and
+# hashes are. `floorcall data restore-escalate` rebuilds these from twcs.csv and verifies them.
+data/labels/escalate.candidates.v1.jsonl
+data/labels/escalate.train_sample.v2.jsonl
+data/test_frozen/escalate.test.v1.jsonl.gz
+data/test_frozen/escalate.test.v2.jsonl.gz

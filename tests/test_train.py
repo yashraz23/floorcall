@@ -281,9 +281,10 @@ def test_the_real_repo_refuses_training_today() -> None:
     # data/test_frozen has D1-D3 only until Yash's D4 labels are frozen
     from floorcall.config import get_settings
     from floorcall.data.build import test_file
+    from floorcall.data.freeze import _read_manifest
 
     s = get_settings()
-    if (s.paths.test_frozen / test_file("escalate")).exists():
+    if test_file("escalate") in _read_manifest(s.paths.test_frozen):
         pytest.skip("D4 is frozen: training is allowed now")
     with pytest.raises(TrainingNotAllowedError):
         assert_test_sets_frozen(s)

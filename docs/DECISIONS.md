@@ -1350,3 +1350,63 @@ on this run with these temperatures, and unless the card matches `results/`.
 4. **The GitHub repository stays private** until Yash approves the audit of what going public
    would publish (secrets in history, data files, Twitter-derived text). The card links to it, so
    the Hub upload waits for it too.
+
+**D-049 · 2026-10-05 · §10.7 licences, going public · D4's Twitter text stays private** — (Yash's
+decisions, after an audit of what making the repository public would publish.)
+*The audit (2026-10-05)* covered every blob reachable from any ref, 95 commits on `main`, with
+gzip contents decompressed.
+- **Secrets: none.** No live credential value appears anywhere: the `.env` OpenRouter key, the
+  Kaggle key, the Hugging Face token or the `gh` token. A pattern scan and Yelp's `detect-secrets`
+  agree. Everything they flagged is a 64-character data hash, a 40-character commit SHA, or a test
+  placeholder (`sk-or-this-must-not-leak`). `.env` was never committed.
+- **Real Twitter text: about 2,270 distinct customer messages,** stored as written:
+  - `data/labels/escalate.candidates.v1.jsonl` (600 messages);
+  - `data/labels/escalate.train_sample.v2.jsonl` (1,000);
+  - `data/test_frozen/escalate.test.v1.jsonl.gz` and `.v2.jsonl.gz` (396 and 200);
+  - the `disagreements` lists of `results/d4_labeller/llm-labeller-v2/calib.json` and `-v3/` (54
+    and 28 calib messages, quoted).
+
+  @-handles, URLs and emails are absent. Phone numbers were not all masked, against what
+  `data/escalate.py` assumed: 11 messages hold phone-shaped numbers (some the customer's own) and
+  14 hold long reference, claim or application numbers, and one gives a full name. The corpus's
+  ids are anonymized, but the text is searchable on X and can identify its author.
+- **Everything else is fine to publish.** The SwDA and CLINC150 test sets carry licences that
+  allow redistribution with attribution. The id and label files hold no text.
+
+*Decision.*
+- **No real Twitter text in the public repository, in any commit.** The four files above leave
+  history, and so does the quoted text in the two labeller results.
+- **The private copies** stay in this repository, renamed `floorcall-archive` and kept private,
+  and in the private Kaggle dataset.
+- **Everything else stays public:** the SwDA and CLINC150 test sets, every id and label file, and
+  all results. `data/LICENSE.md` states each file's licence; the code's Apache-2.0 does not cover
+  `data/`.
+
+*D4 stays reproducible without the text.*
+- **Checked first:** all four files, and the gitignored calib v2, rebuild byte for byte from
+  `twcs.csv` (pinned by content hash) and the committed id and label files. Their sha256:
+  - candidates `cdd23548…`;
+  - training sample `bddfab6e…`;
+  - test v1 `e69e4823…`;
+  - test v2 `91994160…`;
+  - calib v2 `e9dbf51d…`.
+- **`floorcall data restore-escalate`** (`data/private.py`) rebuilds them with the functions that
+  first drew them. It checks each against its committed sha256, the test sets against
+  `MANIFEST.sha256` and the label files against the new `data/labels/PRIVATE.sha256`, and never
+  overwrites a file that differs. All four are gitignored.
+- **Without the files, everything still runs.**
+  - `verify()` accepts the two D4 test sets as absent and still checks them when present.
+  - D4 loaders raise `PrivateDataMissingError`, which names the restore command.
+  - The one test that needs them skips with that message.
+  - The CI suite passes with the four files removed. Restoring them gives the original bytes, and
+    git sees them as unchanged.
+- **The labeller's `disagreements` now record ids, strata and labels only.**
+
+*History* is rewritten on a fresh clone with `git filter-repo`, never on the working copy:
+- it removes the four paths and the quoted text from every commit;
+- Yash's email becomes his GitHub noreply address;
+- `docs/commit-map.txt` maps each old SHA to its new one. Results files and this log cite
+  commits by their old SHAs (for example r2's `00fac02`), and the map resolves them.
+
+The rewritten repository is pushed as the new public `floorcall` only after Yash has seen a fresh
+secrets and PII scan of it.

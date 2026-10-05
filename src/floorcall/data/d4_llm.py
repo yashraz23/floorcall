@@ -221,16 +221,10 @@ def gate_failures(
 def disagreements(
     candidates: Iterable[Candidate], hand: Mapping[str, str], llm: Mapping[str, str]
 ) -> list[dict[str, Any]]:
-    """The messages where the LLM's label differs from Yash's, with what each saw."""
+    """The messages where the LLM's label differs from Yash's, by id. The text stays out: it is real
+    Twitter text, which the public repository does not hold (DECISIONS.md D-049)."""
     return [
-        {
-            "id": c.id,
-            "stratum": stratum(c),
-            "hand": hand[c.id],
-            "llm": llm[c.id],
-            "agent_last": c.agent_last_utterance,
-            "message": c.user_partial,
-        }
+        {"id": c.id, "stratum": stratum(c), "hand": hand[c.id], "llm": llm[c.id]}
         for c in candidates
         if c.id in hand and llm.get(c.id) in ("true", "false") and hand[c.id] != llm[c.id]
     ]

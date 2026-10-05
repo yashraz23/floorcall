@@ -13,6 +13,7 @@ from floorcall import questions
 from floorcall.config import get_settings
 from floorcall.data.build import processed_file
 from floorcall.data.freeze import read_jsonl_gz, verify
+from floorcall.data.private import TEST_FILES as PRIVATE_TEST_FILES
 
 FROZEN = get_settings().paths.test_frozen
 PROCESSED = get_settings().paths.data_processed
@@ -37,8 +38,10 @@ def frozen_files() -> list[Path]:
 
 
 def test_manifest_matches_every_file() -> None:
-    manifest = verify(FROZEN)
-    assert set(manifest) == {p.name for p in frozen_files()}
+    # D4's files hold real Twitter text and may be absent from the public copy (D-049)
+    manifest = verify(FROZEN, optional=PRIVATE_TEST_FILES)
+    absent = {n for n in PRIVATE_TEST_FILES if not (FROZEN / n).exists()}
+    assert set(manifest) - absent == {p.name for p in frozen_files()}
     assert manifest, "no frozen test sets"
 
 

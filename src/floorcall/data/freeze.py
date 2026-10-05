@@ -19,7 +19,7 @@ import gzip
 import hashlib
 import io
 import json
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Collection, Iterable, Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
@@ -120,8 +120,12 @@ def freeze(
     return digest, True
 
 
-def verify(root: Path) -> dict[str, str]:
-    """Check every frozen file against the manifest, and that nothing unlisted is present."""
+def verify(root: Path, optional: Collection[str] = ()) -> dict[str, str]:
+    """Check every frozen file against the manifest, and that nothing unlisted is present.
+
+    Names in `optional` may be absent: D4's test sets, whose real Twitter text is not in the public
+    repository (DECISIONS.md D-049). When present they are checked like any other.
+    """
     manifest = _read_manifest(root)
     present = {p.name for p in root.glob("*.jsonl.gz")}
     unlisted = present - set(manifest)
@@ -130,6 +134,8 @@ def verify(root: Path) -> dict[str, str]:
     for name, digest in manifest.items():
         path = root / name
         if not path.exists():
+            if name in optional:
+                continue
             raise FrozenSetChangedError(f"{name} is in {MANIFEST} but missing")
         actual = sha256_file(path)
         if actual != digest:

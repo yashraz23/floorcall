@@ -196,6 +196,7 @@ def test_disagreements_list_only_real_disagreements() -> None:
     llm = {"twcs-1": "true", "twcs-2": "true", "twcs-3": "unsure", "twcs-4": "true"}
     out = d4_llm.disagreements(cands, hand, llm)
     assert [(d["id"], d["hand"], d["llm"]) for d in out] == [("twcs-2", "false", "true")]
+    assert set(out[0]) == {"id", "stratum", "hand", "llm"}  # no Twitter text (D-049)
 
 
 def test_train_rows_drop_unsure_and_carry_their_source() -> None:

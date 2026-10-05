@@ -328,9 +328,16 @@ Every divergence from the original spec, and why, is in [docs/DECISIONS.md](docs
 uv sync                                              # NVIDIA GPU (CUDA 13 driver), the default
 uv sync --no-default-groups --group dev --group cpu  # no NVIDIA GPU
 uv run pytest
+uv run floorcall data restore-escalate   # D4's message text, rebuilt from the corpus (data/LICENSE.md)
 ```
+
+D4's customer messages are real tweets, so the repository holds their ids, labels and hashes, not
+their text. Everything else, including every test above, runs without them. Evaluating or
+retraining D4 needs the restore step (docs/DECISIONS.md D-049).
 
 ## Licence
 
-Code: Apache-2.0. Derived datasets inherit their sources' licences, including SwDA's
-CC BY-NC-SA 3.0 (non-commercial), and each dataset card says which.
+Code: Apache-2.0. The files under `data/` are not covered by it. They carry their sources'
+licences, listed in [data/LICENSE.md](data/LICENSE.md): SwDA's CC BY-NC-SA 3.0 (non-commercial),
+CLINC150's CC BY 3.0, and Customer Support on Twitter's CC BY-NC-SA 4.0. The released weights are
+CC BY-NC-SA 4.0 (docs/DECISIONS.md D-048).

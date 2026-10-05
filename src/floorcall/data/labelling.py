@@ -48,6 +48,10 @@ TRAIN_LABELS_FILE = "escalate.train_labels.v2.jsonl"
 
 
 def load_candidates(path: Path) -> list[Candidate]:
+    from floorcall.data import private
+
+    if not path.exists() and path.name in (private.CANDIDATES, private.TRAIN_SAMPLE):
+        raise private.PrivateDataMissingError(path)  # real Twitter text, not public (D-049)
     with path.open(encoding="utf-8") as f:
         return [Candidate(**json.loads(line)) for line in f if line.strip()]
 
@@ -58,9 +62,13 @@ def save_candidates(path: Path, candidates: Sequence[Candidate]) -> None:
             f"{path} exists. The pool is fixed once labelling starts; a new pool is a new version."
         )
     path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", encoding="utf-8", newline="\n") as f:
-        for c in candidates:
-            f.write(json.dumps(c.to_json(), ensure_ascii=False) + "\n")
+    path.write_bytes(candidates_bytes(candidates))
+
+
+def candidates_bytes(candidates: Sequence[Candidate]) -> bytes:
+    """A candidates file's exact bytes: one JSON object per line, UTF-8, LF line ends."""
+    lines = (json.dumps(c.to_json(), ensure_ascii=False) + "\n" for c in candidates)
+    return "".join(lines).encode("utf-8")
 
 
 def load_labels(path: Path) -> dict[str, dict[str, Any]]:

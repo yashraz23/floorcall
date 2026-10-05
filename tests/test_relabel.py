@@ -196,6 +196,11 @@ def test_d4_is_evaluated_on_v2_and_the_rest_on_v1() -> None:
 def test_d4_v2_sets_rebuild_from_the_committed_labels() -> None:
     import hashlib
 
+    from floorcall.data import private
+
+    if private.missing(get_settings()):
+        pytest.skip("D4's Twitter text is private (D-049): `floorcall data restore-escalate`")
+
     from floorcall.data.build import cards_dir, escalate_eval_rows, test_file
     from floorcall.data.freeze import jsonl_gz_bytes
 

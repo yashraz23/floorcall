@@ -100,11 +100,38 @@ def data_build(
 @data_app.command("verify")
 def data_verify() -> None:
     """Check every frozen test set against data/test_frozen/MANIFEST.sha256."""
+    from floorcall.data import private
     from floorcall.data.freeze import verify
 
-    manifest = verify(get_settings().paths.test_frozen)
+    root = get_settings().paths.test_frozen
+    manifest = verify(root, optional=private.TEST_FILES)
     for name, digest in manifest.items():
-        console.print(f"[green]ok[/green] {digest}  {name}")
+        if (root / name).exists():
+            console.print(f"[green]ok[/green] {digest}  {name}")
+        else:
+            console.print(
+                f"[yellow]absent[/yellow] {digest}  {name} (private D4 text; "
+                "`floorcall data restore-escalate` rebuilds and verifies it)"
+            )
+
+
+@data_app.command("restore-escalate")
+def data_restore_escalate() -> None:
+    """Rebuild D4's private Twitter files from twcs.csv and verify each against its sha256.
+
+    The public repository holds D4's ids, labels and hashes, not the message text (D-049). This
+    downloads the corpus (pinned by content hash) and rebuilds the labelling pool, the training
+    sample and both frozen test sets byte for byte. An existing file that differs is never touched.
+    """
+    from floorcall.data import private
+
+    try:
+        status = private.restore(get_settings())
+    except ValueError as e:
+        console.print(f"[red]refused[/red]: {e}")
+        raise typer.Exit(1) from e
+    for name, what in status.items():
+        console.print(f"[green]ok[/green] {name}: {what}")
 
 
 @data_app.command("escalate-candidates")

@@ -46,8 +46,14 @@ class TrainingNotAllowedError(RuntimeError):
 
 
 def assert_test_sets_frozen(settings: Settings) -> dict[str, str]:
-    """All four test sets frozen and matching MANIFEST.sha256, or refuse."""
-    manifest = verify(settings.paths.test_frozen)
+    """All four test sets frozen and matching MANIFEST.sha256, or refuse.
+
+    Frozen means recorded in the manifest. D4's files may be absent where the repository is the
+    public copy (D-049); training never reads a test set, and a present file is still checked.
+    """
+    from floorcall.data.private import TEST_FILES
+
+    manifest = verify(settings.paths.test_frozen, optional=TEST_FILES)
     missing = [d for d in DECISIONS if test_file(d) not in manifest]
     if missing:
         raise TrainingNotAllowedError(
