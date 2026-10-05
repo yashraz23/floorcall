@@ -1287,3 +1287,66 @@ arms finished on Kaggle and are in `results/table_d/`. Their run records are in
   - **Windows output.** The CLI makes stdout and stderr UTF-8 when Python opened them with another
     encoding (cp1252 when piped or redirected on Windows). `floorcall replay > file` no longer
     crashes after writing its results. The replay scripts and their results are unchanged.
+
+**D-048 · 2026-10-05 · §13 Hugging Face release · licence** — **Release r2's weights under CC
+BY-NC-SA 4.0.** (Yash's decision, after this proposal; see the resolution at the end.)
+*Licences, checked at each source on 2026-10-05:*
+
+| Source | Used for | Licence | Where it is stated |
+|---|---|---|---|
+| Laya, `convaiinnovations/laya` | the base weights | Apache-2.0 | the model card's metadata |
+| ModernBERT-large, `answerdotai/ModernBERT-large` | Laya's encoder and tokenizer | Apache-2.0 | its model card |
+| SwDA, Potts' distribution (`swda.zip`) | D1, D2 | CC BY-NC-SA 3.0 Unported | compprag.christopherpotts.net/swda.html |
+| CLINC150, `clinc/oos-eval` | D3 | CC BY 3.0 Unported | the repository's LICENSE |
+| Customer Support on Twitter, Thought Vector | D4 | CC BY-NC-SA 4.0 | the Kaggle dataset's metadata |
+| `openai/gpt-oss-120b` | D4's training labels | Apache-2.0 | its model card |
+
+- **SwDA has a second licence nearby that does not apply.** The `cgpotts/swda` GitHub repository
+  declares GPL-2.0, which covers its code. floorcall uses only the corpus data in `swda.zip`,
+  which Potts licenses CC BY-NC-SA 3.0. That corpus extends LDC's Switchboard-1 Release 2
+  (LDC97S62), with dialog-act annotations from UC Boulder. floorcall relies on the distribution's
+  stated licence.
+- **Twitter's provider adds a note.** Thought Vector's Kaggle description says "For commercial
+  applications and use of full dataset, please contact" it. This is consistent with NC.
+- **The labeller's outputs carry no restriction.** No term restricting the use of
+  `gpt-oss-120b`'s outputs to train other models was found.
+
+*Why CC BY-NC-SA 4.0.* Two training sources are NonCommercial-ShareAlike: SwDA and the Twitter
+corpus. Whether model weights are an adaptation of their training data is legally unsettled, so
+the release takes the conservative reading and carries those terms forward:
+- **The two NC-SA sources.** BY-NC-SA 3.0 lets an adaptation be licensed under a later version
+  with the same licence elements, so 4.0 satisfies both.
+- **CLINC150's BY 3.0** asks only for attribution.
+- **Laya's Apache-2.0** allows derivative works under other terms, if its notice is kept.
+
+*Implications, stated on the card:*
+- No commercial use of the weights or of models derived from them.
+- A model fine-tuned from them must carry the same licence.
+- Attribution to floorcall and to every source.
+
+The repository's code stays Apache-2.0. **Rejected:** Apache-2.0 for the weights, on the argument
+that weights are not an adaptation. That argument is untested, and the risk falls on users. This is
+not legal advice.
+
+*The release* (`src/floorcall/release.py`; `floorcall release card`, then `floorcall release
+stage`). It holds r2 (`checkpoints/main-r2`):
+- `model.safetensors`;
+- `rl_agent_config.json` and `encoder/config.json`;
+- `tokenizer/`, which `laya.Agent` needs to load the folder;
+- `floorcall_calibration.json`;
+- the card, as `README.md`.
+
+It holds no training, calib or test data and no run logs. `stage` refuses unless Table A was scored
+on this run with these temperatures, and unless the card matches `results/`.
+
+**Resolved by Yash (2026-10-05):**
+1. **The licence:** CC BY-NC-SA 4.0, approved.
+2. **The Hub id:** `enz23/floorcall`, his account by `hf auth whoami`. `release.HF_REPO_ID` and the
+   card's loading example name it, and a test keeps the two the same.
+3. **Laya's Apache-2.0 text ships with the weights** as `LICENSE-laya-Apache-2.0.txt`. It is
+   byte for byte the LICENSE of github.com/NandhaKishorM/laya, last changed in commit `136910c`
+   (sha256 `a6cba85b…`), which is the Apache-2.0 terms without the optional appendix. Laya ships
+   no NOTICE file, so none is required.
+4. **The GitHub repository stays private** until Yash approves the audit of what going public
+   would publish (secrets in history, data files, Twitter-derived text). The card links to it, so
+   the Hub upload waits for it too.

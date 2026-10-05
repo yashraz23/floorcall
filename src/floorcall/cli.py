@@ -44,7 +44,11 @@ app.add_typer(data_app, name="data")
 app.add_typer(llm_app, name="llm")
 app.add_typer(train_app, name="train")
 app.add_typer(label_app, name="label")
+release_app = typer.Typer(
+    help="The Hugging Face release: model card and upload folder.", no_args_is_help=True
+)
 app.add_typer(eval_app, name="eval")
+app.add_typer(release_app, name="release")
 console = Console()
 
 ESCALATE_CANDIDATES = "escalate.candidates.v1.jsonl"
@@ -782,6 +786,32 @@ def eval_readme() -> None:
 
     changed = write_readme()
     console.print("README.md updated" if changed else "README.md already up to date")
+
+
+@release_app.command("card")
+def release_card() -> None:
+    """Rewrite release/model_card.md's result tables from results/, as the README's are."""
+    from floorcall.release import write_card
+
+    changed = write_card()
+    console.print("model card updated" if changed else "model card already up to date")
+
+
+@release_app.command("stage")
+def release_stage(
+    out: Annotated[Path | None, typer.Option(help="default: dist/hf/<repo name>")] = None,
+) -> None:
+    """Copy r2's weights, configs, tokenizer, calibration and the card into one folder to upload.
+    Uploads nothing."""
+    from floorcall.release import stage
+
+    try:
+        hashes = stage(out)
+    except ValueError as e:
+        console.print(f"[red]refused[/red]: {e}")
+        raise typer.Exit(1) from e
+    for name, digest in hashes.items():
+        console.print(f"{digest}  {name}", markup=False, highlight=False, soft_wrap=True)
 
 
 if __name__ == "__main__":
