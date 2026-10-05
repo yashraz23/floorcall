@@ -15,11 +15,15 @@ decision processor depends on no framework. Wrapping it for a
 [Pipecat](https://github.com/pipecat-ai/pipecat) voice pipeline, with live mode, is planned for v2
 (docs/DECISIONS.md D-044, D-045).
 
+**Model:** [enz23/floorcall](https://huggingface.co/enz23/floorcall) (CC BY-NC-SA 4.0) ·
+**Demo:** [spaces/enz23/floorcall](https://huggingface.co/spaces/enz23/floorcall): Replay, Try it,
+Results.
+
 > **Status, 2026-10-05.** Milestones 0 to 2 are done: the spike
 > ([docs/spike-m0.md](docs/spike-m0.md)), the data ([docs/data.md](docs/data.md)), and Tables A to
 > D with the curves. Milestone 3 is done too: the decision processor, the naive baseline agent and
-> replay mode. The Hugging Face release is being prepared. Every cell says TODO until a committed
-> command measures it, and nothing in this README is an estimate.
+> replay mode. The fine-tuned checkpoint is released on Hugging Face, with a demo Space. Every cell
+> says TODO until a committed command measures it, and nothing in this README is an estimate.
 
 ## Why a decision model and not an LLM
 

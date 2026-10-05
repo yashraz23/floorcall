@@ -1420,3 +1420,31 @@ was rewritten with `git filter-repo`:
 All 96 commits survive. That HEAD is `0456e58` here, and `docs/commit-map.txt` maps every old SHA
 to its new one. The private history is `floorcall-archive`. Before this history was pushed, a
 secrets and PII scan of it found no credential, no tweet text and no private email.
+
+**D-050 · 2026-10-05 · §13 the Hugging Face Space (D-044)** — `spaces/enz23/floorcall`. It has
+three tabs, runs on the free CPU tier, needs no key and holds no real Twitter text. (Yash's go-ahead
+to publish.)
+- **Replay** draws the committed replay run (`results/replay/replay.json`) over the frozen,
+  hand-written scripts. It shows a timeline of the user's speech and each agent's line, with the
+  unsaid part of a cut line hatched and every decision point numbered and marked ✓ or ✗. Below it, a
+  table compares naive and floorcall at each point. It makes no model call, so it is instant and is
+  exactly the committed run. Its scores are recomputed from the file and tested against the
+  replay report (3 of 17, 14 of 18). The §13 hero video is a screen recording of this tab (D-045).
+- **Try it** runs one live decision on the Space's CPU through the same `DecisionProcessor`.
+  - The thresholds are read by `served_policy` from the three committed results files the Space
+    ships, never retyped.
+  - It shows the action, the calibrated probabilities, the measured compute and the normalized
+    state the model read.
+  - The examples are written by hand.
+- **Results** holds Tables A–D, Table C and the operating points, rendered from `results/` by the
+  README's renderer when the Space is staged.
+
+*Pinned, so the Space matches a commit:*
+- the environment is `uv export` of the lock, with CPU torch (2.14.0+cpu), as CI installs it;
+- floorcall installs from the public repository at the staged commit;
+- the model is pinned to its Hub revision;
+- the Gradio SDK is 6.29.1. Hugging Face installs it, and it is not a floorcall dependency: the
+  views live in `floorcall.space` as HTML strings, tested in CI without Gradio, and `space/app.py`
+  only wires them up.
+
+`floorcall release space` refuses a dirty tree or an unpushed commit, and uploads nothing.

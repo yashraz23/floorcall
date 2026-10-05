@@ -16,6 +16,7 @@ from __future__ import annotations
 import hashlib
 import json
 import shutil
+import subprocess
 from pathlib import Path
 
 from floorcall.config import REPO_ROOT
@@ -116,6 +117,108 @@ def stage(out: Path | None = None, checkpoint: Path = RELEASE_CHECKPOINT) -> dic
         shutil.copy2(checkpoint / rel, target / rel)
     shutil.copy2(CARD, target / "README.md")
     shutil.copy2(LAYA_LICENCE, target / LAYA_LICENCE.name)
+    return {
+        p.relative_to(target).as_posix(): _sha256(p)
+        for p in sorted(target.rglob("*"))
+        if p.is_file()
+    }
+
+
+# The Space (D-050): space/app.py and floorcall.space, staged with exactly the data they read.
+SPACE_SRC = REPO_ROOT / "space"
+SPACE_REPO_ID = "enz23/floorcall"  # a Space; the model is a separate repo of the same name
+GRADIO_VERSION = "6.29.1"  # the Space's SDK; Hugging Face installs it, floorcall never imports it
+GITHUB_REPO = "https://github.com/yashraz23/floorcall"
+SPACE_THRESHOLDS = (  # what pipeline.operating.served_policy reads, nothing more
+    "curves/finetuned_temp.json",
+    "table_a/escalate.finetuned_temp_threshold.json",
+    "thresholds/route_oos.json",
+)
+SPACE_FIGURES = (
+    ("tradeoff_interrupt.light.png", "θ_interrupt: false stops against missed interruptions"),
+    ("tradeoff_yield.light.png", "θ_yield: premature responses against added delay"),
+    (
+        "reliability_finetuned_temp.light.png",
+        "Reliability, fine-tuned, before and after temperature",
+    ),
+)
+
+
+def _git(*args: str) -> str:
+    out = subprocess.run(["git", *args], cwd=REPO_ROOT, capture_output=True, text=True, check=True)
+    return out.stdout.strip()
+
+
+def space_requirements(code_sha: str) -> str:
+    """The Space's environment: the locked runtime dependencies with CPU torch, as CI installs
+    them, then floorcall itself from the public repository at one commit."""
+    export = subprocess.run(
+        ["uv", "export", "--frozen", "--no-default-groups", "--group", "cpu", "--no-hashes",
+         "--no-emit-project", "--no-annotate"],
+        cwd=REPO_ROOT, capture_output=True, text=True, check=True,
+    ).stdout  # fmt: skip
+    pins = [ln for ln in export.splitlines() if ln and not ln.startswith("#")]
+    return (
+        "\n".join(
+            [
+                "--extra-index-url https://download.pytorch.org/whl/cpu",
+                *pins,
+                f"floorcall @ git+{GITHUB_REPO}@{code_sha}",
+            ]
+        )
+        + "\n"
+    )
+
+
+def stage_space(out: Path | None = None, *, require_pushed: bool = True) -> dict[str, str]:
+    """Stage the Space into dist/hf/space/: app, README, requirements and the data it reads.
+
+    The Space installs floorcall from the public repository at this checkout's commit, so the
+    tree must be clean and, unless `require_pushed` is False (a local trial), the commit pushed.
+    The model is pinned to its current revision on the Hub.
+    """
+    from huggingface_hub import HfApi
+
+    from floorcall import space
+
+    if _git("status", "--porcelain"):
+        raise ValueError("the working tree is not clean: the Space would not match its commit")
+    sha = _git("rev-parse", "HEAD")
+    if require_pushed and not _git("branch", "-r", "--contains", sha):
+        raise ValueError(f"{sha[:7]} is not pushed: the Space installs floorcall from GitHub")
+    revision = HfApi().model_info(HF_REPO_ID).sha
+    target = out or STAGE / "space"
+    if target.exists():
+        shutil.rmtree(target)
+    data = target / "data"
+    (data / "scripts").mkdir(parents=True)
+    shutil.copy2(SPACE_SRC / "app.py", target / "app.py")
+    readme = (SPACE_SRC / "README.md").read_text(encoding="utf-8")
+    readme = readme.format(gradio_version=GRADIO_VERSION, model_id=HF_REPO_ID, code_sha=sha[:7])
+    (target / "README.md").write_text(readme, encoding="utf-8", newline="\n")
+    (target / "requirements.txt").write_text(
+        space_requirements(sha), encoding="utf-8", newline="\n"
+    )
+    results = REPO_ROOT / "results"
+    shutil.copy2(results / "replay" / "replay.json", data / "replay.json")
+    for script in sorted((REPO_ROOT / "demo" / "scripts").glob("*.json")):
+        shutil.copy2(script, data / "scripts" / script.name)
+    for rel in SPACE_THRESHOLDS:
+        (data / "results" / rel).parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(results / rel, data / "results" / rel)
+    (data / "figures").mkdir()
+    for name, _ in SPACE_FIGURES:
+        shutil.copy2(results / "figures" / name, data / "figures" / name)
+    (data / "results.md").write_text(
+        space.results_markdown() + "\n", encoding="utf-8", newline="\n"
+    )
+    config = {
+        "model_id": HF_REPO_ID,
+        "model_revision": revision,
+        "code_sha": sha,
+        "figures": [list(f) for f in SPACE_FIGURES],
+    }
+    (data / "space.json").write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
     return {
         p.relative_to(target).as_posix(): _sha256(p)
         for p in sorted(target.rglob("*"))

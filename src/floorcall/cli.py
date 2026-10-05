@@ -841,5 +841,22 @@ def release_stage(
         console.print(f"{digest}  {name}", markup=False, highlight=False, soft_wrap=True)
 
 
+@release_app.command("space")
+def release_space(
+    local: bool = typer.Option(False, "--local", help="allow an unpushed commit (a local trial)"),
+) -> None:
+    """Stage the Hugging Face Space into dist/hf/space/: app, README, pinned requirements and the
+    committed data it shows. Uploads nothing."""
+    from floorcall.release import stage_space
+
+    try:
+        hashes = stage_space(require_pushed=not local)
+    except ValueError as e:
+        console.print(f"[red]refused[/red]: {e}")
+        raise typer.Exit(1) from e
+    for name, digest in hashes.items():
+        console.print(f"{digest}  {name}", markup=False, highlight=False, soft_wrap=True)
+
+
 if __name__ == "__main__":
     app()
