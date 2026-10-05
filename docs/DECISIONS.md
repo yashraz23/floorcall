@@ -1212,3 +1212,78 @@ three arms (`no_history`, `no_agent`, `no_normalize`) are running and are added 
   Table D reads its ablations against this arm and never against r2 (D-038).
 - **Per-row logits** are kept locally in `runs/eval/table_d/<decision>.full.npz` (gitignored), as
   `evaluate_table_d` names them. The result zips stay in `kaggle/kaggle_results/` (gitignored).
+
+**D-047 · 2026-10-05 · §12 Table D · complete, with paired comparisons** — The three ablation
+arms finished on Kaggle and are in `results/table_d/`. Their run records are in
+`results/training/kaggle_<arm>/`. Every arm ran on a Tesla T4 with fp16 loss scaling, torch
+2.10.0+cu128, code `980e777-kaggle`, for 2 epochs (D-038):
+
+| Arm | Seconds | Kept epoch |
+|---|---|---|
+| `no_history` | 8,032 | 2 |
+| `no_agent` | 13,151 | 2 |
+| `no_normalize` | 14,502 | 1 |
+
+`full` kept epoch 1.
+- **Verified as `full` was (D-038 outcome).**
+  - Every row's `test_sha256` matches the frozen manifest. Every `train_sha256` and
+    `calib_sha256` matches the local files.
+  - Each run's settings differ from `full`'s only in its own state flag.
+  - Each row's `state` is the ablation's: `no_normalize.asr` is scored with normalization on, as
+    designed.
+  - The shipped per-row logits re-score to every committed metric. A few ECE and Brier values
+    differ by at most 1.1e-16, from summation order.
+  - No file holds a secret.
+- **Paired comparisons, declared before any ablation row was read.** Each variant minus `full`,
+  on all four decisions, 16 comparisons (`floorcall eval paired --against table_d`, written to
+  `results/paired/table_d/`). They use D-036's paired percentile bootstrap: 10,000 resamples, seed
+  20260927. Hard-subset accuracy is paired too, resampling hard rows only, as Table A's hard
+  interval does. D4 is at argmax, as Table D scores it. The intervals cover sampling of test rows,
+  not training variance. Each arm is one training run, and the one measure of run-to-run variance
+  is `full` against r2: the same recipe, which differed by up to 0.023 macro-F1 and 0.050 on D1's
+  hard subset (D-038 outcome). A difference smaller than that is not read as an effect of the
+  ablation.
+- **What the ablations show.** Each value is the variant minus `full`, with its 95% interval.
+  - **Without normalization (the leak).** Trained on written text, the model reads punctuation:
+    - **Scored on written text,** D1 macro-F1 is 0.959, +0.134 [+0.128, +0.141], and D1
+      hard-subset accuracy is +0.317.
+    - **Scored on ASR-style text,** which is what a live pipeline delivers, D1 collapses to
+      0.381, −0.443 [−0.451, −0.436]. That is the majority class's level (0.371). ECE is 0.394,
+      so the model is confidently wrong. It calls nearly every turn incomplete, which is why its
+      hard-subset accuracy, on truncations that are all incomplete, is 1.000.
+    - **D2 on ASR text** changes by −0.015 [−0.019, −0.012] on its hard subset, and Brier is +0.008.
+      Its macro-F1 change, −0.003, is not distinguishable from zero.
+    - **D3 and D4** do not move beyond noise, on either text.
+
+    This is the one result far outside run-to-run variance. Normalization is what keeps D1
+    working on ASR output.
+  - **Without `recent_turns`.**
+    - D1 and D2 macro-F1 change by −0.001; D3 by +0.013, with an interval that includes 0.
+    - D4 macro-F1 is −0.066 [−0.130, −0.004] (n = 200). This is the only interval that excludes
+      0, and it is not far outside the 0.023 gap between two runs of the same recipe. History may
+      matter for escalation ("I've explained this three times"), but this is weak evidence.
+  - **Without `agent_last_utterance`.**
+    - D1 macro-F1 is −0.004 [−0.009, −0.000].
+    - D3 is +0.018 [+0.000, +0.037].
+    - D4 is −0.047 [−0.101, +0.004].
+    - All are within run-to-run variance.
+  - **Hard subsets move in opposite directions,** in ways the reference run explains as well as
+    the ablation does:
+    - **D2's hard subset** ("yeah" vs "yeah but") is 0.008 to 0.015 lower in every ablation.
+      `full` scored 0.994 there, 0.018 above r2.
+    - **D1's hard subset** is 0.043 to 0.045 higher without history or the agent's line.
+      `full` scored 0.675 there, 0.050 below r2.
+
+    Without repeated runs, Table D cannot separate those from a high or low draw of `full`.
+- **Conclusion for the README and the card.** Normalization is necessary: it prevents a leak
+  that inflates D1 on written text and breaks it on ASR text. On these test sets, the conversation
+  history and the agent's last utterance add no measurable headline accuracy to D1–D3. Their only
+  sizeable signal is on D4, and it is weak. Repeated seeds per arm would settle the hard-subset
+  and D4 questions. They are not run.
+- **Also in this change.**
+  - **CI.** Ruff excludes the generated `kaggle/*.ipynb`, a snapshot of the finished Table D runs;
+    its generator, `scripts/make_kaggle_notebook.py`, is still linted. That notebook was the
+    whole of every CI failure since 2026-09-30.
+  - **Windows output.** The CLI makes stdout and stderr UTF-8 when Python opened them with another
+    encoding (cp1252 when piped or redirected on Windows). `floorcall replay > file` no longer
+    crashes after writing its results. The replay scripts and their results are unchanged.

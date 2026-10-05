@@ -1,0 +1,58 @@
+{
+  "decision": "turn_complete",
+  "test_file": "turn_complete.test.v1.jsonl.gz",
+  "test_sha256": "61535c7876b307c20001be578eb692dfb9d43d7e7c5e59c1a7f2cc6108ff7f3c",
+  "checkpoint": "/kaggle/working/runs/no_normalize",
+  "trained_at": "980e777-kaggle",
+  "code": "980e777-kaggle",
+  "labels": [
+    "false",
+    "true"
+  ],
+  "model": "finetuned_temp",
+  "precision": "fp16",
+  "ablation": "no_normalize.written",
+  "state": {
+    "safety_margin_tokens": 8,
+    "normalize": false,
+    "include_history": true,
+    "include_agent": true
+  },
+  "temperature": 1.1896762428536232,
+  "metrics": {
+    "n": 14998,
+    "accuracy": 0.9599279903987198,
+    "accuracy_ci95": [
+      0.9566694940432238,
+      0.962950934424705
+    ],
+    "macro_f1": 0.9585929948149816,
+    "ece": 0.006819146649056666,
+    "brier": 0.07266776786557402,
+    "mean_confidence": 0.9666118727412762,
+    "per_class": {
+      "false": {
+        "support": 8843,
+        "precision": 0.965754972875226,
+        "recall": 0.9663010290625353
+      },
+      "true": {
+        "support": 6155,
+        "precision": 0.9515447154471545,
+        "recall": 0.9507717303005686
+      }
+    },
+    "confusion": [
+      [
+        8545,
+        298
+      ],
+      [
+        303,
+        5852
+      ]
+    ],
+    "hard_n": 775,
+    "hard_accuracy": 0.9922580645161291
+  }
+}

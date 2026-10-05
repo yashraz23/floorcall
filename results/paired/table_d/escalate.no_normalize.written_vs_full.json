@@ -1,0 +1,65 @@
+{
+  "decision": "escalate",
+  "test_file": "escalate.test.v2.jsonl.gz",
+  "test_sha256": "91994160a288950ef3a820df09359149c65bcb636b146dedc41a9d5a6c1ece97",
+  "a": "no_normalize.written",
+  "b": "full",
+  "n": 200,
+  "samples": 10000,
+  "seed": 20260927,
+  "method": "paired percentile bootstrap: both models on the same resampled rows",
+  "code": "2cd3ce9-dirty",
+  "differences": {
+    "accuracy": {
+      "a": 0.715,
+      "b": 0.715,
+      "difference": 0.0,
+      "ci95": [
+        -0.040000000000000036,
+        0.040000000000000036
+      ],
+      "share_a_not_better": 0.5469
+    },
+    "macro_f1": {
+      "a": 0.6951790154816974,
+      "b": 0.6951790154816974,
+      "difference": 0.0,
+      "ci95": [
+        -0.04451730344825738,
+        0.04570401270602716
+      ],
+      "share_a_not_better": 0.5066
+    },
+    "ece": {
+      "a": 0.08552187360156142,
+      "b": 0.10334319391032615,
+      "difference": -0.017821320308764724,
+      "ci95": [
+        -0.07904306993221773,
+        0.04924163731093006
+      ],
+      "share_a_not_better": 0.3208
+    },
+    "brier": {
+      "a": 0.4069058233023006,
+      "b": 0.404324633752661,
+      "difference": 0.0025811895496395953,
+      "ci95": [
+        -0.024056091234206618,
+        0.02803939620687003
+      ],
+      "share_a_not_better": 0.5785
+    },
+    "hard_accuracy": {
+      "a": 0.76,
+      "b": 0.78,
+      "difference": -0.020000000000000018,
+      "ci95": [
+        -0.06000000000000005,
+        0.020000000000000018
+      ],
+      "share_a_not_better": 0.9074,
+      "n": 100
+    }
+  }
+}

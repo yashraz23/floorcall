@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import json
 import re
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
 
@@ -325,6 +325,39 @@ def _hard(path: Path) -> str:
     return _f(m["hard_accuracy"])
 
 
+RESULTS_PAIRED_D = REPO_ROOT / "results" / "paired" / "table_d"
+
+
+def _paired(path: Path, metric: str) -> str:
+    if not path.exists():
+        return "TODO"
+    d = json.loads(path.read_text(encoding="utf-8"))["differences"].get(metric)
+    if d is None:
+        return "n/a"
+    lo, hi = d["ci95"]
+    return f"{d['difference']:+.3f} [{lo:+.3f}, {hi:+.3f}]"
+
+
+def table_d_paired(root: Path = RESULTS_PAIRED_D) -> str:
+    """Each ablation minus the Kaggle full arm, with paired-bootstrap 95% intervals (D-047)."""
+    lines = [
+        "| Variant minus full arm | D1 macro-F1 | D1 hard acc. | D2 macro-F1 | D2 hard acc. | "
+        "D3 macro-F1 | D4 macro-F1 |",
+        "|---|---|---|---|---|---|---|",
+    ]
+    for variant, label in ABLATION_ROWS:
+        if variant == "full":
+            continue
+        f = {d: root / f"{d}.{variant}_vs_full.json" for d in DECISION_NAMES}
+        lines.append(
+            f"| {label} | {_paired(f['turn_complete'], 'macro_f1')} | "
+            f"{_paired(f['turn_complete'], 'hard_accuracy')} | "
+            f"{_paired(f['barge_in'], 'macro_f1')} | {_paired(f['barge_in'], 'hard_accuracy')} | "
+            f"{_paired(f['route'], 'macro_f1')} | {_paired(f['escalate'], 'macro_f1')} |"
+        )
+    return "\n".join(lines)
+
+
 def table_d(root: Path = RESULTS_D) -> str:
     lines = [
         "| Variant | D1 macro-F1 (acc) | D1 hard acc. | D2 macro-F1 (acc) | D2 hard acc. | "
@@ -407,6 +440,7 @@ SECTIONS = {
     "table-b-power": latency_power,
     "table-c": table_c,
     "table-d": table_d,
+    "table-d-paired": table_d_paired,
     "operating-points": operating_points,
     "figures": figures,
 }
@@ -419,9 +453,10 @@ def _filler(body: str) -> Callable[[re.Match[str]], str]:
     return fill
 
 
-def render_readme(text: str) -> str:
-    """Every marked section, each rendered from its own results directory."""
-    for name, fn in SECTIONS.items():
+def render_readme(text: str, sections: Mapping[str, Callable[[], str]] = SECTIONS) -> str:
+    """Every marked section, each rendered from its own results directory. The model card
+    (floorcall.release) renders a subset of the same sections the same way."""
+    for name, fn in sections.items():
         pattern = re.compile(
             rf"(<!-- {name}:start -->\n).*?(\n<!-- {name}:end -->)", flags=re.DOTALL
         )

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import io
+import sys
 from pathlib import Path
 from typing import Annotated, Any
 
@@ -9,6 +11,23 @@ import typer
 from rich.console import Console
 
 from floorcall.config import get_settings
+
+
+def utf8_streams() -> None:
+    """Make stdout and stderr UTF-8 when Python opened them with another encoding.
+
+    On Windows, piped or redirected output gets the ANSI code page (cp1252), which cannot encode
+    the replay report's box-drawing marks and ✓/✗, so `floorcall replay > out.txt` crashed after
+    writing its results. A real console is already UTF-8 (PEP 528) and is left alone.
+    """
+    for stream in (sys.stdout, sys.stderr):
+        if isinstance(stream, io.TextIOWrapper) and stream.encoding.lower().replace("-", "") != (
+            "utf8"
+        ):
+            stream.reconfigure(encoding="utf-8")
+
+
+utf8_streams()
 
 app = typer.Typer(
     help="floorcall: turn-taking, barge-in, routing and escalation decisions for voice agents.",
@@ -537,11 +556,14 @@ def eval_recover_predictions(
 @eval_app.command("paired")
 def eval_paired(
     against: str = typer.Option(
-        "stock", help="stock | baselines (the best cheap one per decision)"
+        "stock",
+        help="stock | baselines (the best cheap one per decision) | table_d (each ablation "
+        "against the Kaggle full arm)",
     ),
 ) -> None:
-    """Paired bootstrap of the fine-tuned model against stock Laya or the best cheap baseline, on
-    the same test rows, from saved predictions (no re-scoring)."""
+    """Paired bootstrap on the same test rows, from saved predictions (no re-scoring): the
+    fine-tuned model against stock Laya or the best cheap baseline, or each Table D ablation
+    against the Kaggle full arm."""
     from floorcall.evaluate.paired import run_paired
 
     for r in run_paired(get_settings(), against):

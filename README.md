@@ -15,11 +15,11 @@ decision processor depends on no framework. Wrapping it for a
 [Pipecat](https://github.com/pipecat-ai/pipecat) voice pipeline, with live mode, is planned for v2
 (docs/DECISIONS.md D-044, D-045).
 
-> **Status, 2026-10-01.** Milestones 0 to 2 are done: the spike
+> **Status, 2026-10-05.** Milestones 0 to 2 are done: the spike
 > ([docs/spike-m0.md](docs/spike-m0.md)), the data ([docs/data.md](docs/data.md)), and Tables A to
-> C with the curves. Milestone 3 is done too: the decision processor, the naive baseline agent and
-> replay mode. Table D's ablation arms are training on Kaggle. Every other cell says TODO until a
-> committed command measures it, and nothing in this README is an estimate.
+> D with the curves. Milestone 3 is done too: the decision processor, the naive baseline agent and
+> replay mode. The Hugging Face release is being prepared. Every cell says TODO until a committed
+> command measures it, and nothing in this README is an estimate.
 
 ## Why a decision model and not an LLM
 
@@ -206,20 +206,54 @@ Table D is trained on Kaggle: four arms (the full model and the three ablations)
 with the Kaggle full arm as the reference its ablations are read against, not r2 (docs/DECISIONS.md
 D-038). Each variant is a separately trained, calibrated checkpoint, scored under the same state
 settings it trained with. The normalization ablation is scored twice: on written text, where punctuation leaks
-the answer, and on ASR-style text, which is what a live pipeline delivers. The arms train in fp16
-on a Tesla T4. The full arm's macro-F1 lands within 0.011 of Table A's fine-tuned + temperature row
-on D1–D3 and within 0.023 on D4 (n = 200). Its D1 hard-subset accuracy is 0.050 lower
-(docs/DECISIONS.md D-038 outcome).
+the answer, and on ASR-style text, which is what a live pipeline delivers.
+
+**r2 (`checkpoints/main-r2`, Table A's fine-tuned rows) is the shipped model.** The Kaggle full arm
+exists only as Table D's reference. It is the same recipe on the hardware the ablations ran on (a
+Tesla T4, training in fp16, 2 epochs), so each ablation is compared with a model trained under its
+own conditions. The full arm's macro-F1 lands within 0.011 of r2's on D1–D3 and within 0.023 on D4
+(n = 200); its D1 hard-subset accuracy is 0.050 lower (docs/DECISIONS.md D-038 outcome). It is not
+released.
 
 <!-- table-d:start -->
 | Variant | D1 macro-F1 (acc) | D1 hard acc. | D2 macro-F1 (acc) | D2 hard acc. | D3 macro-F1 (acc) | D4 macro-F1 (acc) |
 |---|---|---|---|---|---|---|
 | full model | 0.824 (0.827) | 0.675 | 0.941 (0.973) | 0.994 | 0.911 (0.955) | 0.695 (0.715) |
-| without recent_turns | TODO | TODO | TODO | TODO | TODO | TODO |
-| without agent_last_utterance | TODO | TODO | TODO | TODO | TODO | TODO |
-| without normalization, scored on written text | TODO | TODO | TODO | TODO | TODO | TODO |
-| without normalization, scored on ASR-style text | TODO | TODO | TODO | TODO | TODO | TODO |
+| without recent_turns | 0.823 (0.826) | 0.717 | 0.941 (0.971) | 0.982 | 0.924 (0.958) | 0.629 (0.680) |
+| without agent_last_utterance | 0.820 (0.823) | 0.720 | 0.942 (0.971) | 0.987 | 0.929 (0.964) | 0.648 (0.685) |
+| without normalization, scored on written text | 0.959 (0.960) | 0.992 | 0.945 (0.972) | 0.981 | 0.925 (0.957) | 0.695 (0.715) |
+| without normalization, scored on ASR-style text | 0.381 (0.593) | 1.000 | 0.938 (0.969) | 0.979 | 0.927 (0.959) | 0.701 (0.720) |
 <!-- table-d:end -->
+
+Each variant minus the full arm, on the same test rows, with a paired-bootstrap 95% interval
+(10,000 resamples; hard-subset accuracy resamples hard rows only). Rendered from
+`results/paired/table_d/` (`uv run floorcall eval paired --against table_d`). D4 is scored at
+argmax, as Table D scores it, not at θ_escalate.
+
+<!-- table-d-paired:start -->
+| Variant minus full arm | D1 macro-F1 | D1 hard acc. | D2 macro-F1 | D2 hard acc. | D3 macro-F1 | D4 macro-F1 |
+|---|---|---|---|---|---|---|
+| without recent_turns | -0.001 [-0.006, +0.003] | +0.043 [+0.021, +0.066] | -0.000 [-0.007, +0.005] | -0.012 [-0.015, -0.009] | +0.013 [-0.005, +0.032] | -0.066 [-0.130, -0.004] |
+| without agent_last_utterance | -0.004 [-0.009, -0.000] | +0.045 [+0.023, +0.067] | +0.000 [-0.005, +0.006] | -0.008 [-0.011, -0.005] | +0.018 [+0.000, +0.037] | -0.047 [-0.101, +0.004] |
+| without normalization, scored on written text | +0.134 [+0.128, +0.141] | +0.317 [+0.285, +0.350] | +0.004 [-0.002, +0.010] | -0.014 [-0.017, -0.010] | +0.015 [-0.004, +0.034] | +0.000 [-0.045, +0.046] |
+| without normalization, scored on ASR-style text | -0.443 [-0.451, -0.436] | +0.325 [+0.293, +0.359] | -0.003 [-0.009, +0.002] | -0.015 [-0.019, -0.012] | +0.017 [-0.001, +0.036] | +0.006 [-0.039, +0.052] |
+<!-- table-d-paired:end -->
+
+**What the ablations show.** Each arm is one training run. The paired intervals cover sampling of
+test rows, not training variance, and two runs of the same recipe (this full arm and r2) differ by
+up to 0.023 macro-F1 and 0.050 on D1's hard subset.
+- **Normalization is necessary.** Trained on written text, the model reads punctuation. Scored on
+  written text, D1 reaches 0.959 macro-F1. Scored on ASR-style text, which is what a live
+  pipeline delivers, it collapses to 0.381, the majority class's level, with ECE 0.394: it calls
+  almost every turn incomplete. That is the leak normalization prevents, and the one result far
+  outside run-to-run variance.
+- **Context adds no measurable headline accuracy on D1–D3.** Without the conversation history or
+  the agent's last utterance, D1–D3 macro-F1 moves by 0.018 or less.
+- **D4 may use history.** D4 drops 0.066 [0.004, 0.130] without history (n = 200), which is weak
+  evidence.
+- **The hard subsets cannot be read.** They move in opposite directions (D1 up about 0.04, D2
+  down about 0.01), by amounts the full arm's own draw explains as well as the ablation does
+  (docs/DECISIONS.md D-047).
 
 ### Operating points and curves
 

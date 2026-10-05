@@ -1,0 +1,71 @@
+{
+  "decision": "barge_in",
+  "test_file": "barge_in.test.v1.jsonl.gz",
+  "test_sha256": "c3b1461f0b625ad7cdf33732746786011a7f3e39a8d1798975875a2235716f14",
+  "checkpoint": "/kaggle/working/runs/no_normalize",
+  "trained_at": "980e777-kaggle",
+  "code": "980e777-kaggle",
+  "labels": [
+    "backchannel",
+    "interruption",
+    "noise"
+  ],
+  "model": "finetuned_temp",
+  "precision": "fp16",
+  "ablation": "no_normalize.asr",
+  "state": {
+    "safety_margin_tokens": 8,
+    "normalize": true,
+    "include_history": true,
+    "include_agent": true
+  },
+  "temperature": 1.1690650826376308,
+  "metrics": {
+    "n": 13360,
+    "accuracy": 0.9687874251497006,
+    "accuracy_ci95": [
+      0.9657013033699197,
+      0.9716040295517158
+    ],
+    "macro_f1": 0.9378928102428018,
+    "ece": 0.0065453934992892905,
+    "brier": 0.04791338820234355,
+    "mean_confidence": 0.9626907500086448,
+    "per_class": {
+      "backchannel": {
+        "support": 5659,
+        "precision": 0.9776,
+        "recall": 0.971726453437003
+      },
+      "interruption": {
+        "support": 6700,
+        "precision": 0.9794459338695264,
+        "recall": 0.9814925373134329
+      },
+      "noise": {
+        "support": 1001,
+        "precision": 0.8501469147894222,
+        "recall": 0.8671328671328671
+      }
+    },
+    "confusion": [
+      [
+        5499,
+        76,
+        84
+      ],
+      [
+        55,
+        6576,
+        69
+      ],
+      [
+        71,
+        62,
+        868
+      ]
+    ],
+    "hard_n": 5012,
+    "hard_accuracy": 0.9788507581803672
+  }
+}

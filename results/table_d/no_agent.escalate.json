@@ -1,0 +1,58 @@
+{
+  "decision": "escalate",
+  "test_file": "escalate.test.v2.jsonl.gz",
+  "test_sha256": "91994160a288950ef3a820df09359149c65bcb636b146dedc41a9d5a6c1ece97",
+  "checkpoint": "/kaggle/working/runs/no_agent",
+  "trained_at": "980e777-kaggle",
+  "code": "980e777-kaggle",
+  "labels": [
+    "false",
+    "true"
+  ],
+  "model": "finetuned_temp",
+  "precision": "fp16",
+  "ablation": "no_agent",
+  "state": {
+    "safety_margin_tokens": 8,
+    "normalize": true,
+    "include_history": true,
+    "include_agent": false
+  },
+  "temperature": 6.8391160344815045,
+  "metrics": {
+    "n": 200,
+    "accuracy": 0.685,
+    "accuracy_ci95": [
+      0.617649158589664,
+      0.7453778192205573
+    ],
+    "macro_f1": 0.6477987421383649,
+    "ece": 0.050716741286005604,
+    "brier": 0.42835709990502685,
+    "mean_confidence": 0.7014210769970691,
+    "per_class": {
+      "false": {
+        "support": 111,
+        "precision": 0.6558441558441559,
+        "recall": 0.9099099099099099
+      },
+      "true": {
+        "support": 89,
+        "precision": 0.782608695652174,
+        "recall": 0.4044943820224719
+      }
+    },
+    "confusion": [
+      [
+        101,
+        10
+      ],
+      [
+        53,
+        36
+      ]
+    ],
+    "hard_n": 100,
+    "hard_accuracy": 0.77
+  }
+}
