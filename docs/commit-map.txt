@@ -1,0 +1,105 @@
+# Commit map: the private history (floorcall-archive) to this public history.
+#
+# This repository's history was rewritten with git filter-repo on 2026-10-05 (docs/DECISIONS.md
+# D-049): D4's real Twitter text was removed from every commit, and the author email became a
+# GitHub noreply address. Every commit SHA changed. Results files and docs/DECISIONS.md cite
+# commits by their old SHAs (e.g. r2 was trained at `00fac02`, the Kaggle arms at `980e777`).
+# Find the old SHA, or its 7-character prefix, in the first column to get the commit here.
+#
+# old_sha                                  new_sha                                  date        subject
+1e3642dd89efbfdea44ba2aa6a89e7a5ba85b7cb 5bd4fee23187b8707b0b544118e2ea1c4f1b82d5 2026-09-27  chore: scaffold floorcall
+1bdf1f8581698ee1daa9da0dfa979e67feb408fb 6c211b05bc1efe50aba03357e217cbc0f4464309 2026-09-27  feat(normalize): ASR-style text normalizer, tests first
+623d32707cf79a8d9dcee44850e7c38cb3741940 0da987ff421c491efde614a5bab3b5be0701dd4a 2026-09-27  feat(model): laya adapter, the decision set, and the RLCD objective
+a7d86fba35b2d22618da666ff42274576c3a2b58 a20625f5b211d67af35920a5d994a5bf3c6df9a7 2026-09-27  spike: milestone 0 (latency measured, local fine-tuning fits)
+fd5d77dfccba6941328a1c36a3f08368e2a67fcd 39522c104810b101b31db751c135d6e9d80c4b7f 2026-09-27  feat(state): state packer with a hard token budget, tests first
+5b249490cec4ff212d805c3bd8c36e259bc0d07a c73df14981323c2c58b953acebe538806bdf7e0f 2026-09-27  fix(model): adapter runs inference in eval mode without autograd
+0a7ad1c72a2203fc0bc2fd2aaa895ce12c215abd e81b12e4a12446465de637b81d258fb343ae9bd0 2026-09-27  feat(data): conversation-disjoint splits, tests first
+05c7f6a207067adda6b01933ded704b86183a66a a371d861331b89ccaeddf4d32a4f62a780ab0b24 2026-09-27  eval: accuracy, macro-F1, ECE, Brier, reliability bins, Wilson intervals
+fc9d4091b3438fd2d7935e561e36f167044dbc1b 2f37be121584686ca5124b42e7daa0b3e1947891 2026-09-27  feat(policy): probabilities to actions, tests first
+0b47e0e3548b77f480284ca3e3e96b4a67da5db1 67dd64de70aa322c0c000765c470ad08d5b8e72e 2026-09-27  data: build D1/D2 from SwDA and D3 from CLINC150
+090f833f2a8ea439f78f108dc7a9b51139b7cfee f34a7dc0da1a3204d6531cbe548a0f9f4ab98a79 2026-09-27  feat(data): pinned downloads, frozen test sets, and `floorcall data`
+d10f0c701f8c44461c0576456751d0a288b87d0d 632458783da0019cb1664bc4c159dad8ba71433a 2026-09-27  data: freeze D1, D2 and D3 test sets (v1)
+c8d60c38d8425019a4cc6fcd82f79ed97fe33125 1e826aea913f510da2b767157d4154ace73c0e21 2026-09-27  feat(data): D4 labelling pool, guidelines, and `floorcall label escalate`
+b9b5b11e559fb1ec629f5c7689224f4e9f529bf1 a7eea5523dd9ed06bbf90a9f749cd26940e0d280 2026-09-27  eval: Table A harness, baselines, and README tables rendered from results
+dae30e51410ba4b534391eaf76ef04ff716df4ae 05f38cb517787ec1f5755740e9afb3cd89d19b36 2026-09-27  docs(readme): Table A section rendered from results/, with how to read it
+7790e91a27f86460ac918f88fb4cb1e1262dd906 5f4a4cbe42ff0256d9d53b6b381e87e2344feec8 2026-09-27  eval: Table A baseline rows for D1-D3
+d45fcd7616e323ae3d5740c35a8ab8e069fd4ada bc234445a122e269dbf8a0b2e31cb0f04761b036 2026-09-28  feat(state): ablation switches for history and agent utterance
+70c7b2b7891fb7ac44aa3c48397d149ac37b4ec4 d44014784a5bdfef017503334f240d8704d9a1f2 2026-09-28  feat(calibration): one temperature per decision, fitted on calib
+f3aa6a34da805a385a3129091fc4edaca7869a71 dae078113ef626c1ae8c290bca89c3cd8705d13d 2026-09-28  perf(model): serving path with an optional CUDA-graphed forward
+1a31d4db80eedccb73cad745c19e1de385374984 32ddf95bb833a0075351b1519bf18fb774d0761e 2026-09-28  feat: Decider, the single entry point from event to calibrated probabilities
+224c1d832221c3427da3b70d8a4021ef1b08384e 98449c71ca6a466e2eb7532844cb9816bd059ee3 2026-09-28  eval: Table B latency harness
+97aff5db7c649058e96d5d07710271dbf003553a ce0c84a26175b199ea19f067acea719fd3f5dc37 2026-09-28  feat(train): RLCD fine-tuning loop, checkpoint export, and a guard
+8f0eb54f9ed62f756c66de74d2d0aa2a2522aefe 55d8f0a8c4ea81c2d1c37490d51fe8ab7bdb5fe8 2026-09-28  eval: evaluating a trained checkpoint, Table C noise model, Table D ablations
+f4c7e87c5accc7aa1a91a2311672ebbb3b1da0df 77a71622f1c93904a40a9cb530e5c8edb77bd187 2026-09-28  eval: Table B GPU rows
+f52c63080457594cadf34b6176167ae3c91551a2 35c8819645bf6b42ba8540aab49f27ee631ec8c3 2026-09-28  perf(state): pack with 3x fewer tokenizer calls, output unchanged
+ae690c4945dff62e1844ee923057b534ad625427 2a651bbfed134c8e6ec517a4bbbcb058b6bad4f2 2026-09-28  eval: tradeoff curves, calib-chosen operating points, reliability figures
+d9473ec65cff792a2525900963042dce670244ad 0bb35d57ce6b09e84cd46a06654e6da0c1056ee9 2026-09-28  data: freeze the hand-labelled D4 escalate test set (v1)
+25655622d3f79ecbdaaa5ca9c4aadd77547e590c 60056614bc6ea37510372513695cf1040641a299 2026-09-28  eval: Table B rerun, and stock Laya's operating points and curves
+90fecd0068b5dc63c854bccfd195141193f3cf83 c2d0b550ab7dd37a6e8a944b6a3215ec527454ba 2026-09-28  docs: LiveKit baseline dropped for its licence; figure fixes; M2 runbook
+c7cb64554114c37814f846d36ca698f92af8268f 75422a819bca09dfb82c3cbee69e7333b4763296 2026-09-28  feat(llm): Groq labeller for D4 training rows and the prompted-LLM baseline
+467a68880b1a5c8f2e9372a72907a35b620abbab f3a3df5ef64cee32a1814ddf924b90b1daa08fe2 2026-09-28  eval: stock Laya on D4, and the curves with D4 included
+76470e1e94be7cc20c4065bb521973ca5aaed495 eb31c4bc2dc1a85834412e80272d303efb1eb232 2026-09-28  feat(llm): switch the LLM provider from Groq to OpenRouter
+4f5572d2c1e9627c8061c8ebcc6a11542074e45d c147991e617efd74d0bd0f6acacdd145c5fb827e 2026-09-28  data: v1 LLM labels on D4 calib, and their agreement with the hand labels
+27c1c8cfbdab75a27d808455ca5a0e2e8cb24569 3e85c1a46e34bb3f86608c4d187651bd39982641 2026-09-28  feat(llm): pin the D4 labeller to one bf16 endpoint, prompt v2, calib gate
+808f0ef32e7e7b851105859deeb3a96582cb4d7b bfbaef6e535f75408b92a60871e47dc8b20f7629 2026-09-28  data: v2 LLM labels on D4 calib, and their agreement with the hand labels
+95e4c194a2f0058858d90c2ca0377cf84cd785e6 822d0aa72ea16c6324e73d6cab9034822a3a7a98 2026-09-28  data: D4 guideline v2, the seeded relabel sample, and a blind relabel tool
+0f5bcdb39cd761ad528e50a0b75c487b4acd23e8 05189860b7db2546b486dea5cb529fa2d278da5d 2026-09-28  data: Yash's blind guideline-v2 relabel of the D4 sample
+bce619525ffbc208b44c2e94b8dc99f2be82309b 8917e1ab55a77a14d0e246b17d73f6734a894f60 2026-09-28  feat(data): per-decision test versions; D4 evaluated on test v2
+9cb4f157513d0a24f5a168bd87af0f066eaa7fed 66e0187afe5f3e21c707b69e638112b929f12de1 2026-09-28  data: freeze D4 test v2 (200) and calib v2 (100) under guideline v2
+0d30e3d8425802e431138cbdcb29e5e02d9ae07c 71c5a719e7b2ae734d2259b929ea2f578099681d 2026-09-28  eval: bootstrap 95% intervals on every Table A metric
+07de79f15f874e521b78d6e89cc8fcabd66f263e 96643409dd07b454ac350c60e0203ff929d1b2a1 2026-09-28  eval: D4 majority and stock Laya on test v2, with bootstrap 95% CIs
+07d21f41592effcfd071b894e1141b2fafaded29 8730c2013308a4202122172a6edae22a55042de9 2026-09-28  feat(llm): labeller prompt v3 = guideline v2 verbatim, judged on calib v2
+93c38799d1dcd13d3ddeaf6f91893d91982c1521 ea827598824b182824396399c9c666a79ab88705 2026-09-28  data: v3 LLM labels on D4 calib v2, and their agreement (not accepted)
+b380307bbe0f78eeb5e840fdbe75105b93e0c2c0 503dc2ae8e42f3a191737de85db00c29ab3da717 2026-09-28  eval: stock-Laya curves and reliability with D4 on test v2; README
+657332225f58b2cd2229152c983815ee0850335f a27d2a1f6eb42c7c9b71fe2879d17874f2f9b6df 2026-09-28  docs: declare the primary D4 model before any fine-tuned result (D-034)
+c42bcf7066bd514b2382cc28f858e9249d7234a6 1b8991a848a71b6824dbde7cc9fd21d5fb66638b 2026-09-28  feat(data): D4 training sample, blind train labelling, LLM ablation arm
+5ba9158d671faa5a06922665eacaa9b8249d3cf9 9ea277a7d294e4dc1e7069716588e142a02b7103 2026-09-28  data: the primary D4 training sample, drawn before labelling (D-034)
+3759e319a2dd022ff7d25e888fdcd9564a693e07 dd1b144eaf450434d7ba9bc87f9d848f99fbc573 2026-09-28  data: the D4 ablation arm, the train pool labelled by prompt v3 (D-034)
+2b56cba3ccdb8854e922e75897cbbc08a3b13fb3 e7f42658c9973af4d770ec702aac2ee9303918ff 2026-09-28  docs: D4 primary arm is llm_v3; prior-shift and threshold plan (D-035)
+d386815bdf4e291c3e3a675de7fc1500b1e01868 8515f7b649544f73b1e2bb860dfecf5088ffc788 2026-09-28  feat: D4 trains on llm_v3, class-balanced; calib-chosen thresholds (D-035)
+832029cec7285aa5e1676ea36c7e2b823b69a75f a0f0af979e7ffc7524fcba59bb1a16b89a3ede01 2026-09-28  eval: stock Laya on D4 test v2 at its calib-chosen threshold (D-035)
+00fac02e327316c2b25635b8a656f16a0d96e3a5 f42054ff3980d85259b9b6d05bcc3d3da3e2be23 2026-09-29  fix(train): policy-gradient term off; per-epoch checkpoints, best by dev loss
+2423c94fd906eb2b297da2975953542547392dc6 fa73026cf7370231a5cc67319c5a4c950017142c 2026-09-29  eval: fine-tuned checkpoint r2 on the frozen test sets (D-035 outcome)
+0469f0d24b335ec01f9031f52823df6159ef487c 87ef9c881a366ff8c51498ec8b118b79c7fe6855 2026-09-29  fix(eval): always save per-row predictions; verified recovery pass
+5b30d7653a7370c2d1e457b220422df5d23bfae1 fda740015918bef75908ab6435ec47967ec74ca0 2026-09-29  feat(eval): paired bootstrap and cheap sanity baselines (D-036)
+8dba6aef42410a9b124933758313b872a6de6a32 d0e3b04706732094c21926d7d222de9d0e66a2bd 2026-09-29  docs: render Table A with the new baseline rows (TODO until scored)
+cf4f5297394a69738379034f7c548836532705e4 7c6bdcef0abcb407be9f672f1fd5449cabe9678a 2026-09-29  eval: cheap sanity baselines on the frozen test sets (D-036)
+e34691edac2dda6c0342dbea5ebf381afeafbadf a50a2a098ffafe5e334dc603725c085df73e5f0c 2026-09-29  eval: paired bootstrap, fine-tuned vs stock, from saved predictions (D-036)
+847e48f76f092cc6132418518a7f8f0013018ee5 464ce9206b8ea0d2cce4f27d81653ad4e92c6e33 2026-09-29  eval: discard every GPU latency row; log the crash and the overclock (D-037)
+a30e85eb2722612c91330f09d9303e642a9b0252 7258d7ef0bf8493fc90aeaa874b800f48d1cfeeb 2026-09-29  feat(eval): latency under thermal rules; stock vs fine-tuned (D-037)
+527a1f355b8d6c3e9237869d6db6cc62d6617d8f da9439c2ed96cc7b05dffa6a350a80e3e2edbff3 2026-09-29  feat: Table D on Kaggle (bundle, notebook, runbook); fp16 loss scaling
+7ca1792f79bdd6192c3b845d91d8acbb7e354bf4 f4df760a6f6055e153469f4a2edf1826d13be1ae 2026-09-29  docs: Table D is four Kaggle arms at 2 epochs; private bundle, secret scan (D-038)
+232cca9410130e8c61fd531ae5a23bb76c8b19d1 e5cf7ea7f6d8e9fe9921d077032a6b5255d40b21 2026-09-29  eval: GPU latency at stock clocks, stock vs fine-tuned, with telemetry (D-037)
+a08bc9a51aaab13f84ed236f228af82d5fe8955f 4acb30376f5fd3b1e05bd2e2c90c1c30110423be 2026-09-29  feat(eval): paired bootstrap against the best cheap baseline per decision (D-036)
+fb8181888d120f2625b3dc7125735040033497cb d843c441e0a9d496c57f214c5647eaa461449e2d 2026-09-29  fix(eval): paired check allows float round-off (<=1e-12), confusion still exact
+c77a1380e9934ae520e439ec7563427be758c45a f0cde3d1d84e1b4e2796651aa3008fe2d8cb4321 2026-09-29  eval: paired bootstrap, fine-tuned vs the best cheap baseline (D-036)
+8e4fd7144db209461ddf182c3045bd730d4996e5 2e136a1743995213b63f37ed6b95c9192fd107f5 2026-09-29  feat(eval): inference-precision parity and latency variants (D-039)
+00edac00a6c82876822e06fb826dfbfae1bf54bb e841da7002642255b67af2729cf414b9f0d76847 2026-09-29  eval: bf16 and fp16 inference agree with fp32 on calib and dev (D-039)
+324d5cb61184e7bcc8d3a112cbe528d2f9f622cc b7678850086bd7290811f0ad071a773b217544f8 2026-09-29  eval: GPU latency at fp32, bf16 and fp16, back to back (D-039)
+7435d9d1656b6bf9954f960e52d4df10811dad37 cd2e02b157e19171e27c86ceecbcb6c00f68ef23 2026-09-30  feat: fp16 autocast is the default inference precision (D-040)
+c358b555d7aa4804eebab0eb96ea54c9cabdc49b d60e6f5e1b6e51579fa492d3d90e71f4a09c4687 2026-09-30  docs: machine settings for the final GPU latency session (D-040)
+ab4c45cbe22b8f3449f2996c619ddd7a136ec2e7 2a66dc019018448b91cd1fa12e838fc35f58b1c7 2026-09-30  docs: the enforced GPU power limit moves with Dynamic Boost (D-040)
+fbde4d1b451bbd35cbb86c9b90fc62541820ee80 b2aad23524e82b9f645a6a91cb7180ff917574ff 2026-09-30  eval: final GPU latency session at the fp16 default, factory settings (D-040)
+74cf2b0aabe1bef67240b205fb87d658cfcc2973 747c42504463b2f8d8ba1c0b8216834bb2e592cf 2026-09-30  eval: curves, reliability figure and Table C for the fine-tuned model
+21feeef9c881ea086722fca31dfcb14dc009a7d6 fa4212936505ce651becb42a2170dcc38791d17a 2026-09-30  eval: CPU latency rows for the fine-tuned checkpoint, chunked (D-037)
+e6142c90f3b481a4888492d18ee6bdf7884174d5 f0fa7bb007527a9af2ba36a0d9f413c68efd4607 2026-09-30  fix(kaggle): dataset id from one owner constant, yashraz/floorcall-table-d
+41264901bfd6a6a4f14564221211eb48a5585aa2 0940be41ad599e5e97bd0a9d45c323563b26bcbd 2026-09-30  feat(llm): pin the baseline to DeepInfra bf16; calib-only spend estimate (D-041)
+577dca1b1cbc889460f200d9ede84a8910334e23 cfaa29ee69c55e1576237bad230fa1af6383f727 2026-09-30  fix(llm): the spend estimate bills empty answers and bypasses the cache (D-041)
+b9ca30a8c07fbc379de8eef353d9c13eb9239efd 1346e0f03c2a13ed57a7a312968c8e55bfed0ee3 2026-09-30  feat(llm): prompted-LLM baseline plan, full test sets, pinned DeepInfra bf16 (D-041)
+6eadda6fa5cfa4eb11bdf46f0fcb0eeff4387175 a527878edf8b99d9e4a840afccb7e91f3bd900cf 2026-09-30  feat(llm): prompted-LLM rows save per-row answers with bootstrap CIs; cache-only recovery (D-041)
+cc37e06342d9e50a2b2ea6ab7e9eb35db6bcdaa3 82ed2ac3763d377236d213c3a76202c665b8ee75 2026-09-30  eval: prompted-LLM baseline in Table A, every test set once (D-041)
+d9d9880168c30c54ddbef1449c6a43165fff1584 b9fa331e641ba3e8c876ee7017eb487865669046 2026-09-30  eval: prompted-LLM network latency for Table B (D-041)
+df3a4af20b2b9734d15efd5c7d4da891f94f9320 39b3a95c3b6aa8a1ef1d27e08ed6d7a4d4163da0 2026-09-30  fix(kaggle): verify decompressed content and rebuild .gz byte for byte on Kaggle (D-042)
+6b45f4c4fecf05ffb9c587a29acf637fce8e09bf a0c8711c1fd7e27ae0be2461cdb56f90426b547c 2026-09-30  fix(kaggle): ship .gz as .gz.bin so Kaggle leaves the bytes; restore verifies them (D-042)
+980e777ebe518c521b41c36084618ded1b2836f9 702c37847ec4d433ae15d903819ba506b6ac7dd9 2026-09-30  docs: Kaggle unpacks uploads; the .gz.bin bundle and its restore (D-042)
+64f95f025bc4dd1d41313840dbd94d3bd110fe75 9aeefb348bc3f94926a67d5d84f59f4e17c0064a 2026-09-30  fix(kaggle): editable install on Python 3.12; the kernel imports nothing pinned (D-043)
+47945e0eaacd8f842ed1da784076345b70d7d3b1 704b7759aaaec7aa0efa122924bc1da113f51245 2026-09-30  docs: live-voice UI moves to v2; the remaining deliverables in order (D-044)
+bb09005892d133bd9b5c9a90bc801d5f1c3ea915 fc4da09e1db47bd7ee9c28e26b8296c7b34353e7 2026-09-30  eval: theta_oos chosen on D3 calib by the theta_escalate rule; Milestone 3 settled (D-045)
+6da2373d83e0fd87265670c6b2f16411da77ec92 edaeca0189fe4651f3819ac374d7b991cca0d849 2026-09-30  eval: theta_oos = 0.450 on D3 calib (macro-F1 0.972, 59 tied)
+d70ce7181556f4d0a3e03e53b4de718a0c41616b 5524578d0e381f1720646a6e09ba04e5a8330256 2026-09-30  feat(replay): decision processor, naive agent, replay mode; 8 demo scripts frozen (D-046)
+d1b7e54cd5cf45e621bab284e5eef7ee847a9dca f7c04f3a76cfc58b1124a5db4cf983642f9f0282 2026-09-30  fix(replay): order a snapshot's speech by when it ends (D-046 amendment 1)
+bd77d22cb1e29df06386f9c4eba02ee0f84f3174 39641ee11550c6a1ba46648cbed4cac38086e18b 2026-09-30  eval: replay results; README replay section (illustrative demos, not an evaluation set)
+2cd3ce93d170e44fecb4248a40db85ca10a5af7f 1a2762cc0ccb08870bd92492f2597ea010c7cec9 2026-10-01  eval: Table D full arm from Kaggle, a cross-hardware reproduction of r2 (D-038)
+83564bf18fc35f060e8ff271cc6859204ecb51b7 3ee04e51fffa2b6417a3ffbfd3170581bde747a0 2026-10-05  eval: Table D complete, every ablation paired against the Kaggle full arm (D-047)
+180cd34973e124d9a35ca231022b0b71a9cc0212 7b6f86a8658999bb6f5d941215b4ceac500762c1 2026-10-05  feat(release): model card and upload folder for r2 under CC BY-NC-SA 4.0 (D-048)
+827a24464c2ae5e400b4ea360ffe8c0f35b179ef 0456e5821abb7a692efed956587d4a56269fb616 2026-10-05  feat(data): D4's Twitter text is private; restore-escalate rebuilds it from the corpus (D-049)

@@ -1376,8 +1376,8 @@ gzip contents decompressed.
 *Decision.*
 - **No real Twitter text in the public repository, in any commit.** The four files above leave
   history, and so does the quoted text in the two labeller results.
-- **The private copies** stay in this repository, renamed `floorcall-archive` and kept private,
-  and in the private Kaggle dataset.
+- **The private copies** stay in the original repository, renamed `floorcall-archive` and kept
+  private, and in the private Kaggle dataset.
 - **Everything else stays public:** the SwDA and CLINC150 test sets, every id and label file, and
   all results. `data/LICENSE.md` states each file's licence; the code's Apache-2.0 does not cover
   `data/`.
@@ -1410,3 +1410,13 @@ gzip contents decompressed.
 
 The rewritten repository is pushed as the new public `floorcall` only after Yash has seen a fresh
 secrets and PII scan of it.
+
+*D-049 outcome: the rewrite (2026-10-05).* A fresh clone of the private repository at `827a244`
+was rewritten with `git filter-repo`:
+- it removed the four D4 text files from every commit;
+- it stripped `message` and `agent_last` from every version of the labeller's results;
+- it mailmapped Yash's email to `124337362+yashraz23@users.noreply.github.com`.
+
+All 96 commits survive. That HEAD is `0456e58` here, and `docs/commit-map.txt` maps every old SHA
+to its new one. The private history is `floorcall-archive`. Before this history was pushed, a
+secrets and PII scan of it found no credential, no tweet text and no private email.
