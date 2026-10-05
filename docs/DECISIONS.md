@@ -1448,3 +1448,17 @@ to publish.)
   only wires them up.
 
 `floorcall release space` refuses a dirty tree or an unpushed commit, and uploads nothing.
+
+**D-050 amendment 1 · 2026-10-05 · the Space is static** — Creating the Gradio Space failed:
+Hugging Face now requires a PRO subscription to host Gradio and Docker Spaces, even on the free
+CPU tier (`402 Payment Required`). Static Spaces stay free. Paying is Yash's call, so the
+published Space is static.
+- **Replay and Results** are one page (`floorcall.space.static_page`, `floorcall release space`).
+  They are built from the same committed files and views, so they lose nothing.
+- **Try it** shows the local commands and points to the model card's loading example.
+- **The Gradio app is ready.** `space/app.py` (live Try it) stays in the repository, tested, and
+  was run end to end in a fresh environment built from its pinned requirements: replay views, the
+  model, every example and the server. `floorcall release space --gradio` stages it if Yash takes
+  PRO.
+
+The hero video is a recording of the Replay tab, which the static page has in full.

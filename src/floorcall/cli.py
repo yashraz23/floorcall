@@ -844,13 +844,17 @@ def release_stage(
 @release_app.command("space")
 def release_space(
     local: bool = typer.Option(False, "--local", help="allow an unpushed commit (a local trial)"),
+    gradio: bool = typer.Option(
+        False, "--gradio", help="the Gradio app with live Try it (needs a paid HF plan)"
+    ),
 ) -> None:
-    """Stage the Hugging Face Space into dist/hf/space/: app, README, pinned requirements and the
-    committed data it shows. Uploads nothing."""
-    from floorcall.release import stage_space
+    """Stage the Hugging Face Space into dist/hf/space/. By default the free static page (Replay,
+    Results); with --gradio the live app. Built from committed files only. Uploads nothing."""
+    from floorcall.release import stage_space, stage_space_static
 
     try:
-        hashes = stage_space(require_pushed=not local)
+        stage = stage_space if gradio else stage_space_static
+        hashes = stage(require_pushed=not local)
     except ValueError as e:
         console.print(f"[red]refused[/red]: {e}")
         raise typer.Exit(1) from e

@@ -224,3 +224,42 @@ def stage_space(out: Path | None = None, *, require_pushed: bool = True) -> dict
         for p in sorted(target.rglob("*"))
         if p.is_file()
     }
+
+
+def stage_space_static(out: Path | None = None, *, require_pushed: bool = True) -> dict[str, str]:
+    """The free Space (D-050): Replay and Results as one static page, no server, no model.
+
+    Hosting a Gradio Space now needs a paid Hugging Face plan; a static Space does not. The page is
+    built from the same committed files and the same views as the Gradio app (stage_space).
+    """
+    from floorcall import space
+
+    if _git("status", "--porcelain"):
+        raise ValueError("the working tree is not clean: the Space would not match its commit")
+    sha = _git("rev-parse", "HEAD")
+    if require_pushed and not _git("branch", "-r", "--contains", sha):
+        raise ValueError(f"{sha[:7]} is not pushed: the page links the code at this commit")
+    target = out or STAGE / "space"
+    if target.exists():
+        shutil.rmtree(target)
+    (target / "figures").mkdir(parents=True)
+    results = REPO_ROOT / "results"
+    replay = json.loads((results / "replay" / "replay.json").read_text(encoding="utf-8"))
+    scripts = {
+        p.stem: json.loads(p.read_text(encoding="utf-8"))
+        for p in sorted((REPO_ROOT / "demo" / "scripts").glob("*.json"))
+    }
+    page = space.static_page(
+        replay, scripts, space.results_markdown(), SPACE_FIGURES, HF_REPO_ID, sha
+    )
+    (target / "index.html").write_text(page, encoding="utf-8", newline="\n")
+    readme = (SPACE_SRC / "README.static.md").read_text(encoding="utf-8")
+    readme = readme.format(model_id=HF_REPO_ID, code_sha=sha[:7])
+    (target / "README.md").write_text(readme, encoding="utf-8", newline="\n")
+    for name, _ in SPACE_FIGURES:
+        shutil.copy2(results / "figures" / name, target / "figures" / name)
+    return {
+        p.relative_to(target).as_posix(): _sha256(p)
+        for p in sorted(target.rglob("*"))
+        if p.is_file()
+    }

@@ -79,3 +79,49 @@ def test_results_render_every_table_without_todo() -> None:
     for heading in ("Table A", "Table B", "Table C", "Table D", "Operating points"):
         assert heading in md
     assert "TODO" not in md
+
+
+def test_markdown_tables_headings_and_links_render() -> None:
+    md = "### Table A\n\n| a | b |\n|---|---|\n| **1** | [x](https://e.org) |\n\nplain <text> here"
+    out = space.markdown_html(md)
+    assert "<h3>Table A</h3>" in out
+    assert "<th>a</th>" in out and "<td><b>1</b></td>" in out
+    assert '<a href="https://e.org">x</a>' in out
+    assert "&lt;text&gt;" in out and "---" not in out
+
+
+def test_the_static_page_has_every_script_and_every_table() -> None:
+    from html.parser import HTMLParser
+
+    page = space.static_page(
+        REPLAY, SCRIPTS, space.results_markdown(), [("f.png", "a figure")], "o/m", "abcdef1234"
+    )
+    assert page.count('class="fc-script"') == len(REPLAY["scripts"])
+    assert page.count("<svg") == len(REPLAY["scripts"])
+    for heading in ("Table A", "Table B", "Table C", "Table D"):
+        assert heading in page
+    assert "TODO" not in page and 'src="figures/f.png"' in page
+
+    class Balance(HTMLParser):
+        VOID = frozenset({"meta", "img", "br", "circle", "rect", "line", "input", "path"})
+
+        def __init__(self) -> None:
+            super().__init__()
+            self.stack: list[str] = []
+
+        def handle_starttag(self, tag: str, attrs: object) -> None:
+            if tag not in self.VOID:
+                self.stack.append(tag)
+
+        def handle_startendtag(self, tag: str, attrs: object) -> None:
+            pass
+
+        def handle_endtag(self, tag: str) -> None:
+            if tag in self.VOID:
+                return
+            assert self.stack and self.stack[-1] == tag, (tag, self.stack[-3:])
+            self.stack.pop()
+
+    b = Balance()
+    b.feed(page)
+    assert b.stack == []

@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import html
 import json
+import re
 from collections.abc import Mapping, Sequence
 from typing import Any
 
@@ -359,4 +360,152 @@ def results_markdown() -> str:
             "### Operating points, chosen on calib",
             SECTIONS["operating-points"](),
         ]
+    )
+
+
+def _inline(text: str) -> str:
+    out = html.escape(text, quote=False)
+    out = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", out)
+    out = re.sub(r"`([^`]+)`", r"<code>\1</code>", out)
+    return re.sub(r"\[([^\]]+)\]\((https?://[^)\s]+)\)", r'<a href="\2">\1</a>', out)
+
+
+def markdown_html(md: str) -> str:
+    """The subset of Markdown the results use: ### headings, pipe tables, paragraphs, **bold**,
+    `code` and links. Enough for the static Space, with no Markdown dependency."""
+    blocks: list[str] = []
+    lines = md.splitlines()
+    i = 0
+    while i < len(lines):
+        line = lines[i].rstrip()
+        if not line:
+            i += 1
+        elif line.startswith("### "):
+            blocks.append(f"<h3>{_inline(line[4:])}</h3>")
+            i += 1
+        elif line.startswith("|"):
+            rows = []
+            while i < len(lines) and lines[i].startswith("|"):
+                rows.append([c.strip() for c in lines[i].strip().strip("|").split("|")])
+                i += 1
+            head, body = rows[0], [r for r in rows[1:] if not all(set(c) <= set("-:") for c in r)]
+            blocks.append(
+                '<div class="fc-scroll"><table class="fc-table"><thead><tr>'
+                + "".join(f"<th>{_inline(c)}</th>" for c in head)
+                + "</tr></thead><tbody>"
+                + "".join(
+                    "<tr>" + "".join(f"<td>{_inline(c)}</td>" for c in r) + "</tr>" for r in body
+                )
+                + "</tbody></table></div>"
+            )
+        else:
+            para = []
+            while i < len(lines) and lines[i].strip() and not lines[i].startswith(("|", "### ")):
+                para.append(lines[i].strip())
+                i += 1
+            blocks.append(f"<p>{_inline(' '.join(para))}</p>")
+    return "\n".join(blocks)
+
+
+PAGE_STYLE = """
+<style>
+:root { --bg: #ffffff; --fg: #1f2933; --muted: #52606d; --line: #d9e2ec; --chip: #eef2f7;
+  --accent: #3b82f6; }
+@media (prefers-color-scheme: dark) { :root { --bg: #0f1419; --fg: #e4e7eb; --muted: #9aa5b1;
+  --line: #2b3640; --chip: #1c252e; --accent: #60a5fa; } }
+html, body { margin: 0; background: var(--bg); color: var(--fg); }
+body { font: 15px/1.5 system-ui, -apple-system, Segoe UI, sans-serif; }
+main { max-width: 1100px; margin: 0 auto; padding: 20px 16px 48px; }
+a { color: var(--accent); }
+h1 { margin: 0 0 4px; font-size: 1.7em; }
+.fc-lede { color: var(--muted); margin: 0 0 16px; }
+.fc-tabs { display: flex; gap: 6px; border-bottom: 1px solid var(--line); margin-bottom: 16px;
+  flex-wrap: wrap; }
+.fc-tabs button { font: inherit; padding: 8px 14px; border: 0; background: none; color: var(--muted);
+  border-bottom: 2px solid transparent; cursor: pointer; }
+.fc-tabs button[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--accent);
+  font-weight: 600; }
+.fc-panel[hidden] { display: none; }
+select { font: inherit; padding: 6px 8px; background: var(--chip); color: var(--fg);
+  border: 1px solid var(--line); border-radius: 6px; max-width: 100%; }
+.fc-scroll { overflow-x: auto; }
+pre, code { background: var(--chip); border-radius: 4px; padding: 1px 4px; }
+pre { padding: 10px; overflow-x: auto; }
+img { max-width: 100%; height: auto; }
+</style>
+"""
+
+
+def static_page(
+    replay: Mapping[str, Any],
+    scripts: Mapping[str, Mapping[str, Any]],
+    results_md: str,
+    figures: Sequence[tuple[str, str]],
+    model_id: str,
+    code_sha: str,
+) -> str:
+    """The whole Space as one static page: Replay and Results, and how to try it locally.
+
+    A Gradio Space with live inference needs a paid Hugging Face plan (D-050), so the free Space is
+    static. Replay and Results need no model; they are drawn from committed files.
+    """
+    results = {r["id"]: r for r in replay["scripts"]}
+    options = "".join(
+        f'<option value="{_e(sid)}">{_e(sid[:2])} · {_e(scripts[sid]["title"])}</option>'
+        for sid in results
+    )
+    panels = "".join(
+        f'<div class="fc-script" data-id="{_e(sid)}"{" hidden" if n else ""}>'
+        f"{replay_html(scripts[sid], results[sid], replay)}</div>"
+        for n, sid in enumerate(results)
+    )
+    figs = "".join(
+        f'<figure><img src="figures/{_e(name)}" alt="{_e(cap)}" loading="lazy">'
+        f"<figcaption>{_e(cap)}</figcaption></figure>"
+        for name, cap in figures
+    )
+    repo = "https://github.com/yashraz23/floorcall"
+    try_it = (
+        "<p>Live decisions need the model on a server, which a free Hugging Face Space no longer "
+        "provides. Run the same thing locally (no API key; a CPU is enough):</p>"
+        f"<pre>git clone {repo}\ncd floorcall\nuv sync --no-default-groups --group dev --group cpu\n"
+        "uv run floorcall replay demo/scripts/*.json --compare naive</pre>"
+        f'<p>or load the checkpoint in Python as the <a href="https://huggingface.co/{_e(model_id)}">'
+        "model card</a> shows, with <code>Decider.decide</code> for calibrated probabilities on any "
+        "state you write.</p>"
+    )
+    tabs = (("replay", "Replay"), ("results", "Results"), ("try", "Try it"))
+    return (
+        '<!doctype html><html lang="en"><head><meta charset="utf-8">'
+        '<meta name="viewport" content="width=device-width, initial-scale=1">'
+        "<title>floorcall</title>" + PAGE_STYLE + STYLE + "</head><body><main>"
+        "<h1>floorcall</h1>"
+        '<p class="fc-lede">A millisecond decision layer for voice agents: is the user done '
+        "talking, was that “uh-huh” or a real interruption, what do they want, and do they need a "
+        "human, answered together in one pass of a fine-tuned, calibrated Laya encoder. "
+        f'<a href="https://huggingface.co/{_e(model_id)}">Model</a> · '
+        f'<a href="{repo}">code</a> (commit <code>{_e(code_sha[:7])}</code>)</p>'
+        '<div class="fc-tabs" role="tablist">'
+        + "".join(
+            f'<button role="tab" data-tab="{k}" aria-selected="{"true" if k == "replay" else "false"}">'
+            f"{label}</button>"
+            for k, label in tabs
+        )
+        + "</div>"
+        f'<section class="fc-panel" data-panel="replay">{replay_header(replay)}'
+        f'<label>Scripted call <select id="fc-pick">{options}</select></label>{panels}</section>'
+        f'<section class="fc-panel" data-panel="results" hidden><div class="fc-wrap">'
+        f"{markdown_html(results_md)}{figs}</div></section>"
+        f'<section class="fc-panel" data-panel="try" hidden><div class="fc-wrap">{try_it}</div></section>'
+        "</main><script>"
+        "function fcShow(k){document.querySelectorAll('[data-tab]').forEach(x=>"
+        "x.setAttribute('aria-selected',x.dataset.tab===k));"
+        "document.querySelectorAll('[data-panel]').forEach(p=>p.hidden=p.dataset.panel!==k);}"
+        "document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>{"
+        "fcShow(b.dataset.tab);history.replaceState(null,'','#'+b.dataset.tab);}));"
+        "if(document.querySelector('[data-tab=\"'+location.hash.slice(1)+'\"]'))"
+        "fcShow(location.hash.slice(1));"
+        "document.getElementById('fc-pick').addEventListener('change',e=>{"
+        "document.querySelectorAll('.fc-script').forEach(s=>s.hidden=s.dataset.id!==e.target.value);});"
+        "</script></body></html>"
     )
