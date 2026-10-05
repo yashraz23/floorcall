@@ -862,5 +862,22 @@ def release_space(
         console.print(f"{digest}  {name}", markup=False, highlight=False, soft_wrap=True)
 
 
+@release_app.command("report")
+def release_report(
+    allow_dirty: bool = typer.Option(
+        False, "--allow-dirty", help="build from a dirty tree (trial)"
+    ),
+) -> None:
+    """Build docs/report/floorcall_report.pdf from the committed results, at this commit."""
+    from floorcall.report_pdf import build
+
+    try:
+        out, pages, sha = build(allow_dirty=allow_dirty)
+    except ValueError as e:
+        console.print(f"[red]refused[/red]: {e}")
+        raise typer.Exit(1) from e
+    console.print(f"wrote {out} ({pages} pages) from {sha[:7]}")
+
+
 if __name__ == "__main__":
     app()

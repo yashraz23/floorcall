@@ -17,7 +17,7 @@ decision processor depends on no framework. Wrapping it for a
 
 **Model:** [enz23/floorcall](https://huggingface.co/enz23/floorcall) (CC BY-NC-SA 4.0) ·
 **Demo:** [spaces/enz23/floorcall](https://huggingface.co/spaces/enz23/floorcall): the replayed calls
-and the results.
+and the results. **Report:** [docs/report/floorcall_report.pdf](docs/report/floorcall_report.pdf).
 
 > **Status, 2026-10-05.** Milestones 0 to 2 are done: the spike
 > ([docs/spike-m0.md](docs/spike-m0.md)), the data ([docs/data.md](docs/data.md)), and Tables A to

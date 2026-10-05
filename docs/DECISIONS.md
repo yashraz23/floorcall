@@ -1462,3 +1462,23 @@ published Space is static.
   PRO.
 
 The hero video is a recording of the Replay tab, which the static page has in full.
+
+**D-051 · 2026-10-05 · the project report (D-044)** — `docs/report/floorcall_report.pdf`, built by
+`uv run floorcall release report`.
+- **Every number comes from a committed file when the report is built:**
+  - the results files, the dataset cards and the replay run;
+  - the D4 labeller's self-agreement, computed from the two committed label files rather than
+    copied from this log.
+
+  The text holds no number typed by hand. A missing file prints TODO, and a test fails the build
+  on any TODO.
+- **Content and drawing are separate.** `report_pdf.content()` builds the blocks and is tested;
+  `render()` draws them with fpdf2. fpdf2 is approved in D-045 and sits in the dev group, so CI
+  tests the generator. The fonts are the DejaVu set that matplotlib ships, so no font is
+  downloaded.
+- **The same commit gives the same bytes:** the creation date is the commit's date, and a test
+  checks it.
+- **It builds only from a clean tree,** and names the commit it was built from. The PDF itself is
+  committed in the next commit, so it cites its parent.
+- **Figure precision:** the report notes that its figures are at fp16 while Table A's rows predate
+  D-040, so their ECE can differ in the third decimal.
